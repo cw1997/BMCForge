@@ -5,8 +5,10 @@ import io
 import json
 from pathlib import Path
 import struct
+import subprocess
 import tarfile
 import zipfile
+from datetime import datetime
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGETS = {
@@ -19,6 +21,18 @@ TARGETS = {
     "aarch64-unknown-linux-musl": ("ELF", 183),
     "armv7-unknown-linux-musleabihf": ("ELF", 40),
 }
+
+
+def get_git_info():
+    try:
+        commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, stderr=subprocess.DEVNULL).decode("utf-8").strip()
+        short_commit = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, stderr=subprocess.DEVNULL).decode("utf-8").strip()
+    except Exception:
+        commit = "unknown"
+        short_commit = "unknown"
+    # Use UTC datetime for consistent filenames
+    dt = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+    return commit, short_commit, dt
 
 
 def inspect_binary(data):
@@ -35,22 +49,27 @@ def inspect_binary(data):
     raise ValueError("unrecognized executable format")
 
 
-def package(target, test_mode, root=ROOT):
+def package(target, test_mode, build_type="release", root=ROOT):
     import tomllib
     version = tomllib.loads((root / "Cargo.toml").read_text(encoding="utf-8"))["workspace"]["package"]["version"]
     binary_name = "bmcforge.exe" if "windows" in target else "bmcforge"
-    binary = root / "target" / target / "release" / binary_name
+    build_dir = "debug" if build_type == "debug" else "release"
+    binary = root / "target" / target / build_dir / binary_name
     if inspect_binary(binary.read_bytes()) != TARGETS[target]:
         raise ValueError(f"executable architecture mismatch for {target}")
-    metadata = dict(version=version, target=target, build="passed", unit_and_protocol_tests="passed", executable_smoke_test="passed", test_mode=test_mode, hardware_verified=False)
+    git_commit, git_short, git_dt = get_git_info()
+    metadata = dict(version=version, target=target, build="passed", unit_and_protocol_tests="passed", executable_smoke_test="passed", test_mode=test_mode, hardware_verified=False, git_commit=git_commit, git_short=git_short, build_type=build_type, build_datetime=git_dt)
     files = {binary_name: (binary.read_bytes(), 0o755)}
-    for file in [root / "LICENSE", root / "README.md", root / "CHANGELOG.md", root / "CONTRIBUTING.md", root / "examples/config.toml", *sorted((root / "docs").rglob("*")), *sorted((root / "profiles").rglob("*")), *sorted((root / "locales").rglob("*")), root / "vendor/ipmi/BMCFORGE-PATCHES.md", root / "vendor/ipmi/LICENSE"]:
+    for file in [root / "LICENSE", root / "README.md", root / "README_EN.md", root / "CHANGELOG.md", root / "CONTRIBUTING.md", root / "examples/config.toml", *sorted((root / "docs").rglob("*")), *sorted((root / "profiles").rglob("*")), *sorted((root / "locales").rglob("*")), root / "vendor/ipmi/BMCFORGE-PATCHES.md", root / "vendor/ipmi/LICENSE"]:
         if file.is_file():
             files[str(file.relative_to(root)).replace("\\", "/")] = (file.read_bytes(), 0o644)
     files["BUILD-STATUS.json"] = (json.dumps(metadata, indent=2).encode(), 0o644)
     dist = root / "dist"
     dist.mkdir(exist_ok=True)
-    stem = f"bmcforge-{version}-{target}"
+    if build_type == "debug":
+        stem = f"bmcforge-{version}-{git_short}-{git_dt}-debug-{target}"
+    else:
+        stem = f"bmcforge-{version}-{target}"
     archive = dist / (stem + (".zip" if "windows" in target else ".tar.gz"))
     if archive.suffix == ".zip":
         with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as output:
@@ -76,5 +95,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--target", choices=TARGETS, required=True)
     parser.add_argument("--test-mode", choices=["native", "native-wow64", "container", "qemu"], required=True)
+    parser.add_argument("--build-type", choices=["release", "debug"], default="release")
     args = parser.parse_args()
-    print(package(args.target, args.test_mode))
+    print(package(args.target, args.test_mode, args.build_type))

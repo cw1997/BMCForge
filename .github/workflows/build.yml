@@ -2,14 +2,19 @@ name: Multi-platform builds
 on:
   pull_request:
   push:
-    branches: [main, master]
   workflow_dispatch:
   workflow_call:
+    inputs:
+      build_type:
+        description: 'Build type: debug or release'
+        required: false
+        default: 'release'
+        type: string
 permissions:
   contents: read
 jobs:
   build:
-    name: ${{ matrix.target }}
+    name: ${{ matrix.target }} (${{ inputs.build_type || 'debug' }})
     strategy:
       fail-fast: false
       matrix:
@@ -42,22 +47,22 @@ jobs:
         uses: docker/setup-qemu-action@v4
         with:
           platforms: arm,arm64
-      - name: Build release executable
-        run: ${{ matrix.tool }} build --release --locked --target ${{ matrix.target }} -p bmcforge
+      - name: Build (${{ inputs.build_type || 'debug' }}) executable
+        run: ${{ matrix.tool }} build --${{ inputs.build_type || 'debug' }} --locked --target ${{ matrix.target }} -p bmcforge
       - name: Target unit and simulated integration tests
         run: ${{ matrix.tool }} test --workspace --locked --target ${{ matrix.target }}
       - name: Target protocol regression tests
         run: ${{ matrix.tool }} test --manifest-path vendor/ipmi/Cargo.toml --locked --no-default-features --features blocking --lib --target ${{ matrix.target }}
       - name: Target executable smoke test
-        run: ${{ matrix.tool }} run --release --locked --target ${{ matrix.target }} -p bmcforge -- demo-check
+        run: ${{ matrix.tool }} run --${{ inputs.build_type || 'debug' }} --locked --target ${{ matrix.target }} -p bmcforge -- demo-check
       - name: Target embedded locale validation
-        run: ${{ matrix.tool }} run --release --locked --target ${{ matrix.target }} -p bmcforge -- validate-locales
+        run: ${{ matrix.tool }} run --${{ inputs.build_type || 'debug' }} --locked --target ${{ matrix.target }} -p bmcforge -- validate-locales
       - name: Target embedded model validation
-        run: ${{ matrix.tool }} run --release --locked --target ${{ matrix.target }} -p bmcforge -- validate-models
-      - name: Package and inspect executable architecture
-        run: python scripts/package_release.py --target ${{ matrix.target }} --test-mode ${{ matrix.mode }}
+        run: ${{ matrix.tool }} run --${{ inputs.build_type || 'debug' }} --locked --target ${{ matrix.target }} -p bmcforge -- validate-models
+      - name: Package and inspect executable architecture (${{ inputs.build_type || 'debug' }})
+        run: python scripts/package_release.py --target ${{ matrix.target }} --test-mode ${{ matrix.mode }} --build-type ${{ inputs.build_type || 'debug' }}
       - uses: actions/upload-artifact@v7
         with:
-          name: bmcforge-${{ matrix.target }}
+          name: bmcforge-${{ matrix.target }}-${{ inputs.build_type || 'debug' }}-${{ github.sha }}
           path: dist/*
           if-no-files-found: error
