@@ -8,7 +8,7 @@ import struct
 import subprocess
 import tarfile
 import zipfile
-from datetime import datetime
+from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGETS = {
@@ -30,8 +30,8 @@ def get_git_info():
     except Exception:
         commit = "unknown"
         short_commit = "unknown"
-    # Use UTC datetime for consistent filenames
-    dt = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+    # Use UTC datetime for consistent filenames across runners
+    dt = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     return commit, short_commit, dt
 
 
@@ -49,7 +49,7 @@ def inspect_binary(data):
     raise ValueError("unrecognized executable format")
 
 
-def package(target, test_mode, build_type="release", root=ROOT):
+def package(target, test_mode, root=ROOT, build_type="release"):
     import tomllib
     version = tomllib.loads((root / "Cargo.toml").read_text(encoding="utf-8"))["workspace"]["package"]["version"]
     binary_name = "bmcforge.exe" if "windows" in target else "bmcforge"
@@ -60,14 +60,14 @@ def package(target, test_mode, build_type="release", root=ROOT):
     git_commit, git_short, git_dt = get_git_info()
     metadata = dict(version=version, target=target, build="passed", unit_and_protocol_tests="passed", executable_smoke_test="passed", test_mode=test_mode, hardware_verified=False, git_commit=git_commit, git_short=git_short, build_type=build_type, build_datetime=git_dt)
     files = {binary_name: (binary.read_bytes(), 0o755)}
-    for file in [root / "LICENSE", root / "README.md", root / "README_EN.md", root / "CHANGELOG.md", root / "CONTRIBUTING.md", root / "examples/config.toml", *sorted((root / "docs").rglob("*")), *sorted((root / "profiles").rglob("*")), *sorted((root / "locales").rglob("*")), root / "vendor/ipmi/BMCFORGE-PATCHES.md", root / "vendor/ipmi/LICENSE"]:
+    for file in [root / "LICENSE", root / "README.md", root / "README.zh-CN.md", root / "CHANGELOG.md", root / "CONTRIBUTING.md", root / "examples/config.toml", *sorted((root / "docs").rglob("*")), *sorted((root / "profiles").rglob("*")), *sorted((root / "locales").rglob("*")), root / "vendor/ipmi/BMCFORGE-PATCHES.md", root / "vendor/ipmi/LICENSE"]:
         if file.is_file():
             files[str(file.relative_to(root)).replace("\\", "/")] = (file.read_bytes(), 0o644)
     files["BUILD-STATUS.json"] = (json.dumps(metadata, indent=2).encode(), 0o644)
     dist = root / "dist"
     dist.mkdir(exist_ok=True)
     if build_type == "debug":
-        stem = f"bmcforge-{version}-{git_short}-{git_dt}-debug-{target}"
+        stem = f"bmcforge-{version}-{git_commit}-{git_dt}-debug-{target}"
     else:
         stem = f"bmcforge-{version}-{target}"
     archive = dist / (stem + (".zip" if "windows" in target else ".tar.gz"))
@@ -97,4 +97,4 @@ if __name__ == "__main__":
     parser.add_argument("--test-mode", choices=["native", "native-wow64", "container", "qemu"], required=True)
     parser.add_argument("--build-type", choices=["release", "debug"], default="release")
     args = parser.parse_args()
-    print(package(args.target, args.test_mode, args.build_type))
+    print(package(args.target, args.test_mode, build_type=args.build_type))

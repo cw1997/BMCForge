@@ -18,7 +18,13 @@
 - Rust/Ratatui bilingual terminal interface, multi-server credentials, bulk address import and cancellable IPv4 discovery.
 - Versioned TOML configuration and adapters, explicit experimental controls, evidence and command-example validation.
 - Offline demo, sensor history, redacted diagnostics, and loopback protocol regression tests.
-- Eight-target build/test/package workflows and draft releases with checksums and verification metadata.
+- Eight-target build/test/package workflows and releases with checksums and verification metadata.
+
+### Changed
+
+- `README.md` is now the pure-English README; the Chinese documentation moved to `README.zh-CN.md`, with both files cross-linking each other's language at the top.
+- CI runs tests on every branch, and the multi-platform build workflow now produces debug packages by default with the full git commit hash and a UTC build timestamp in each archive name.
+- Releases are published only for `main`/`master` updates and include both the debug and release packages.
 
 ### Security
 

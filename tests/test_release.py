@@ -65,6 +65,24 @@ class ReleaseTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 release.package(target,"native",root)
 
+    def test_debug_package_name_includes_full_commit_and_timestamp(self):
+        import re
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            (root / "Cargo.toml").write_text('[workspace.package]\nversion = "1.2.3"\n')
+            pe=bytearray(128); pe[:2]=b"MZ"; struct.pack_into("<I",pe,60,80); pe[80:84]=b"PE\0\0"; struct.pack_into("<H",pe,84,0x8664)
+            target="x86_64-pc-windows-msvc"
+            binary=root / "target" / target / "debug/bmcforge.exe"
+            binary.parent.mkdir(parents=True); binary.write_bytes(pe)
+            archive=release.package(target,"native",root,build_type="debug")
+            commit,_,_=release.get_git_info()
+            self.assertRegex(archive.name,rf"^bmcforge-1\.2\.3-{re.escape(commit)}-\d{{8}}-\d{{6}}-debug-{re.escape(target)}\.zip$")
+            with zipfile.ZipFile(archive) as output:
+                status=json.loads(output.read(next(n for n in output.namelist() if n.endswith("BUILD-STATUS.json"))))
+                self.assertEqual(status["build_type"],"debug")
+                self.assertEqual(status["git_commit"],commit)
+                self.assertIn("build_datetime",status)
+
     def test_eight_distinct_targets(self):
         self.assertEqual(len(release.TARGETS), 8)
         self.assertEqual(len(set(release.TARGETS.values())), 8)

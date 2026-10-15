@@ -45,8 +45,3 @@ jobs:
       - run: cargo test --workspace --locked
       - run: cargo test --manifest-path vendor/ipmi/Cargo.toml --locked --no-default-features --features blocking --lib
       - run: cargo run --locked -p bmcforge -- demo-check
-      # Build debug version for artifact output
-      - run: cargo build --locked -p bmcforge
-      - run: python scripts/package_release.py --target ${{ runner.os == 'Windows' && 'x86_64-pc-windows-msvc' || runner.os == 'macOS' && 'aarch64-apple-darwin' || 'x86_64-unknown-linux-musl' }} --test-mode native --build-type debug 2>/dev/null || true
-        shell: bash
-        continue-on-error: true
