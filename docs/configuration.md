@@ -10,7 +10,7 @@
 
 ## Global settings
 
-`language`: `zh-CN` or `en`; `theme`: `dark` or `light`; `mouse`: enables wheel navigation. `concurrency` limits simultaneous device operations. Device and scan concurrency must be 1..1024. Concurrency and mouse capture changes require restarting the application; other display settings apply immediately.
+`language` defaults to `en`; built-in IDs are `en`, `zh-CN`, `zh-TW`, `ja`, `ko`, `de`, `fr`, `es`, `pt-BR`, `it`, `ru`. Community language tags are accepted and missing packs fall back to embedded English. `theme`: `dark` or `light`; `mouse` defaults to true and enables clicks, double-clicks, local wheel scrolling and editor cursor positioning. Existing explicit preferences remain unchanged. Language and mouse changes apply immediately; concurrency changes require restarting. `concurrency` limits simultaneous device operations; device and scan concurrency must be 1..1024. See [language packs](localization.md).
 
 Discovery defaults: `scan_concurrency = 32`, `scan_port = 623`, `scan_timeout_ms = 2000`, `scan_retries = 1`, `scan_rate_per_second = 32`, `scan_confirm_above = 4096`. Every scan has a target preview; larger scans display a large-scan notice. Inputs larger than 1,048,576 addresses are rejected before expansion, so split large networks. Configuration may reduce the confirmation threshold.
 
@@ -21,6 +21,8 @@ Discovery defaults: `scan_concurrency = 32`, `scan_port = 623`, `scan_timeout_ms
 Each `[[servers]]` has a stable `id`, `name`, `host`, `port` (623), `[servers.credentials]` username/password, optional `profile`, tags, `timeout_ms` (2000), `retries` (1), `poll_seconds` (5), `privilege` (4) and optional `kg` for two-key BMC logins. `allow_experimental` defaults to false. IDs cannot be changed through the editor. Hosts can be IPv4, IPv6 or DNS names; automatic discovery is IPv4 only.
 
 The profile browser selects a profile for the current fleet row. Automatic matching requires an exact product name or product ID in addition to applicable vendor/firmware constraints. Ambiguous matches require explicit selection. A profile's known hardware and firmware limits are checked again before writing, including explicit selection. A family profile with no exact model criteria is offered for explicit selection only.
+
+Optional `model_id` stores the user-confirmed catalog ID; `identity_evidence` retains the original Device ID bytes, FRU, machine types and decoded firmware at identification time. `identification_error` records a reviewed failure after redaction. Neither a model choice nor these persisted fields overrides the live identity guard before writes. See [catalog and recognition](models.md).
 
 `retries` applies only to read/reconnect attempts. Explicit authentication failures do not retry, and background polling pauses until credentials are edited. A write uses one transport attempt. Timeouts may mean the command executed but its response was lost; the UI records this uncertainty and retains the automatic-restore obligation.
 

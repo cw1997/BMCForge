@@ -1,5 +1,7 @@
 mod app;
 mod editor;
+mod i18n;
+mod mouse;
 mod runtime;
 mod ui;
 
@@ -11,7 +13,7 @@ use clap::{Parser, Subcommand};
 use crossterm::{
     event::{
         DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture,
-        Event, EventStream, KeyCode, KeyEvent, KeyModifiers, MouseEventKind,
+        Event, EventStream, KeyCode, KeyModifiers,
     },
     execute,
 };
@@ -32,6 +34,8 @@ struct Args {
     config: Option<PathBuf>,
     #[arg(long, global = true)]
     profiles_dir: Option<PathBuf>,
+    #[arg(long, global = true)]
+    locales_dir: Option<PathBuf>,
     #[arg(long)]
     demo: bool,
     #[command(subcommand)]
@@ -43,6 +47,10 @@ enum CliCommand {
     ValidateConfig,
     /// Validate every built-in/external profile, including command examples.
     ValidateProfiles,
+    ValidateLocales,
+    ValidateModels,
+    ModelSchema,
+    LocaleSchema,
     /// Print the profile JSON schema (applies to parsed TOML data).
     ProfileSchema,
     /// Create a new configuration; never overwrites an existing file.
@@ -59,7 +67,46 @@ async fn main() -> Result<()> {
         None => default_path()?,
     };
     let registry = Registry::load(args.profiles_dir.as_deref())?;
+    let locales = i18n::Locales::load(args.locales_dir.as_deref())?;
+    let catalog = bmcforge_profiles::models::Catalog::load(args.profiles_dir.as_deref())?;
+    for warning in &locales.diagnostics {
+        eprintln!("Locale ignored: {warning}");
+    }
     match args.command {
+        Some(CliCommand::ValidateLocales) => {
+            anyhow::ensure!(
+                locales.diagnostics.is_empty(),
+                "external locale validation failed"
+            );
+            println!("{} language packs valid", locales.packs.len());
+            return Ok(());
+        }
+        Some(CliCommand::ValidateModels) => {
+            for m in catalog.models.values() {
+                if let Some(p) = &m.profile {
+                    anyhow::ensure!(
+                        registry.profiles.contains_key(p),
+                        "unknown model profile {p}"
+                    );
+                }
+            }
+            println!("{} models valid", catalog.models.len());
+            return Ok(());
+        }
+        Some(CliCommand::ModelSchema) => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&bmcforge_profiles::models::Catalog::schema())?
+            );
+            return Ok(());
+        }
+        Some(CliCommand::LocaleSchema) => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&i18n::Locales::schema())?
+            );
+            return Ok(());
+        }
         Some(CliCommand::ValidateConfig) => {
             let config = Config::load(&path)?;
             validate_profile_references(&config, &registry)?;
@@ -102,7 +149,9 @@ async fn main() -> Result<()> {
         bail!("TUI requires an interactive terminal; use demo-check for headless smoke testing");
     }
     let mut app = App::new(config, path, registry, args.demo);
-    app.log("Ready. Configuration stores plaintext passwords. Exit attempts BMC automatic restore; forced termination or network loss cannot guarantee recovery.");
+    app.locales = locales;
+    app.catalog = catalog;
+    app.log(i18n::Message::new("safety"));
     let (tx, mut rx) = tokio::sync::mpsc::channel(256);
     let mut runtime = runtime::Runtime::new(tx, &app.config.settings, args.demo);
     for server in app.config.servers.clone() {
@@ -120,9 +169,7 @@ async fn main() -> Result<()> {
     terminal
         .draw(|f| {
             f.render_widget(
-                ratatui::widgets::Paragraph::new(
-                    "Restoring BMC automatic fan control… / 正在恢复 BMC 自动模式…",
-                ),
+                ratatui::widgets::Paragraph::new(app.text("automatic")),
                 f.area(),
             );
         })
@@ -154,19 +201,25 @@ async fn event_loop(
     let mut tick = tokio::time::interval(Duration::from_millis(100));
     let stop = termination();
     tokio::pin!(stop);
+    let mut mouse_enabled = app.config.settings.mouse;
     loop {
+        if mouse_enabled != app.config.settings.mouse {
+            mouse_enabled = app.config.settings.mouse;
+            if mouse_enabled {
+                execute!(io::stdout(), EnableMouseCapture)?;
+            } else {
+                execute!(io::stdout(), DisableMouseCapture)?;
+            }
+        }
         let actions = tokio::select! {
             _=&mut stop => return Ok(()),
-            _=tick.tick() => { terminal.draw(|f|ui::draw(f,app))?; vec![] },
+            _=tick.tick() => { app.resume_review(); terminal.draw(|f|ui::draw(f,app))?; vec![] },
             Some(message)=rx.recv() => app.message(message),
             event=events.next() => match event {
                 Some(Ok(Event::Key(key))) => if key.code==KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) { return Ok(()); } else { app.input(key) },
                 Some(Ok(Event::Paste(text))) => { app.paste(&text); vec![] },
                 Some(Ok(Event::Mouse(mouse))) => {
-                    if app.config.settings.mouse && app.modal.is_none() { match mouse.kind {
-                        MouseEventKind::ScrollDown => app.input(KeyEvent::new(KeyCode::Down,KeyModifiers::NONE)),
-                        MouseEventKind::ScrollUp => app.input(KeyEvent::new(KeyCode::Up,KeyModifiers::NONE)), _=>vec![]
-                    } } else { vec![] }
+                    app.mouse(mouse)
                 },
                 Some(Ok(_))=>vec![], Some(Err(error))=>return Err(error.into()),None=>return Ok(()),
             }
@@ -181,10 +234,9 @@ async fn event_loop(
                 }
                 Action::Forget(id) => runtime.forget(&id),
                 Action::Configure(server) => {
-                    if let Err(e) = runtime.send(
-                        &server.id.clone(),
-                        runtime::Command::Configure(Box::new(server)),
-                    ) {
+                    if let Err(e) =
+                        runtime.send(&server.id.clone(), runtime::Command::Configure(server))
+                    {
                         app.log(format!("{e:#}"));
                     }
                 }
@@ -197,7 +249,12 @@ async fn event_loop(
                     app.scan_generation = runtime.scan(hosts, port, app.config.settings.clone());
                 }
                 Action::CancelScan => runtime.scan_cancel.cancel(),
-                Action::Authenticate(servers) => runtime.authenticate(servers),
+                Action::Authenticate(servers) => {
+                    app.identify_generation = runtime.authenticate(servers);
+                }
+                Action::CancelIdentify => {
+                    app.identify_generation = runtime.cancel_identify();
+                }
             }
         }
     }
@@ -245,13 +302,25 @@ async fn demo_check(registry: Registry) -> Result<()> {
             .context("profile missing")?;
         let mut device = bmcforge_ipmi::Device::new(server, true);
         device.poll().await?;
-        let zone = profile.fan.as_ref().context("control")?.zones[0].id;
-        device.manual(profile, 40, zone).await?;
+        let Some(fan) = profile.fan.as_ref() else {
+            device.shutdown().await?;
+            continue;
+        };
+        for zone in &fan.zones {
+            let value = fan
+                .raw_values
+                .first()
+                .copied()
+                .map(bmcforge_core::ControlValue::Raw)
+                .unwrap_or(bmcforge_core::ControlValue::Percent(40));
+            device.manual_value(profile, value, zone.id).await?;
+        }
         device.poll().await?;
         println!(
-            "{}: {} sensors; manual request 40%; actual duty unknown",
+            "{}: {} sensors; typed manual request {:?}; actual duty unknown",
             device.identity.model,
-            device.sensors.len()
+            device.sensors.len(),
+            device.control
         );
         device.shutdown().await?;
         anyhow::ensure!(!device.taken_over, "restore failed");
@@ -271,6 +340,62 @@ async fn demo_check(registry: Registry) -> Result<()> {
         count += 1;
     }
     anyhow::ensure!(count == 2, "demo discovery failed");
+    let mut review = App::new(Config::default(), "demo-unused.toml".into(), registry, true);
+    review.identifying = true;
+    review.identify_generation = 1;
+    review.identify_total = 4;
+    for last in 20..=23 {
+        let server = bmcforge_core::config::Server {
+            id: format!("identified-{last}"),
+            host: format!("192.0.2.{last}"),
+            name: format!("Demo {last}"),
+            credentials: bmcforge_core::config::Credentials {
+                username: "demo".into(),
+                password: "demo".into(),
+            },
+            allow_experimental: true,
+            ..Default::default()
+        };
+        let mut device = bmcforge_ipmi::Device::new(server.clone(), true);
+        let identity = device.identify().await?;
+        device.shutdown().await?;
+        review.message(runtime::Message::Identified(1, server, identity, None));
+    }
+    review.message(runtime::Message::IdentificationFinished(1));
+    while let Some(app::Modal::ModelChoice { query, .. }) = &mut review.modal {
+        *query = "3650".into();
+        let key = if review.model_options("3650").is_empty() {
+            KeyCode::F(5)
+        } else {
+            KeyCode::Enter
+        };
+        review.input(crossterm::event::KeyEvent::new(key, KeyModifiers::NONE));
+    }
+    anyhow::ensure!(
+        review.config.servers.is_empty(),
+        "identification saved before confirmation"
+    );
+    let actions = review.input(crossterm::event::KeyEvent::new(
+        KeyCode::Enter,
+        KeyModifiers::NONE,
+    ));
+    anyhow::ensure!(
+        matches!(actions.as_slice(),[Action::Add(servers)] if servers.len()==4),
+        "identity review failed"
+    );
+    anyhow::ensure!(
+        review
+            .config
+            .servers
+            .iter()
+            .filter(|s| s.model_id.is_some())
+            .count()
+            == 3,
+        "unique/ambiguous recognition failed"
+    );
+    println!(
+        "Identity-only batches, unique/ambiguous model review and final confirmation passed (4 simulated devices)."
+    );
     println!(
         "Demo discovery and BMC automatic restore passed. Simulation is not hardware verification."
     );

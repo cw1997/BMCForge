@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "definitions": {
+    "Model": {
+      "additionalProperties": false,
+      "properties": {
+        "aliases": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "machine_types": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "manufacturer_ids": {
+          "items": {
+            "format": "uint32",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        },
+        "product_ids": {
+          "default": [],
+          "items": {
+            "format": "uint16",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "profile": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sources": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "vendor": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "manufacturer_ids",
+        "name",
+        "sources",
+        "vendor"
+      ],
+      "type": "object"
+    }
+  },
+  "properties": {
+    "models": {
+      "items": {
+        "$ref": "#/definitions/Model"
+      },
+      "type": "array"
+    },
+    "override_builtin": {
+      "default": false,
+      "type": "boolean"
+    },
+    "schema_version": {
+      "format": "uint32",
+      "minimum": 0.0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "models",
+    "schema_version"
+  ],
+  "title": "CatalogFile",
+  "type": "object"
+}

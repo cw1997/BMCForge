@@ -18,9 +18,19 @@
           "type": "array"
         },
         "percent": {
+          "default": 0,
           "format": "uint8",
           "minimum": 0.0,
           "type": "integer"
+        },
+        "raw": {
+          "default": null,
+          "format": "uint8",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "zone": {
           "format": "uint8",
@@ -30,7 +40,6 @@
       },
       "required": [
         "expected",
-        "percent",
         "zone"
       ],
       "type": "object"
@@ -85,6 +94,19 @@
           "format": "uint8",
           "minimum": 0.0,
           "type": "integer"
+        },
+        "raw_values": {
+          "default": [],
+          "items": {
+            "format": "uint8",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "restore_per_zone": {
+          "default": false,
+          "type": "boolean"
         },
         "scale": {
           "description": "Raw value representing 100% duty: normally 100 or 255.",
@@ -148,6 +170,15 @@
             "integer",
             "null"
           ]
+        },
+        "manufacturer_ids": {
+          "default": [],
+          "items": {
+            "format": "uint32",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "type": "array"
         },
         "models": {
           "default": [],

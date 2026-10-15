@@ -5,7 +5,7 @@ pub mod sdr;
 
 use anyhow::{Context, Result, anyhow, ensure};
 use async_trait::async_trait;
-use bmcforge_core::{ControlState, DeviceIdentity, Sensor, config::Server};
+use bmcforge_core::{ControlState, ControlValue, DeviceIdentity, Sensor, config::Server};
 use bmcforge_profiles::{Command, Profile};
 use std::time::Duration;
 
@@ -116,6 +116,7 @@ pub struct Device {
     pub control: ControlState,
     pub taken_over: bool,
     restore: Vec<Command>,
+    zone_restore: std::collections::BTreeMap<u8, Vec<Command>>,
     demo: bool,
     injected: bool,
     active_profile: Option<String>,
@@ -132,6 +133,7 @@ impl Device {
             control: ControlState::Unknown,
             taken_over: false,
             restore: vec![],
+            zone_restore: Default::default(),
             demo,
             injected: false,
             active_profile: None,
@@ -154,7 +156,8 @@ impl Device {
         }
         Ok(())
     }
-    async fn read_once(&mut self) -> Result<()> {
+    /// Authentication and identity only. Does not enumerate SDRs or write fan commands.
+    pub async fn identify(&mut self) -> Result<DeviceIdentity> {
         self.connect().await?;
         let t = self.transport.as_mut().context("no connection")?;
         if self.identity.manufacturer_id == 0 {
@@ -163,21 +166,42 @@ impl Device {
             self.identity = DeviceIdentity {
                 manufacturer_id: u32::from_le_bytes([bytes[6], bytes[7], bytes[8], 0]),
                 product_id: u16::from_le_bytes([bytes[9], bytes[10]]),
-                firmware: format!(
-                    "{}.{}",
-                    bytes[2] & 0x7f,
-                    (bytes[3] >> 4) * 10 + (bytes[3] & 15)
-                ),
+                firmware: if bytes[3] >> 4 <= 9 && bytes[3] & 15 <= 9 {
+                    format!(
+                        "{}.{}",
+                        bytes[2] & 0x7f,
+                        (bytes[3] >> 4) * 10 + (bytes[3] & 15)
+                    )
+                } else {
+                    String::new()
+                },
+                device_id_raw: bytes.clone(),
                 ..Default::default()
             };
             match fru::read(t.as_mut(), 0).await {
                 Ok(info) => {
                     self.identity.model = info.model;
+                    self.identity.machine_types = info
+                        .fields
+                        .iter()
+                        .filter(|s| s.starts_with("Product[1]:") || s.starts_with("Product[2]:"))
+                        .flat_map(|s| s.split(|c: char| !c.is_ascii_alphanumeric()))
+                        .filter(|s| {
+                            (s.len() == 4 || s.len() == 7)
+                                && s.bytes().take(4).all(|c| c.is_ascii_digit())
+                        })
+                        .map(str::to_owned)
+                        .collect();
                     self.identity.fru = info.fields;
                 }
                 Err(err) => self.identity.fru = vec![format!("FRU unavailable: {err}")],
             }
         }
+        Ok(self.identity.clone())
+    }
+    async fn read_once(&mut self) -> Result<()> {
+        self.identify().await?;
+        let t = self.transport.as_mut().context("no connection")?;
         if self.records.is_empty() {
             self.records = sdr::enumerate(t.as_mut()).await?;
         }
@@ -276,6 +300,15 @@ impl Device {
         Ok(())
     }
     pub async fn manual(&mut self, profile: &Profile, percent: u8, zone: u8) -> Result<()> {
+        self.manual_value(profile, ControlValue::Percent(percent), zone)
+            .await
+    }
+    pub async fn manual_value(
+        &mut self,
+        profile: &Profile,
+        value: ControlValue,
+        zone: u8,
+    ) -> Result<()> {
         ensure!(
             profile.eligible(self.server.allow_experimental),
             "profile is monitoring-only or experimental control is disabled"
@@ -284,11 +317,16 @@ impl Device {
             !matches!(self.control, ControlState::Uncertain),
             "restore automatic mode before another manual request"
         );
-        let commands = profile.commands(percent, zone, !self.taken_over)?;
-        let restore = profile.automatic()?;
+        let commands = profile.commands_value(value, zone, !self.taken_over)?;
+        let per_zone = profile.fan.as_ref().is_some_and(|f| f.restore_per_zone);
+        let restore = if per_zone {
+            profile.automatic_zone(zone)?
+        } else {
+            profile.automatic()?
+        };
         self.connect().await?;
         if self.identity.manufacturer_id == 0 {
-            self.read_once().await?;
+            self.identify().await?;
         }
         ensure!(
             profile.compatible(&self.identity),
@@ -297,17 +335,25 @@ impl Device {
         if self.taken_over {
             ensure!(
                 self.active_profile.as_deref() == Some(profile.id.as_str())
-                    && self.restore == restore,
+                    && (per_zone || self.restore == restore),
                 "restore automatic mode before changing the active control profile"
             );
         }
-        self.restore = restore;
+        if per_zone {
+            // Record obligations before attempting I/O: timeout/partial failure may still have applied.
+            self.zone_restore.insert(zone, restore);
+        } else {
+            self.restore = restore;
+        }
         self.active_profile = Some(profile.id.clone());
         self.taken_over = true;
         self.control = ControlState::Uncertain;
         match self.sequence(&commands).await {
             Ok(()) => {
-                self.control = ControlState::Requested { percent, zone };
+                self.control = match value {
+                    ControlValue::Percent(percent) => ControlState::Requested { percent, zone },
+                    ControlValue::Raw(value) => ControlState::RawRequested { value, zone },
+                };
                 Ok(())
             }
             Err(error) => {
@@ -323,6 +369,27 @@ impl Device {
         }
     }
     pub async fn automatic(&mut self, profile: Option<&Profile>) -> Result<()> {
+        if self.taken_over && !self.zone_restore.is_empty() {
+            self.control = ControlState::Uncertain;
+            let mut errors = vec![];
+            for (zone, commands) in self.zone_restore.clone() {
+                match self.sequence(&commands).await {
+                    Ok(()) => {
+                        self.zone_restore.remove(&zone);
+                    }
+                    Err(e) => errors.push(format!("bank {zone}: {e:#}")),
+                }
+            }
+            ensure!(
+                errors.is_empty(),
+                "automatic bank restore failed: {}",
+                errors.join("; ")
+            );
+            self.control = ControlState::Automatic;
+            self.taken_over = false;
+            self.active_profile = None;
+            return Ok(());
+        }
         let commands = if self.taken_over {
             self.restore.clone()
         } else {
@@ -333,7 +400,7 @@ impl Device {
             );
             self.connect().await?;
             if self.identity.manufacturer_id == 0 {
-                self.read_once().await?;
+                self.identify().await?;
             }
             ensure!(
                 p.compatible(&self.identity),

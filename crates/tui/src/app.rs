@@ -4,6 +4,7 @@ use crate::{
 };
 use anyhow::{Context, Result, ensure};
 use bmcforge_core::{
+    ControlValue, DeviceIdentity,
     config::{Config, Credentials, Server, Settings},
     redact, targets,
 };
@@ -18,11 +19,12 @@ use std::{
 
 pub enum Action {
     Add(Vec<Server>),
-    Configure(Server),
+    Configure(Box<Server>),
     Send(String, Command),
     Scan(Vec<String>, u16),
     CancelScan,
     Authenticate(Vec<Server>),
+    CancelIdentify,
     Forget(String),
     Quit,
 }
@@ -57,7 +59,14 @@ pub enum Modal {
         title: String,
         text: String,
         control: Vec<(String, Profile)>,
-        manual: Option<(u8, u8)>,
+        manual: Option<(ControlValue, u8)>,
+    },
+    Languages {
+        cursor: usize,
+    },
+    ModelChoice {
+        query: String,
+        cursor: usize,
     },
     Info(String),
     Remove {
@@ -78,11 +87,29 @@ struct ImportForm {
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ManualForm {
-    percent: u8,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    percent: Option<u8>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    raw: Option<u8>,
     zone: u8,
+}
+pub struct Identified {
+    pub server: Server,
+    pub identity: DeviceIdentity,
+    pub candidates: Vec<bmcforge_profiles::models::Candidate>,
+    pub error: Option<String>,
 }
 
 pub struct App {
+    pub locales: crate::i18n::Locales,
+    pub catalog: bmcforge_profiles::models::Catalog,
+    pub hits: Vec<crate::mouse::Hit>,
+    pub last_click: Option<(String, std::time::Instant)>,
+    pub identify_generation: u64,
+    pub identifying: bool,
+    pub identify_total: usize,
+    pub pending: Vec<Identified>,
+    pub resolved: Vec<Server>,
     pub config: Config,
     pub path: PathBuf,
     pub registry: Registry,
@@ -100,10 +127,10 @@ pub struct App {
     pub scanning: bool,
     pub candidates_only: bool,
     pub search: String,
-    pub logs: VecDeque<String>,
+    pub logs: VecDeque<crate::i18n::Message>,
     pub modal: Option<Modal>,
     pub modal_scroll: u16,
-    pub status: String,
+    pub status: crate::i18n::Message,
     pub demo: bool,
     pub detail_scroll: u16,
     pub sensor_scroll: usize,
@@ -113,6 +140,15 @@ pub struct App {
 impl App {
     pub fn new(config: Config, path: PathBuf, registry: Registry, demo: bool) -> Self {
         Self {
+            locales: crate::i18n::Locales::load(None).expect("builtin languages"),
+            catalog: bmcforge_profiles::models::Catalog::load(None).expect("builtin models"),
+            hits: vec![],
+            last_click: None,
+            identify_generation: 0,
+            identifying: false,
+            identify_total: 0,
+            pending: vec![],
+            resolved: vec![],
             config,
             path,
             registry,
@@ -141,12 +177,8 @@ impl App {
             sequence: 0,
         }
     }
-    pub fn tr<'a>(&self, zh: &'a str, en: &'a str) -> &'a str {
-        if self.config.settings.language == "en" {
-            en
-        } else {
-            zh
-        }
+    pub fn text<'a>(&'a self, id: &'a str) -> &'a str {
+        self.locales.text(&self.config.settings.language, id)
     }
     pub fn visible(&self) -> Vec<usize> {
         let query = self.search.to_lowercase();
@@ -199,8 +231,12 @@ impl App {
             .map(|(i, _)| i)
             .collect()
     }
-    pub fn log(&mut self, message: impl AsRef<str>) {
-        let message = redact(message.as_ref(), &self.config.secrets());
+    pub fn log(&mut self, message: impl Into<crate::i18n::Message>) {
+        let mut message = message.into();
+        message.details = redact(&message.details, &self.config.secrets());
+        for v in message.args.values_mut() {
+            *v = redact(v, &self.config.secrets());
+        }
         self.status.clone_from(&message);
         self.logs.push_back(message);
         while self.logs.len() > self.config.settings.history_capacity {
@@ -231,7 +267,9 @@ impl App {
             added.push(server);
         }
         self.persist(cfg)?;
-        self.log(format!("Added {} servers", added.len()));
+        let mut event = crate::i18n::Message::new("added-count");
+        event.args.insert("count".into(), added.len().to_string());
+        self.log(event);
         Ok(added)
     }
     pub fn message(&mut self, message: Message) -> Vec<Action> {
@@ -240,7 +278,7 @@ impl App {
                 if !self.config.servers.iter().any(|s| s.id == id) {
                     return vec![];
                 }
-                snapshot.status = redact(&snapshot.status, &self.config.secrets());
+                snapshot.status.details = redact(&snapshot.status.details, &self.config.secrets());
                 if let Some(rpm) = snapshot
                     .sensors
                     .iter()
@@ -258,13 +296,15 @@ impl App {
             }
             Message::Log(log) => self.log(log),
             Message::Discovered(generation, result) => {
-                if generation == self.scan_generation {
+                if generation == self.scan_generation && self.scanning {
                     self.discovery.push(result);
                 }
             }
-            Message::ScanFinished(generation) if generation == self.scan_generation => {
+            Message::ScanFinished(generation)
+                if generation == self.scan_generation && self.scanning =>
+            {
                 self.scanning = false;
-                self.log("Discovery finished / canceled. No response means unknown, not absent.");
+                self.log(crate::i18n::Message::new("scan-finished"));
             }
             Message::ScanFinished(_) => {}
             Message::Configured(server, error) => {
@@ -274,7 +314,7 @@ impl App {
                     let mut cfg = self.config.clone();
                     if let Some(old) = cfg.servers.iter_mut().find(|s| s.id == server.id) {
                         if *old == server {
-                            self.log("Running configuration restored");
+                            self.log(crate::i18n::Message::new("config-restored"));
                             return vec![];
                         }
                         let rollback = old.clone();
@@ -283,9 +323,9 @@ impl App {
                             self.log(format!(
                                 "save failed, rolling back running configuration: {error:#}"
                             ));
-                            return vec![Action::Configure(rollback)];
+                            return vec![Action::Configure(Box::new(rollback))];
                         }
-                        self.log("Server configuration saved");
+                        self.log(crate::i18n::Message::new("server-saved"));
                     }
                 }
             }
@@ -310,30 +350,40 @@ impl App {
                     self.snapshots.remove(&id);
                     self.history.remove(&id);
                     self.cursor = self.cursor.min(self.visible().len().saturating_sub(1));
-                    self.log("Server removed after automatic restore");
+                    self.log(crate::i18n::Message::new("server-removed"));
                     return vec![Action::Forget(id)];
                 }
             }
-            Message::Authenticated(server, error) => {
-                if let Some(error) = error {
-                    self.log(format!(
-                        "{} authentication / read failed: {}",
-                        server.host,
-                        redact(
-                            &error,
-                            &[
-                                server.credentials.password.clone(),
-                                server.kg.clone().unwrap_or_default()
-                            ]
-                        )
-                    ));
-                } else {
-                    match self.add_servers(vec![server]) {
-                        Ok(added) => return vec![Action::Add(added)],
-                        Err(error) => self.log(format!("save failed: {error:#}")),
-                    }
+            Message::Identified(generation, server, identity, error)
+                if generation == self.identify_generation && self.identifying =>
+            {
+                let candidates = self.catalog.candidates(&identity);
+                let error = error.map(|e| {
+                    redact(
+                        &e,
+                        &[
+                            server.credentials.password.clone(),
+                            server.kg.clone().unwrap_or_default(),
+                        ],
+                    )
+                });
+                self.pending.push(Identified {
+                    server,
+                    identity,
+                    candidates,
+                    error,
+                });
+            }
+            Message::IdentificationFinished(generation)
+                if generation == self.identify_generation && self.identifying =>
+            {
+                self.identifying = false;
+                self.log(crate::i18n::Message::new("identification-finished"));
+                if self.modal.is_none() {
+                    self.resolve_next();
                 }
             }
+            Message::Identified(..) | Message::IdentificationFinished(_) => {}
         }
         vec![]
     }
@@ -371,24 +421,24 @@ impl App {
         }
         if self.shortcut(key, "search") {
             self.edit(
-                self.tr(
-                    "搜索服务器 / 标签 / 地址",
-                    "Search servers / tags / addresses",
-                ),
+                self.text("search-servers-tags-addresses").to_owned(),
                 EditKind::Search,
                 &self.search.clone(),
             );
             return Ok(vec![]);
         }
         if self.shortcut(key, "import") {
+            ensure!(
+                !self.identifying,
+                "cancel or finish the current identification batch first"
+            );
             if self.page == 2 {
                 let hosts: Vec<_> = self
                     .discovery
                     .iter()
                     .filter(|r| {
                         r.status == ProbeStatus::IpmiCandidate
-                            && (self.discovery_selected.is_empty()
-                                || self.discovery_selected.contains(&r.host))
+                            && self.discovery_selected.contains(&r.host)
                     })
                     .map(|r| r.host.clone())
                     .collect();
@@ -396,10 +446,8 @@ impl App {
                 self.credentials(hosts, true)?;
             } else {
                 self.edit(
-                    self.tr(
-                        "批量导入：每行 IP、主机名、CIDR 或范围",
-                        "Import: IP / hostname / CIDR / range, one per line",
-                    ),
+                    self.text("import-ip-hostname-cidr-range-one-per-line")
+                        .to_owned(),
                     EditKind::Targets(false),
                     "",
                 );
@@ -412,18 +460,20 @@ impl App {
                 return Ok(vec![Action::CancelScan]);
             }
             self.edit(
-                self.tr(
-                    "发现：每行 IPv4、CIDR 或范围",
-                    "Discover: IPv4 / CIDR / range, one per line",
-                ),
+                self.text("discover-ipv4-cidr-range-one-per-line")
+                    .to_owned(),
                 EditKind::Targets(true),
-                if self.demo { "192.0.2.8/30" } else { "" },
+                if self.demo {
+                    "192.0.2.20-192.0.2.23"
+                } else {
+                    ""
+                },
             );
             return Ok(vec![]);
         }
         if self.shortcut(key, "settings") {
             self.edit(
-                self.tr("设置：TOML", "Settings: TOML"),
+                self.text("settings-toml").to_owned(),
                 EditKind::Settings,
                 &toml::to_string_pretty(&self.config.settings)?,
             );
@@ -448,10 +498,8 @@ impl App {
                 "restore automatic mode before editing this server"
             );
             self.edit(
-                self.tr(
-                    "服务器配置（含明文密码）",
-                    "Server settings (contains plaintext password)",
-                ),
+                self.text("server-settings-contains-plaintext-password")
+                    .to_owned(),
                 EditKind::Server(server.id.clone()),
                 &toml::to_string_pretty(server)?,
             );
@@ -462,13 +510,18 @@ impl App {
             ensure!(!ids.is_empty(), "select a server first");
             let profile = self.profile(&ids[0])?;
             let zone = profile.fan.as_ref().context("monitoring only")?.zones[0].id;
+            let raw = profile
+                .fan
+                .as_ref()
+                .and_then(|f| f.raw_values.first().copied());
             self.edit(
-                self.tr(
-                    "固定占空比：百分比及区域 ID",
-                    "Fixed duty: percentage and zone ID",
-                ),
+                self.text("fixed-duty-percentage-and-zone-id").to_owned(),
                 EditKind::Manual(ids),
-                &toml::to_string_pretty(&ManualForm { percent: 50, zone })?,
+                &toml::to_string_pretty(&ManualForm {
+                    percent: raw.is_none().then_some(50),
+                    raw,
+                    zone,
+                })?,
             );
             return Ok(vec![]);
         }
@@ -492,9 +545,78 @@ impl App {
             }
             return Ok(vec![]);
         }
+        self.fixed_input(key)
+    }
+    /// Shared fixed actions; mouse buttons do not reinterpret user-remapped character shortcuts.
+    pub(crate) fn fixed_input(&mut self, key: KeyEvent) -> Result<Vec<Action>> {
         match key.code {
-            KeyCode::Delete => if let Some(server)=self.current() { self.modal=Some(Modal::Remove { id:server.id.clone(),name:server.name.clone() }); },
-            KeyCode::F(1) => self.modal=Some(Modal::Info("1..5/Tab: pages | Up/Down: navigate | Space: select | i: import | d: discover/cancel | e: server settings | m/a: manual/auto | p: profiles | u on profiles: factory credentials | ,: settings | x: redacted diagnostics | Del: remove after restore | F2/Ctrl+Enter: save editor | q/Ctrl+C: restore & exit. Keys are customizable in settings.".into())),
+            KeyCode::F(3) => self.modal = Some(Modal::Languages { cursor: 0 }),
+            KeyCode::F(4) => {
+                let mut cfg = self.config.clone();
+                cfg.settings.mouse = !cfg.settings.mouse;
+                self.persist(cfg)?;
+            }
+            KeyCode::Char('A') if self.page == 2 => {
+                let hosts: Vec<_> = self
+                    .scan_visible()
+                    .iter()
+                    .filter_map(|i| {
+                        let r = &self.discovery[*i];
+                        (r.status == ProbeStatus::IpmiCandidate).then(|| r.host.clone())
+                    })
+                    .collect();
+                if hosts.iter().all(|h| self.discovery_selected.contains(h)) {
+                    for h in hosts {
+                        self.discovery_selected.remove(&h);
+                    }
+                } else {
+                    self.discovery_selected.extend(hosts);
+                }
+            }
+            KeyCode::Char('G') if self.page == 2 => {
+                if let Some(index) = self.scan_visible().get(self.scan_cursor) {
+                    let group = self.discovery[*index]
+                        .host
+                        .rsplit_once('.')
+                        .map(|(prefix, _)| prefix.to_owned());
+                    let hosts: Vec<_> = self
+                        .discovery
+                        .iter()
+                        .filter(|r| {
+                            r.status == ProbeStatus::IpmiCandidate
+                                && r.host.rsplit_once('.').map(|(p, _)| p) == group.as_deref()
+                        })
+                        .map(|r| r.host.clone())
+                        .collect();
+                    self.discovery_selected.extend(hosts);
+                }
+            }
+            KeyCode::Char('c') if self.identifying => {
+                self.identifying = false;
+                self.pending.clear();
+                return Ok(vec![Action::CancelIdentify]);
+            }
+            KeyCode::Delete => {
+                if let Some(server) = self.current() {
+                    self.modal = Some(Modal::Remove {
+                        id: server.id.clone(),
+                        name: server.name.clone(),
+                    });
+                }
+            }
+            KeyCode::F(1) => {
+                self.modal = Some(Modal::Info(format!(
+                    "{}\n\n{}",
+                    self.text("help"),
+                    self.config
+                        .settings
+                        .keys
+                        .iter()
+                        .map(|(id, key)| format!("{key}: {}", self.text(id)))
+                        .collect::<Vec<_>>()
+                        .join(" | ")
+                )))
+            }
             KeyCode::Char('1'..='5') => {
                 if let KeyCode::Char(c) = key.code {
                     self.page = c as usize - '1' as usize;
@@ -512,16 +634,22 @@ impl App {
                 if self.page == 4 {
                     self.log_scroll = self.log_scroll.saturating_add(10);
                 } else {
-                    if self.page == 1 { self.sensor_scroll = self.sensor_scroll.saturating_add(10); }
-                    else { self.detail_scroll = self.detail_scroll.saturating_add(10); }
+                    if self.page == 1 {
+                        self.sensor_scroll = self.sensor_scroll.saturating_add(10);
+                    } else {
+                        self.detail_scroll = self.detail_scroll.saturating_add(10);
+                    }
                 }
             }
             KeyCode::PageUp => {
                 if self.page == 4 {
                     self.log_scroll = self.log_scroll.saturating_sub(10);
                 } else {
-                    if self.page == 1 { self.sensor_scroll = self.sensor_scroll.saturating_sub(10); }
-                    else { self.detail_scroll = self.detail_scroll.saturating_sub(10); }
+                    if self.page == 1 {
+                        self.sensor_scroll = self.sensor_scroll.saturating_sub(10);
+                    } else {
+                        self.detail_scroll = self.detail_scroll.saturating_sub(10);
+                    }
                 }
             }
             KeyCode::Enter if self.page == 0 => self.page = 1,
@@ -612,7 +740,7 @@ impl App {
             .unwrap()
             .profile = Some(id.clone());
         self.persist(cfg)?;
-        self.log(format!("Profile {id} selected; experimental writes still require explicit enablement in server settings"));
+        self.log(crate::i18n::Message::detail("profile-selected", id));
         Ok(())
     }
     fn default_credential(&mut self) -> Result<()> {
@@ -639,14 +767,18 @@ impl App {
         );
         Ok(())
     }
-    fn confirm_control(&mut self, ids: Vec<String>, manual: Option<(u8, u8)>) -> Result<()> {
+    fn confirm_control(
+        &mut self,
+        ids: Vec<String>,
+        manual: Option<(ControlValue, u8)>,
+    ) -> Result<()> {
         ensure!(!ids.is_empty(), "no server selected");
         let mut profiles = vec![];
         let mut lines = vec![];
         for id in ids {
             let profile = self.profile(&id)?;
-            if let Some((percent, zone)) = manual {
-                profile.commands(percent, zone, true)?;
+            if let Some((value, zone)) = manual {
+                profile.commands_value(value, zone, true)?;
             }
             let server = self.config.servers.iter().find(|s| s.id == id).unwrap();
             lines.push(format!(
@@ -658,8 +790,21 @@ impl App {
             profiles.push((id, profile));
         }
         let operation = manual
-            .map(|(p, z)| format!("Request {p}% duty, zone {z}; actual duty unknown"))
-            .unwrap_or_else(|| "Restore BMC automatic fan mode".into());
+            .map(|(p, z)| match p {
+                ControlValue::Percent(v) => format!(
+                    "{}: {v}% / {z} | {}: {}",
+                    self.text("manual"),
+                    self.text("actual-duty"),
+                    self.text("unknown")
+                ),
+                ControlValue::Raw(v) => format!(
+                    "{}: {v:#04x} / {z} | {}: {}",
+                    self.text("raw"),
+                    self.text("actual-duty"),
+                    self.text("unknown")
+                ),
+            })
+            .unwrap_or_else(|| self.text("automatic").into());
         self.modal = Some(Modal::Confirm {
             title: operation,
             text: lines.join("\n"),
@@ -690,10 +835,8 @@ impl App {
             allow_experimental: false,
         };
         self.edit(
-            self.tr(
-                "导入凭据（明文）；profile 可指定适配 ID",
-                "Import credentials (plaintext); optional profile ID",
-            ),
+            self.text("import-credentials-plaintext-optional-profile-id")
+                .to_owned(),
             EditKind::Credentials(hosts, authenticated),
             &toml::to_string_pretty(&form)?,
         );
@@ -706,6 +849,10 @@ impl App {
     }
     fn modal_input(&mut self, key: KeyEvent) -> Vec<Action> {
         if key.code == KeyCode::Esc {
+            if matches!(self.modal, Some(Modal::ModelChoice { .. })) {
+                self.pending.clear();
+                self.resolved.clear();
+            }
             self.modal = None;
             self.modal_scroll = 0;
             return vec![];
@@ -727,6 +874,64 @@ impl App {
             self.modal_scroll = 0;
         }
         match modal {
+            Modal::Languages { mut cursor } => {
+                let ids: Vec<_> = self.locales.packs.keys().cloned().collect();
+                match key.code {
+                    KeyCode::Down => cursor = (cursor + 1).min(ids.len().saturating_sub(1)),
+                    KeyCode::Up => cursor = cursor.saturating_sub(1),
+                    KeyCode::Enter => {
+                        if let Some(id) = ids.get(cursor) {
+                            let mut cfg = self.config.clone();
+                            cfg.settings.language = id.clone();
+                            if let Err(e) = self.persist(cfg) {
+                                self.log(format!("{e:#}"));
+                            }
+                        }
+                        return vec![];
+                    }
+                    _ => {}
+                }
+                self.modal = Some(Modal::Languages { cursor });
+                vec![]
+            }
+            Modal::ModelChoice {
+                mut query,
+                mut cursor,
+            } => {
+                let options = self.model_options(&query);
+                match key.code {
+                    KeyCode::Down => cursor = (cursor + 1).min(options.len().saturating_sub(1)),
+                    KeyCode::Up => cursor = cursor.saturating_sub(1),
+                    KeyCode::Backspace => {
+                        query.pop();
+                        cursor = 0;
+                    }
+                    KeyCode::F(6) => {
+                        self.pending.remove(0);
+                        self.resolve_next();
+                        return vec![];
+                    }
+                    KeyCode::F(5) => {
+                        self.accept_model(None);
+                        self.resolve_next();
+                        return vec![];
+                    }
+                    KeyCode::Char(c) => {
+                        query.push(c);
+                        cursor = 0;
+                    }
+                    KeyCode::Enter => {
+                        if let Some(id) = options.get(cursor) {
+                            self.accept_model(Some(id.clone()));
+                            self.resolve_next();
+                            return vec![];
+                        }
+                    }
+                    _ => {}
+                }
+                self.modal = Some(Modal::ModelChoice { query, cursor });
+                vec![]
+            }
             Modal::Editor {
                 title,
                 kind,
@@ -775,7 +980,7 @@ impl App {
                     return vec![];
                 }
                 if hosts.is_empty() || !errors.is_empty() {
-                    self.modal = Some(Modal::Info("Fix invalid input lines before importing. Esc to close and enter the targets again.".into()));
+                    self.modal = Some(Modal::Info(self.text("invalid-lines").into()));
                     return vec![];
                 }
                 if discovery {
@@ -805,8 +1010,8 @@ impl App {
                         .map(|(id, p)| {
                             Action::Send(
                                 id,
-                                if let Some((percent, zone)) = manual {
-                                    Command::Manual(Box::new(p), percent, zone)
+                                if let Some((value, zone)) = manual {
+                                    Command::ManualValue(Box::new(p), value, zone)
                                 } else {
                                     Command::Automatic(Some(Box::new(p)))
                                 },
@@ -844,6 +1049,10 @@ impl App {
             } => {
                 if key.code == KeyCode::Enter {
                     if authenticate {
+                        self.pending.clear();
+                        self.resolved.clear();
+                        self.identifying = true;
+                        self.identify_total = servers.len();
                         vec![Action::Authenticate(servers)]
                     } else {
                         match self.add_servers(servers) {
@@ -887,7 +1096,7 @@ impl App {
                 let mut cfg = self.config.clone();
                 cfg.settings = settings;
                 self.persist(cfg)?;
-                self.log("Settings saved. Connection concurrency and mouse capture changes apply after restart.");
+                self.log(crate::i18n::Message::new("settings-saved"));
             }
             EditKind::Server(id) => {
                 let server = bmcforge_core::config::parse_server(text)?;
@@ -910,11 +1119,16 @@ impl App {
                     .context("server missing")?;
                 *old = server.clone();
                 cfg.validate()?;
-                return Ok(vec![Action::Configure(server)]);
+                return Ok(vec![Action::Configure(Box::new(server))]);
             }
             EditKind::Manual(ids) => {
                 let form: ManualForm = toml::from_str(text)?;
-                self.confirm_control(ids, Some((form.percent, form.zone)))?;
+                let value = match (form.percent, form.raw) {
+                    (Some(p), None) => ControlValue::Percent(p),
+                    (None, Some(v)) => ControlValue::Raw(v),
+                    _ => anyhow::bail!("specify exactly one of percent or raw"),
+                };
+                self.confirm_control(ids, Some((value, form.zone)))?;
             }
             EditKind::Credentials(hosts, authenticate) => {
                 let form: ImportForm = toml::from_str(text)?;
@@ -967,6 +1181,94 @@ impl App {
         }
         Ok(vec![])
     }
+    pub fn model_options(&self, query: &str) -> Vec<String> {
+        self.pending
+            .first()
+            .map(|p| {
+                p.candidates
+                    .iter()
+                    .filter(|c| {
+                        let m = &self.catalog.models[&c.id];
+                        format!("{} {} {}", m.name, c.id, c.evidence.join(" "))
+                            .to_lowercase()
+                            .contains(&query.to_lowercase())
+                    })
+                    .map(|c| c.id.clone())
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+    pub fn resume_review(&mut self) {
+        if !self.identifying && !self.pending.is_empty() && self.modal.is_none() {
+            self.resolve_next();
+        }
+    }
+    pub fn capability(
+        &self,
+        server: &Server,
+        identity: &DeviceIdentity,
+        profile: Option<&str>,
+    ) -> String {
+        let p = profile.and_then(|id| self.registry.profiles.get(id));
+        match p {
+            Some(p) if p.compatible(identity) && p.eligible(server.allow_experimental) => {
+                format!("{} [{}]", self.text("manual"), p.id)
+            }
+            Some(p) => format!(
+                "{} [{}; {}]",
+                self.text("monitor-only"),
+                p.id,
+                if p.verification == bmcforge_profiles::Verification::Experimental {
+                    self.text("experimental")
+                } else {
+                    self.text("unsupported")
+                }
+            ),
+            None => self.text("monitor-only").into(),
+        }
+    }
+    fn accept_model(&mut self, model: Option<String>) {
+        let mut p = self.pending.remove(0);
+        p.server.model_id = model.clone();
+        if let Some(m) = model.and_then(|id| self.catalog.models.get(&id)) {
+            p.server.name = m.name.clone();
+            if p.server.profile.is_none() {
+                p.server.profile = m.profile.clone();
+            }
+        }
+        p.server.identity_evidence = Some(p.identity.clone());
+        p.server.identification_error = p.error;
+        self.snapshots.insert(
+            p.server.id.clone(),
+            Snapshot {
+                identity: p.identity,
+                ..Default::default()
+            },
+        );
+        self.resolved.push(p.server);
+    }
+    fn resolve_next(&mut self) {
+        loop {
+            let Some(p) = self.pending.first() else {
+                self.modal = Some(Modal::Import {
+                    servers: std::mem::take(&mut self.resolved),
+                    authenticate: false,
+                    duplicates: 0,
+                });
+                return;
+            };
+            if p.error.is_none() && p.candidates.len() == 1 && p.candidates[0].explicit {
+                let id = p.candidates[0].id.clone();
+                self.accept_model(Some(id));
+            } else {
+                self.modal = Some(Modal::ModelChoice {
+                    query: String::new(),
+                    cursor: 0,
+                });
+                return;
+            }
+        }
+    }
     fn export(&mut self) -> Result<()> {
         let diagnostics = serde_json::json!({ "version": env!("CARGO_PKG_VERSION"), "servers": self.config.servers.iter().map(|server| {
             let snapshot = self.snapshots.get(&server.id);
@@ -987,7 +1289,10 @@ impl App {
             &path,
             serde_json::to_string_pretty(&redact_value(diagnostics, &self.config.secrets()))?,
         )?;
-        self.log(format!("Diagnostics saved: {}", path.display()));
+        self.log(crate::i18n::Message::detail(
+            "export",
+            path.display().to_string(),
+        ));
         Ok(())
     }
 }
@@ -1043,14 +1348,14 @@ mod tests {
             EditKind::Credentials(vec!["192.0.2.10".into()], false),
             &toml::to_string(&form)?,
         )?;
-        assert_eq!(a.config.servers.len(), 2);
+        assert_eq!(a.config.servers.len(), 4);
         assert!(
             matches!(&a.modal,Some(Modal::Import {servers,duplicates:0,..}) if servers.len()==1)
         );
         assert!(
             matches!(a.input(KeyEvent::new(KeyCode::Enter,KeyModifiers::NONE)).as_slice(),[Action::Add(s)] if s.len()==1)
         );
-        assert_eq!(a.config.servers.len(), 3);
+        assert_eq!(a.config.servers.len(), 5);
         a.submit(
             EditKind::Credentials(vec!["192.0.2.10".into()], false),
             &toml::to_string(&form)?,
@@ -1139,5 +1444,74 @@ mod tests {
         a.cursor = 0;
         a.input(key('m'));
         assert!(a.modal.is_none());
+    }
+    #[test]
+    fn identification_waits_for_resolution_and_final_confirmation_and_ignores_late_results() {
+        let mut a = app();
+        let original = a.config.servers.len();
+        a.identify_generation = 8;
+        a.identifying = true;
+        let mut s = bmcforge_ipmi::mock::servers().remove(2);
+        s.id = "new".into();
+        s.host = "192.0.2.20".into();
+        let identity = DeviceIdentity {
+            manufacturer_id: 19046,
+            model: "IBM System x3650 M5".into(),
+            machine_types: vec!["5463-ABC".into()],
+            ..Default::default()
+        };
+        a.message(Message::Identified(7, s.clone(), identity.clone(), None));
+        assert!(a.pending.is_empty());
+        a.message(Message::Identified(8, s, identity.clone(), None));
+        assert_eq!(a.pending[0].candidates.len(), 2);
+        assert_eq!(a.config.servers.len(), original);
+        a.message(Message::IdentificationFinished(8));
+        assert!(matches!(a.modal, Some(Modal::ModelChoice { .. })));
+        if let Some(Modal::ModelChoice { query, .. }) = &mut a.modal {
+            *query = "3650".into();
+        }
+        a.input(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        assert!(matches!(
+            a.modal,
+            Some(Modal::Import {
+                authenticate: false,
+                ..
+            })
+        ));
+        assert_eq!(a.config.servers.len(), original);
+        a.input(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        let saved = a.config.servers.last().unwrap();
+        assert_eq!(saved.model_id.as_deref(), Some("lenovo-x3650-m5"));
+        assert_eq!(
+            saved.identity_evidence.as_ref().unwrap().machine_types,
+            identity.machine_types
+        );
+        assert!(
+            !a.registry.profiles["lenovo-x3650-m5-imm2"]
+                .compatible(saved.identity_evidence.as_ref().unwrap())
+        );
+        a.message(Message::Identified(8, saved.clone(), identity, None));
+        assert!(a.pending.is_empty());
+    }
+    #[test]
+    fn failed_authentication_and_no_fru_are_never_guessed() {
+        let mut a = app();
+        a.identifying = true;
+        a.identify_generation = 1;
+        let s = bmcforge_ipmi::mock::servers().remove(0);
+        a.message(Message::Identified(
+            1,
+            s,
+            DeviceIdentity {
+                manufacturer_id: 674,
+                ..Default::default()
+            },
+            Some("credential rejected".into()),
+        ));
+        a.message(Message::IdentificationFinished(1));
+        assert!(a.model_options("").is_empty());
+        assert!(matches!(a.modal, Some(Modal::ModelChoice { .. })));
+        a.input(KeyEvent::new(KeyCode::F(6), KeyModifiers::NONE));
+        assert!(matches!(a.modal,Some(Modal::Import{ref servers,..}) if servers.is_empty()));
     }
 }

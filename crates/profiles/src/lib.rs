@@ -1,5 +1,6 @@
 use anyhow::{Context, Result, ensure};
-use bmcforge_core::DeviceIdentity;
+pub mod models;
+use bmcforge_core::{ControlValue, DeviceIdentity};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -20,6 +21,7 @@ pub enum Verification {
 #[serde(default, deny_unknown_fields)]
 pub struct Matcher {
     pub manufacturer_id: Option<u32>,
+    pub manufacturer_ids: Vec<u32>,
     pub product_ids: Vec<u16>,
     pub models: Vec<String>,
     pub excluded_models: Vec<String>,
@@ -59,6 +61,10 @@ pub struct Step {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct FanControl {
+    #[serde(default)]
+    pub raw_values: Vec<u8>,
+    #[serde(default)]
+    pub restore_per_zone: bool,
     pub min_percent: u8,
     pub max_percent: u8,
     /// Raw value representing 100% duty: normally 100 or 255.
@@ -72,7 +78,10 @@ pub struct FanControl {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CommandExample {
+    #[serde(default)]
     pub percent: u8,
+    #[serde(default)]
+    pub raw: Option<u8>,
     pub zone: u8,
     /// Each command: netfn, command, payload bytes.
     pub expected: Vec<Vec<u8>>,
@@ -123,6 +132,20 @@ fn version_cmp(a: &str, b: &str) -> Result<std::cmp::Ordering> {
     a.resize(n, 0);
     b.resize(n, 0);
     Ok(a.cmp(&b))
+}
+fn normalized_model(name: &str) -> String {
+    let mut s: String = name
+        .to_lowercase()
+        .chars()
+        .filter(|c| c.is_alphanumeric())
+        .collect();
+    for prefix in ["dellinc", "dell", "lenovo", "ibm"] {
+        if let Some(tail) = s.strip_prefix(prefix) {
+            s = tail.to_owned();
+            break;
+        }
+    }
+    s
 }
 
 impl Profile {
@@ -187,6 +210,14 @@ impl Profile {
                 );
                 for token in &s.data {
                     Self::byte(token, fan.min_percent, fan.zones[0].id, fan.scale)?;
+                    ensure!(
+                        fan.raw_values.is_empty() || (token != "$percent" && token != "$duty"),
+                        "raw control cannot use percentage tokens"
+                    );
+                    ensure!(
+                        !fan.raw_values.is_empty() || token != "$raw",
+                        "percentage control cannot use raw token"
+                    );
                 }
             }
             ensure!(
@@ -194,7 +225,11 @@ impl Profile {
                 "control profile needs command examples"
             );
             for example in &self.examples {
-                let commands = self.commands(example.percent, example.zone, true)?;
+                let value = example
+                    .raw
+                    .map(ControlValue::Raw)
+                    .unwrap_or(ControlValue::Percent(example.percent));
+                let commands = self.commands_value(value, example.zone, true)?;
                 let actual: Vec<Vec<u8>> = commands
                     .iter()
                     .map(|s| {
@@ -216,6 +251,7 @@ impl Profile {
         match token {
             "$duty" => Ok(((u16::from(percent) * u16::from(scale) + 50) / 100) as u8),
             "$percent" => Ok(percent),
+            "$raw" => Ok(percent),
             "$zone" => Ok(zone),
             _ => {
                 if let Some(hex) = token.strip_prefix("0x") {
@@ -227,9 +263,30 @@ impl Profile {
         }
     }
     pub fn commands(&self, percent: u8, zone: u8, include_manual: bool) -> Result<Vec<Command>> {
+        self.commands_value(ControlValue::Percent(percent), zone, include_manual)
+    }
+    pub fn commands_value(
+        &self,
+        value: ControlValue,
+        zone: u8,
+        include_manual: bool,
+    ) -> Result<Vec<Command>> {
         let f = self.fan.as_ref().context("monitoring-only profile")?;
+        let percent = match value {
+            ControlValue::Percent(p) => {
+                ensure!(
+                    f.raw_values.is_empty(),
+                    "profile requires a raw control value"
+                );
+                p
+            }
+            ControlValue::Raw(v) => {
+                ensure!(f.raw_values.contains(&v), "raw value not in sourced levels");
+                v
+            }
+        };
         ensure!(
-            (f.min_percent..=f.max_percent).contains(&percent),
+            !f.raw_values.is_empty() || (f.min_percent..=f.max_percent).contains(&percent),
             "duty must be {}..{}%",
             f.min_percent,
             f.max_percent
@@ -261,9 +318,22 @@ impl Profile {
     }
     pub fn automatic(&self) -> Result<Vec<Command>> {
         let f = self.fan.as_ref().context("monitoring-only profile")?;
+        if f.restore_per_zone {
+            return f
+                .zones
+                .iter()
+                .map(|z| self.automatic_zone(z.id))
+                .collect::<Result<Vec<_>>>()
+                .map(|v| v.into_iter().flatten().collect());
+        }
+        self.automatic_zone(f.zones[0].id)
+    }
+    pub fn automatic_zone(&self, zone: u8) -> Result<Vec<Command>> {
+        let f = self.fan.as_ref().context("monitoring-only profile")?;
+        ensure!(f.zones.iter().any(|z| z.id == zone), "unknown fan zone");
         f.automatic
             .iter()
-            .map(|s| self.compile(s, f.max_percent, f.zones[0].id))
+            .map(|s| self.compile(s, f.max_percent, zone))
             .collect()
     }
     pub fn matches(&self, d: &DeviceIdentity) -> bool {
@@ -286,17 +356,29 @@ impl Profile {
         if m.manufacturer_id.is_some_and(|id| id != d.manufacturer_id) {
             return false;
         }
+        if !m.manufacturer_ids.is_empty() && !m.manufacturer_ids.contains(&d.manufacturer_id) {
+            return false;
+        }
         if !m.product_ids.is_empty() && !m.product_ids.contains(&d.product_id) {
             return false;
         }
-        let model = d.model.to_ascii_lowercase();
-        if !m.models.is_empty()
-            && !m
-                .models
-                .iter()
-                .any(|name| model == name.to_ascii_lowercase())
-        {
-            return false;
+        let model = normalized_model(&d.model);
+        let direct = m.models.iter().any(|name| model == normalized_model(name));
+        if !m.models.is_empty() && (!direct || !d.machine_types.is_empty()) {
+            let Ok(catalog) = models::Catalog::load(None) else {
+                return false;
+            };
+            let candidates = catalog.candidates(d);
+            if candidates.len() > 1 {
+                return false;
+            }
+            if !direct
+                && !candidates.first().is_some_and(|c| {
+                    c.explicit && catalog.models[&c.id].profile.as_deref() == Some(&self.id)
+                })
+            {
+                return false;
+            }
         }
         if let Some(min) = &m.firmware_min
             && !matches!(
@@ -336,6 +418,7 @@ impl Registry {
             include_str!("../../../profiles/supermicro-x9.toml"),
             include_str!("../../../profiles/asrock-aspeed.toml"),
             include_str!("../../../profiles/asrock-ast2600.toml"),
+            include_str!("../../../profiles/lenovo-x3650-m5-imm2.toml"),
         ];
         let mut profiles = BTreeMap::new();
         for text in builtins {
@@ -388,7 +471,7 @@ mod tests {
     #[test]
     fn builtins_validate_and_encode() -> Result<()> {
         let r = Registry::load(None)?;
-        assert_eq!(r.profiles.len(), 7);
+        assert_eq!(r.profiles.len(), 8);
         let dell = &r.profiles["dell-idrac6-8"];
         assert_eq!(dell.commands(35, 255, true)?[1].data, [2, 255, 35]);
         assert!(dell.commands(101, 255, true).is_err());
@@ -428,6 +511,40 @@ mod tests {
             format!("override_builtin = true\n{text}"),
         )?;
         Registry::load(Some(dir.path()))?;
+        Ok(())
+    }
+    #[test]
+    fn raw_banks_are_not_percentages_and_cannot_bypass_identity() -> Result<()> {
+        let r = Registry::load(None)?;
+        let p = &r.profiles["lenovo-x3650-m5-imm2"];
+        assert!(p.commands(64, 1, true).is_err());
+        assert!(p.commands_value(ControlValue::Raw(63), 1, true).is_err());
+        assert!(p.commands_value(ControlValue::Raw(64), 3, true).is_err());
+        assert_eq!(
+            p.commands_value(ControlValue::Raw(128), 2, true)?[0].data,
+            [2, 128, 1]
+        );
+        assert_eq!(p.automatic_zone(2)?[0].data, [2, 18, 0]);
+        let mut d = DeviceIdentity {
+            manufacturer_id: 19046,
+            model: "Lenovo System x3650 M5".into(),
+            ..Default::default()
+        };
+        assert!(p.compatible(&d));
+        d.manufacturer_id = 674;
+        assert!(!p.compatible(&d));
+        d.manufacturer_id = 19046;
+        d.machine_types = vec!["5463".into()];
+        assert!(!p.compatible(&d));
+        let dell = &r.profiles["dell-idrac9-legacy"];
+        d.manufacturer_id = 674;
+        d.model = "Dell Inc. PowerEdge R740".into();
+        d.machine_types.clear();
+        assert!(!dell.compatible(&d));
+        d.firmware = "3.30.30".into();
+        assert!(dell.compatible(&d));
+        d.firmware = "3.34".into();
+        assert!(!dell.compatible(&d));
         Ok(())
     }
 }

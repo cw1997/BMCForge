@@ -2,9 +2,9 @@
 version = 1
 
 [settings]
-language = "zh-CN"
+language = "en"
 theme = "dark"
-mouse = false
+mouse = true
 concurrency = 8
 scan_concurrency = 32
 scan_port = 623

@@ -3,13 +3,25 @@ pub mod targets;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Default, Debug, Serialize, Deserialize)]
+#[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DeviceIdentity {
     pub manufacturer_id: u32,
     pub product_id: u16,
     pub model: String,
     pub firmware: String,
     pub fru: Vec<String>,
+    /// Original Get Device ID bytes, including auxiliary firmware revision.
+    #[serde(default)]
+    pub device_id_raw: Vec<u8>,
+    #[serde(default)]
+    pub machine_types: Vec<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ControlValue {
+    Percent(u8),
+    Raw(u8),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -29,6 +41,10 @@ pub enum ControlState {
     Unknown,
     Requested {
         percent: u8,
+        zone: u8,
+    },
+    RawRequested {
+        value: u8,
         zone: u8,
     },
     Automatic,

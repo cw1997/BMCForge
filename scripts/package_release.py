@@ -44,7 +44,7 @@ def package(target, test_mode, root=ROOT):
         raise ValueError(f"executable architecture mismatch for {target}")
     metadata = dict(version=version, target=target, build="passed", unit_and_protocol_tests="passed", executable_smoke_test="passed", test_mode=test_mode, hardware_verified=False)
     files = {binary_name: (binary.read_bytes(), 0o755)}
-    for file in [root / "LICENSE", root / "README.md", root / "CHANGELOG.md", root / "CONTRIBUTING.md", root / "examples/config.toml", *sorted((root / "docs").glob("*")), *sorted((root / "profiles").glob("*")), root / "vendor/ipmi/BMCFORGE-PATCHES.md", root / "vendor/ipmi/LICENSE"]:
+    for file in [root / "LICENSE", root / "README.md", root / "CHANGELOG.md", root / "CONTRIBUTING.md", root / "examples/config.toml", *sorted((root / "docs").rglob("*")), *sorted((root / "profiles").rglob("*")), *sorted((root / "locales").rglob("*")), root / "vendor/ipmi/BMCFORGE-PATCHES.md", root / "vendor/ipmi/LICENSE"]:
         if file.is_file():
             files[str(file.relative_to(root)).replace("\\", "/")] = (file.read_bytes(), 0o644)
     files["BUILD-STATUS.json"] = (json.dumps(metadata, indent=2).encode(), 0o644)

@@ -8,7 +8,6 @@ PENDING = [
     ("ASRock AST2500 percentage / older interfaces", "https://download.asrock.com/Rack/TSD/FAQ/TSDQA-72.pdf", "Separate conflicting model/firmware interfaces before enabling writes"),
     ("Supermicro X10QBi", "https://github.com/petersulyok/smfc/blob/main/ARCHITECTURE.md", "Nuvoton TMFR register setup and 0x5c interface"),
     ("Supermicro X14/H14", "https://github.com/petersulyok/smfc/blob/main/doc/X14H14_MANUAL_FANCONTROL.md", "OpenBMC versus ATEN stack discovery, per-stack release and zone discovery"),
-    ("Lenovo System x3650 M5 IMM", "https://github.com/Nammurg/ipmi_fan_control", "Bank control reported; automatic restore and firmware limits need verification"),
     ("HPE iLO", "https://github.com/ST-DEVPT/rack-fan-control", "Control may need modified firmware or SSH, outside this version's protocol scope"),
     ("Inspur", "https://en.inspur.com/eportal//fileDir/active_download/platformBookZh/6680/Inspur%C2%A0Server%C2%A0BMC%C2%A0User%C2%A0Manual%C2%A0V2.7.pdf", "Vendor documents fan settings; full IPMI write/restore sequence not established here"),
 ]

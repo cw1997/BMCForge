@@ -40,6 +40,10 @@ pub struct Server {
     pub port: u16,
     pub credentials: Credentials,
     pub profile: Option<String>,
+    /// User-confirmed catalog ID; never replaces raw FRU evidence.
+    pub model_id: Option<String>,
+    pub identity_evidence: Option<crate::DeviceIdentity>,
+    pub identification_error: Option<String>,
     pub tags: Vec<String>,
     pub timeout_ms: u64,
     pub retries: u32,
@@ -69,6 +73,9 @@ impl Default for Server {
             port: 623,
             credentials: Credentials::default(),
             profile: None,
+            model_id: None,
+            identity_evidence: None,
+            identification_error: None,
             tags: vec![],
             timeout_ms: 2000,
             retries: 1,
@@ -133,9 +140,9 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            language: "zh-CN".into(),
+            language: "en".into(),
             theme: "dark".into(),
-            mouse: false,
+            mouse: true,
             concurrency: 8,
             scan_concurrency: 32,
             scan_port: 623,
@@ -207,8 +214,12 @@ impl Config {
         );
         ensure!(s.scan_retries <= 10, "scan retries must be <= 10");
         ensure!(
-            ["zh-CN", "en"].contains(&s.language.as_str()),
-            "language must be zh-CN or en"
+            !s.language.is_empty()
+                && s.language.len() <= 64
+                && s.language
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b == b'-'),
+            "language must be a language tag"
         );
         ensure!(
             ["dark", "light"].contains(&s.theme.as_str()),
@@ -332,6 +343,7 @@ mod tests {
             },
             ..Default::default()
         });
+        cfg.settings.language = "zh-CN".into();
         cfg.save(&path)?;
         assert_eq!(Config::load(&path)?.servers[0].credentials.password, "秘密");
         cfg.settings.language = "en".into();
@@ -369,5 +381,20 @@ mod tests {
         c.servers.clear();
         c.settings.keys.insert("quit".into(), "i".into());
         assert!(c.validate().is_err());
+    }
+    #[test]
+    fn new_defaults_and_saved_preferences_are_distinct() -> Result<()> {
+        let new: Config = toml::from_str("version = 1")?;
+        assert_eq!(new.settings.language, "en");
+        assert!(new.settings.mouse);
+        let old: Config =
+            toml::from_str("version = 1\n[settings]\nlanguage = 'zh-CN'\nmouse = false")?;
+        old.validate()?;
+        assert_eq!(old.settings.language, "zh-CN");
+        assert!(!old.settings.mouse);
+        let reloaded: Config = toml::from_str(&toml::to_string(&old)?)?;
+        assert_eq!(reloaded.settings.language, "zh-CN");
+        assert!(!reloaded.settings.mouse);
+        Ok(())
     }
 }

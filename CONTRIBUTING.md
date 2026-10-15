@@ -7,3 +7,7 @@ Profiles should prefer exact product/firmware matching and include command and r
 Register a new built-in with `include_str!` in the profile registry and update the compatibility inventory. External profiles need no code change or recompilation. Regenerate `profiles/schema.json` when changing the profile types. Test both matching and rejection cases, especially newer firmware that no longer accepts OEM writes.
 
 No live network discovery or real device writes should run in regular automated tests. New read/modify/write protocols require a stateful engine and recovery tests before they can be offered as control adapters.
+
+Language contributions use `locales/<tag>/locale.toml` plus `main.ftl`; preserve English message IDs/variables and use native names and Fluent plural rules. Run `validate-locales` and TestBackend tests. See [localization](docs/localization.md).
+
+Recognition-only contributions belong in `profiles/models/`, with source links for aliases and machine types, separately from fan adapters. Run `validate-models`, retain raw hardware evidence and test ambiguous/unknown cases. See [models and Lenovo raw control](docs/models.md). Regenerate the model/locale schemas using `model-schema` / `locale-schema` when metadata types change. Packaging includes the complete resource directories.

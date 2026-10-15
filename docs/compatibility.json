@@ -112,6 +112,29 @@
       "constraints": "Monitoring only. IPMI support does not imply OEM fan control support."
     },
     {
+      "profile": "lenovo-x3650-m5-imm2",
+      "vendor": "IBM / Lenovo",
+      "description": "System x3650 M5 IMM2 independent fan banks, raw levels",
+      "status": "experimental",
+      "control": true,
+      "matcher": {
+        "manufacturer_ids": [
+          2,
+          19046
+        ],
+        "models": [
+          "System x3650 M5",
+          "IBM System x3650 M5",
+          "Lenovo System x3650 M5",
+          "x3650 M5"
+        ]
+      },
+      "sources": [
+        "https://github.com/laingcc/Lenovo-M3650-Nvidia-GPU-Fan-Control"
+      ],
+      "constraints": "Protocol facts independently implemented from the public IMM2 implementation. No BMCForge hardware validation. Values are raw non-linear levels, NOT percentages. Bank 1 front/CPU1, bank 2 rear/CPU2. Automatic recovery is recorded before every attempted bank write."
+    },
+    {
       "profile": "supermicro-x10-x13",
       "vendor": "Supermicro",
       "description": "ATEN BMC X10-X13/H10-H13 two-zone duty control",
@@ -162,14 +185,6 @@
         "https://github.com/petersulyok/smfc/blob/main/doc/X14H14_MANUAL_FANCONTROL.md"
       ],
       "constraints": "OpenBMC versus ATEN stack discovery, per-stack release and zone discovery"
-    },
-    {
-      "family": "Lenovo System x3650 M5 IMM",
-      "status": "pending",
-      "sources": [
-        "https://github.com/Nammurg/ipmi_fan_control"
-      ],
-      "constraints": "Bank control reported; automatic restore and firmware limits need verification"
     },
     {
       "family": "HPE iLO",

@@ -29,7 +29,7 @@ class ReleaseTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
             (root / "Cargo.toml").write_text('[workspace.package]\nversion = "1.2.3"\n')
-            for name in ["LICENSE","README.md","CHANGELOG.md","examples/config.toml","docs/test.md","profiles/test.toml","vendor/ipmi/LICENSE"]:
+            for name in ["LICENSE","README.md","CHANGELOG.md","examples/config.toml","docs/test.md","profiles/test.toml","profiles/models/test.toml","profiles/models/schema.json","locales/en/locale.toml","locales/en/main.ftl","locales/schema.json","vendor/ipmi/LICENSE"]:
                 path=root / name
                 path.parent.mkdir(parents=True,exist_ok=True)
                 path.write_text("test")
@@ -41,6 +41,8 @@ class ReleaseTests(unittest.TestCase):
             self.assertEqual(archive.with_name(archive.name+".sha256").read_text().split()[0],hashlib.sha256(archive.read_bytes()).hexdigest())
             with zipfile.ZipFile(archive) as output:
                 self.assertTrue(any(n.endswith("/bmcforge.exe") for n in output.namelist()))
+                for resource in ["profiles/models/test.toml","profiles/models/schema.json","locales/en/locale.toml","locales/en/main.ftl","locales/schema.json"]:
+                    self.assertTrue(any(n.endswith('/'+resource) for n in output.namelist()),resource)
                 status=json.loads(output.read(next(n for n in output.namelist() if n.endswith("BUILD-STATUS.json"))))
                 self.assertEqual(status["target"],target)
                 self.assertFalse(status["hardware_verified"])

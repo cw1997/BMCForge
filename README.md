@@ -12,7 +12,7 @@
 cargo run --locked -p bmcforge -- --demo
 ```
 
-演示模式完全离线，使用 Dell 和 Supermicro 模拟设备，不读取或保存真实服务器配置。
+演示模式完全离线，使用 Dell、Supermicro、Lenovo 及冲突机器类型的模拟设备，不读取或保存真实服务器配置。默认发现范围 `192.0.2.20-192.0.2.23` 可演示唯一识别、歧义选择和最终添加预览。
 
 ```sh
 cargo run --locked -p bmcforge -- --config bmcforge.local.toml init
@@ -21,7 +21,7 @@ cargo run --locked -p bmcforge -- --config bmcforge.local.toml
 
 在界面按 `i` 批量导入，或按 `d` 发现 IPv4 网段。每行接受一个 IP、主机名、CIDR 或完整地址范围，例如 `192.0.2.10-192.0.2.20`。发现不接受主机名和 IPv6 网段。IPv4 CIDR 排除网络及广播地址，`/31`、`/32` 按点对点／单地址处理。
 
-导入先预览，按 Enter 继续填写共同凭据，按 F2 保存。普通导入可以保存离线服务器；发现结果必须使用所选凭据认证并读取设备后才会添加。无响应表示未知，不表示设备不存在。凭据不会自动轮换尝试。
+导入先预览，按 Enter 继续填写共同凭据，按 F2 保存。发现流程为无认证探测 → 选择设备与本批凭据 → 身份识别 → 处理型号歧义 → 最终预览确认添加；识别不要求 SDR 成功。普通导入可保存离线设备。无响应表示未知，不表示设备不存在。凭据不会自动轮换尝试。
 
 ## 终端操作
 
@@ -36,6 +36,9 @@ cargo run --locked -p bmcforge -- --config bmcforge.local.toml
 - `x`：导出脱敏诊断到配置文件目录；`q` 或 Ctrl+C：恢复自动模式并退出。
 - Delete：先恢复自动模式，再移除服务器；F1：操作帮助。
 - 编辑框 F2 或 Ctrl+Enter：保存／继续；Esc：取消；支持多行粘贴。F2 适用于无法区分 Ctrl+Enter 的终端。
+- 默认启用鼠标：点击页签、行、选择框、适配项、语言和操作按钮；双击服务器进入详情；滚轮只滚动指针所在区域。弹窗有可点击的确认／取消按钮。
+- F3 或顶部语言入口：即时切换语言并保存；F4：即时切换鼠标。终端复制通常使用 Shift+拖动或终端原生选择方式。
+- 发现页 A：全选可见候选；G：选择当前 /24 分组；`i`：识别所选；`c`：取消识别。型号选择可搜索，F5 保留未知、F6 跳过。
 
 快捷键可通过 `[settings.keys]` 修改。服务器按第一个标签分组排序。启动只连接和监控，不重放之前的调速操作。
 
@@ -53,6 +56,8 @@ cargo run --locked -p bmcforge -- profile-schema
 ```
 
 同 ID 外部适配需显式声明 `override_builtin = true`。适配库展示命令来源、固件限制、默认凭据适用范围和验证状态。所有附带 OEM 写适配目前均为实验性，需在服务器设置中明确启用 `allow_experimental = true`。参见 [适配开发](docs/profiles.md) 和 [兼容范围](docs/compatibility.md)。
+
+新配置默认英文，内置 11 种语言，保留已有语言与鼠标偏好。使用 `--locales-dir` 加载 Fluent 社区包，`validate-locales` 校验；见 [语言包贡献指南](docs/localization.md)。型号目录与写命令分离，社区型号位于 `--profiles-dir` 下的 `models/`，使用 `validate-models` 校验；见 [识别流程与 Lenovo 分组控制](docs/models.md)。Lenovo x3650 M5 IMM2 提供实验性原始档位，不推算百分比；其他 System x 型号只识别和监控。
 
 实际 RPM 来自传感器；请求的占空比单独显示。当前占空比没有读回实现，因此显示 unknown。写操作超时不会重放命令，状态标为不确定；正常退出会对本次接管过的设备尝试恢复自动控制。强杀、断电、网络故障时无法保证恢复。此版本没有温控曲线或后台保护服务。
 

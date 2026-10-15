@@ -1,6 +1,7 @@
+use crate::i18n::Message as UiMessage;
 use anyhow::Result;
 use bmcforge_core::{
-    ControlState, DeviceIdentity, Sensor,
+    ControlState, ControlValue, DeviceIdentity, Sensor,
     config::{Server, Settings},
 };
 use bmcforge_ipmi::{
@@ -22,19 +23,20 @@ pub struct Snapshot {
     pub sensors: Vec<Sensor>,
     pub control: ControlState,
     pub taken_over: bool,
-    pub status: String,
+    pub status: UiMessage,
 }
 pub enum Message {
     Snapshot(String, Snapshot),
-    Log(String),
+    Log(UiMessage),
     Discovered(u64, DiscoveryResult),
     ScanFinished(u64),
-    Authenticated(Server, Option<String>),
+    Identified(u64, Server, DeviceIdentity, Option<String>),
+    IdentificationFinished(u64),
     Configured(Server, Option<String>),
     Removed(String, Option<String>),
 }
 pub enum Command {
-    Manual(Box<Profile>, u8, u8),
+    ManualValue(Box<Profile>, ControlValue, u8),
     Automatic(Option<Box<Profile>>),
     Configure(Box<Server>),
     Remove,
@@ -54,6 +56,8 @@ pub struct Runtime {
     demo: bool,
     scan_generation: u64,
     concurrency: usize,
+    identify_cancel: CancellationToken,
+    identify_generation: u64,
 }
 impl Runtime {
     pub fn new(tx: mpsc::Sender<Message>, settings: &Settings, demo: bool) -> Self {
@@ -66,6 +70,8 @@ impl Runtime {
             demo,
             scan_generation: 0,
             concurrency: settings.concurrency,
+            identify_cancel: CancellationToken::new(),
+            identify_generation: 0,
         }
     }
     pub fn add(&mut self, server: Server) {
@@ -90,9 +96,9 @@ impl Runtime {
                     command = rx.recv() => command,
                     _ = tokio::time::sleep_until(next_poll), if !authentication_blocked => {
                         let _permit = match gate.acquire().await { Ok(p) => p, Err(_) => break };
-                        let status = match device.poll().await { Ok(()) => "Online".into(), Err(e) => {
+                        let status = match device.poll().await { Ok(()) => UiMessage::new("online"), Err(e) => {
                             authentication_blocked = bmcforge_ipmi::is_authentication_error(&e);
-                            if authentication_blocked { format!("Authentication failed; edit credentials to retry: {e:#}") } else { format!("Offline: {e:#}") }
+                            UiMessage::detail(if authentication_blocked {"authentication-failed"}else{"offline"},format!("{e:#}"))
                         } };
                         next_poll = tokio::time::Instant::now() + Duration::from_secs(device.server.poll_seconds);
                         let _ = output.send(Message::Snapshot(device.server.id.clone(), snapshot(&device, &status))).await;
@@ -115,7 +121,9 @@ impl Runtime {
                     Err(_) => break,
                 };
                 let result = match command {
-                    Command::Manual(p, percent, zone) => device.manual(&p, percent, zone).await,
+                    Command::ManualValue(p, value, zone) => {
+                        device.manual_value(&p, value, zone).await
+                    }
                     Command::Automatic(p) => device.automatic(p.as_deref()).await,
                     Command::Configure(server) => match device.shutdown().await {
                         Ok(()) => {
@@ -144,8 +152,8 @@ impl Runtime {
                         ))
                         .await;
                 }
-                let status: String = if let Err(error) = &result {
-                    format!("Operation failed: {error:#}")
+                let status = if let Err(error) = &result {
+                    UiMessage::detail("operation-failed", format!("{error:#}"))
                 } else {
                     if device.identity.manufacturer_id == 0 {
                         "Connecting".into()
@@ -153,19 +161,20 @@ impl Runtime {
                         "Online".into()
                     }
                 };
-                let log = format!(
-                    "{}: {}{}",
-                    device.server.name,
-                    if shutting_down {
-                        "shutdown / restore: "
-                    } else {
-                        "operation: "
+                let mut log = UiMessage::detail(
+                    match (shutting_down, result.is_ok()) {
+                        (true, true) => "restore-ok",
+                        (true, false) => "restore-failed",
+                        (false, true) => "operation-ok",
+                        (false, false) => "operation-failed",
                     },
                     result
                         .as_ref()
-                        .map(|_| "OK".into())
-                        .unwrap_or_else(|e| format!("{e:#}"))
+                        .err()
+                        .map(|e| format!("{e:#}"))
+                        .unwrap_or_default(),
                 );
+                log.args.insert("server".into(), device.server.name.clone());
                 let _ = output.send(Message::Log(log)).await;
                 let _ = output
                     .send(Message::Snapshot(
@@ -207,7 +216,7 @@ impl Runtime {
             loop {
                 tokio::select! {
                     result = &mut scan => {
-                        if let Err(e) = result { let _ = output.send(Message::Log(format!("scan: {e:#}"))).await; }
+                        if let Err(e) = result { let _ = output.send(Message::Log(UiMessage::detail("scan-failed",format!("{e:#}")))).await; }
                         while let Ok(item) = rx.try_recv() { let _ = output.send(Message::Discovered(generation,item)).await; }
                         break;
                     },
@@ -219,7 +228,15 @@ impl Runtime {
         self.jobs.push(job);
         generation
     }
-    pub fn authenticate(&mut self, servers: Vec<Server>) {
+    pub fn cancel_identify(&mut self) -> u64 {
+        self.identify_cancel.cancel();
+        self.identify_generation += 1;
+        self.identify_generation
+    }
+    pub fn authenticate(&mut self, servers: Vec<Server>) -> u64 {
+        let generation = self.cancel_identify();
+        self.identify_cancel = CancellationToken::new();
+        let cancel = self.identify_cancel.clone();
         self.jobs.retain(|j| !j.is_finished());
         let gate = self.gate.clone();
         let output = self.tx.clone();
@@ -230,20 +247,25 @@ impl Runtime {
                 .map(|server| {
                     let gate = gate.clone();
                     let output = output.clone();
+                    let cancel = cancel.clone();
                     async move {
-                        let Ok(_permit) = gate.acquire().await else {
+                        let permit=tokio::select! {biased;_=cancel.cancelled()=>return,permit=gate.acquire()=>permit};
+                        let Ok(_permit) = permit else {
                             return;
                         };
                         let mut d = Device::new(server.clone(), demo);
-                        let result = d.poll().await;
+                        let result = tokio::select! { biased; _=cancel.cancelled()=>{ let _=d.shutdown().await; return; }, result=d.identify()=>result };
                         let error = result.err().map(|e| format!("{e:#}"));
+                        let identity = d.identity.clone();
                         let _ = d.shutdown().await;
-                        let _ = output.send(Message::Authenticated(server, error)).await;
+                        if !cancel.is_cancelled() { let _ = output.send(Message::Identified(generation, server, identity, error)).await; }
                     }
                 })
                 .buffer_unordered(limit);
             while pending.next().await.is_some() {}
+            if !cancel.is_cancelled() { let _ = output.send(Message::IdentificationFinished(generation)).await; }
         }));
+        generation
     }
     pub async fn shutdown(mut self, messages: &mut mpsc::Receiver<Message>) -> Vec<String> {
         self.scan_cancel.cancel();
@@ -264,7 +286,7 @@ impl Runtime {
         loop {
             tokio::select! {
                 Some(result) = tasks.join_next(), if !tasks.is_empty() => { if let Err(e) = result { errors.push(format!("worker task: {e}")); } else if let Ok(Err(e)) = result { errors.push(format!("worker: {e}")); } },
-                Some(message) = messages.recv() => if let Message::Log(log) = message && log.contains("shutdown / restore:") && !log.ends_with("OK") { errors.push(log); },
+                Some(message) = messages.recv() => if let Message::Log(log) = message && log.id=="restore-failed" { errors.push(format!("{:?}: {}",log.args,log.details)); },
                 else => break,
             }
             if tasks.is_empty() {
@@ -273,22 +295,21 @@ impl Runtime {
         }
         while let Ok(message) = messages.try_recv() {
             if let Message::Log(log) = message
-                && log.contains("shutdown / restore:")
-                && !log.ends_with("OK")
+                && log.id == "restore-failed"
             {
-                errors.push(log);
+                errors.push(format!("{:?}: {}", log.args, log.details));
             }
         }
         errors
     }
 }
-fn snapshot(d: &Device, status: &str) -> Snapshot {
+fn snapshot(d: &Device, status: &UiMessage) -> Snapshot {
     Snapshot {
         identity: d.identity.clone(),
         sensors: d.sensors.clone(),
         control: d.control.clone(),
         taken_over: d.taken_over,
-        status: status.into(),
+        status: status.clone(),
     }
 }
 
@@ -330,7 +351,10 @@ mod tests {
         let id = s.id.clone();
         rt.add(s);
         let profile = Registry::load(None)?.profiles["dell-idrac6-8"].clone();
-        rt.send(&id, Command::Manual(Box::new(profile), 35, 255))?;
+        rt.send(
+            &id,
+            Command::ManualValue(Box::new(profile), ControlValue::Percent(35), 255),
+        )?;
         let requested = tokio::time::timeout(Duration::from_secs(2), async {
             while let Some(message) = rx.recv().await {
                 if let Message::Snapshot(_, s) = message
@@ -359,6 +383,36 @@ mod tests {
         })
         .await?;
         rt.forget(&id);
+        assert!(rt.shutdown(&mut rx).await.is_empty());
+        Ok(())
+    }
+    #[tokio::test]
+    async fn cancelled_identity_batch_cannot_complete_and_next_batch_uses_new_generation()
+    -> Result<()> {
+        let (tx, mut rx) = mpsc::channel(64);
+        let mut rt = Runtime::new(tx, &Settings::default(), true);
+        let old = rt.authenticate(bmcforge_ipmi::mock::servers());
+        let cancelled = rt.cancel_identify();
+        assert!(cancelled > old);
+        let current = rt.authenticate(vec![bmcforge_ipmi::mock::servers().remove(2)]);
+        assert!(current > cancelled);
+        tokio::time::timeout(Duration::from_secs(3), async {
+            while let Some(m) = rx.recv().await {
+                match m {
+                    Message::Identified(g, _, identity, error) => {
+                        assert_eq!(g, current);
+                        assert_eq!(identity.model, "System x3650 M5");
+                        assert!(error.is_none());
+                    }
+                    Message::IdentificationFinished(g) => {
+                        assert_eq!(g, current);
+                        return;
+                    }
+                    _ => {}
+                }
+            }
+        })
+        .await?;
         assert!(rt.shutdown(&mut rx).await.is_empty());
         Ok(())
     }

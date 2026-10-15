@@ -1,0 +1,33 @@
+schema_version = 1
+id = "lenovo-x3650-m5-imm2"
+vendor = "IBM / Lenovo"
+description = "System x3650 M5 IMM2 independent fan banks, raw levels"
+verification = "experimental"
+sources = ["https://github.com/laingcc/Lenovo-M3650-Nvidia-GPU-Fan-Control"]
+notes = "Protocol facts independently implemented from the public IMM2 implementation. No BMCForge hardware validation. Values are raw non-linear levels, NOT percentages. Bank 1 front/CPU1, bank 2 rear/CPU2. Automatic recovery is recorded before every attempted bank write."
+[[default_credentials]]
+username = "USERID"
+password = "PASSW0RD"
+source = "https://pubs.lenovo.com/imm2/dw1lm_t_managingtheimmwithipmi"
+note = "Initial IMM2 User ID 1 only (zero in PASSW0RD). Changed or centrally managed accounts require their own credentials. Never attempted automatically."
+[matcher]
+manufacturer_ids = [2, 19046]
+models = ["System x3650 M5", "IBM System x3650 M5", "Lenovo System x3650 M5", "x3650 M5"]
+[fan]
+min_percent = 0
+max_percent = 100
+scale = 100
+raw_values = [18, 53, 64, 80, 96, 112, 128, 144, 160, 255]
+restore_per_zone = true
+zones = [{ id = 1, name = "CPU1 / front" }, { id = 2, name = "CPU2 / rear" }]
+manual = []
+set = [{ netfn = 58, command = 7, data = ["$zone", "$raw", "0x01"] }]
+automatic = [{ netfn = 58, command = 7, data = ["$zone", "0x12", "0x00"] }]
+[[examples]]
+raw = 64
+zone = 1
+expected = [[58, 7, 1, 64, 1]]
+[[examples]]
+raw = 128
+zone = 2
+expected = [[58, 7, 2, 128, 1]]

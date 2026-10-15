@@ -14,6 +14,18 @@ pub fn servers() -> Vec<Server> {
             "192.0.2.11",
             "supermicro-x10-x13",
         ),
+        (
+            "demo-lenovo",
+            "System x3650 M5",
+            "192.0.2.12",
+            "lenovo-x3650-m5-imm2",
+        ),
+        (
+            "demo-ambiguous",
+            "System x3650 M5 (conflicting MTM)",
+            "192.0.2.13",
+            "generic",
+        ),
     ]
     .into_iter()
     .map(|(id, name, host, profile)| Server {
@@ -49,8 +61,11 @@ pub fn sensor_record(number: u8, name: &str, kind: u8, unit: u8, m: u16) -> Vec<
     raw
 }
 pub fn fru_bytes(model: &str) -> Vec<u8> {
+    fru_fields(model, "SIM-001")
+}
+fn fru_fields(model: &str, serial: &str) -> Vec<u8> {
     let mut area = vec![1, 0, 0];
-    for value in ["BMCForge simulator", model, "SIM-001"] {
+    for value in ["BMCForge simulator", model, serial] {
         let bytes = value.as_bytes();
         area.push(0xc0 | bytes.len() as u8);
         area.extend(bytes);
@@ -73,15 +88,22 @@ pub struct MockBmc {
     records: Vec<Vec<u8>>,
     fru: Vec<u8>,
     smc: bool,
+    lenovo: bool,
     duty: u8,
     tick: u8,
 }
 impl MockBmc {
     pub fn new(server: &Server) -> Self {
-        let smc = server
-            .profile
-            .as_deref()
-            .is_some_and(|p| p.starts_with("supermicro"));
+        let smc = server.host.ends_with(".11")
+            || server.host.ends_with(".21")
+            || server
+                .profile
+                .as_deref()
+                .is_some_and(|p| p.starts_with("supermicro"));
+        let lenovo = [".12", ".13", ".22", ".23"]
+            .iter()
+            .any(|suffix| server.host.ends_with(suffix))
+            || server.profile.as_deref() == Some("lenovo-x3650-m5-imm2");
         let mut records = vec![
             sensor_record(1, "CPU Temp", 1, 1, 1),
             sensor_record(2, "Inlet Temp", 1, 1, 1),
@@ -99,8 +121,22 @@ impl MockBmc {
             writes: vec![],
             fail_write: None,
             records,
-            fru: fru_bytes(if smc { "X11SSL-F" } else { "PowerEdge R730" }),
+            fru: fru_fields(
+                if smc {
+                    "X11SSL-F"
+                } else if lenovo {
+                    "System x3650 M5"
+                } else {
+                    "PowerEdge R730"
+                },
+                if server.host.ends_with(".13") || server.host.ends_with(".23") {
+                    "5463-ABC"
+                } else {
+                    "SIM-001"
+                },
+            ),
             smc,
+            lenovo,
             duty: 50,
             tick: 0,
         }
@@ -111,7 +147,13 @@ impl RawTransport for MockBmc {
     async fn raw(&mut self, netfn: u8, command: u8, data: &[u8]) -> Result<Vec<u8>> {
         match (netfn, command) {
             (6, 1) => {
-                let m: u32 = if self.smc { 10876 } else { 674 };
+                let m: u32 = if self.smc {
+                    10876
+                } else if self.lenovo {
+                    19046
+                } else {
+                    674
+                };
                 Ok(vec![
                     1,
                     0,
@@ -170,12 +212,19 @@ impl RawTransport for MockBmc {
                 };
                 Ok(vec![v, 0xc0, 0, 0])
             }
-            (0x30, _) => {
+            (0x30, _) | (0x3a, 7) => {
                 let mut request = vec![netfn, command];
                 request.extend_from_slice(data);
                 self.writes.push(request);
                 if self.fail_write == Some(self.writes.len()) {
                     bail!("simulated timeout");
+                }
+                if netfn == 0x3a {
+                    ensure!(
+                        self.lenovo && data.len() == 3 && (1..=2).contains(&data[0]),
+                        "invalid bank write"
+                    );
+                    self.duty = if data[2] == 0 { 50 } else { data[1] / 3 };
                 }
                 if (command == 0x30 && data.first() == Some(&2))
                     || (command == 0x70 && data.first() == Some(&0x66))
@@ -201,7 +250,7 @@ mod tests {
     #[async_trait]
     impl RawTransport for Tracked {
         async fn raw(&mut self, n: u8, c: u8, data: &[u8]) -> Result<Vec<u8>> {
-            if n == 0x30 {
+            if n == 0x30 || n == 0x3a {
                 let mut v = vec![n, c];
                 v.extend_from_slice(data);
                 self.writes.lock().unwrap().push(v);
@@ -327,6 +376,71 @@ mod tests {
         assert!(d.shutdown().await.is_err());
         assert!(d.taken_over);
         assert_eq!(d.control, ControlState::Uncertain);
+        Ok(())
+    }
+    struct WithoutSdr(MockBmc);
+    #[async_trait]
+    impl RawTransport for WithoutSdr {
+        async fn raw(&mut self, n: u8, c: u8, d: &[u8]) -> Result<Vec<u8>> {
+            ensure!(n != 0x30 && n != 0x3a, "identity must not write fans");
+            if n == 10 && c != 0x10 && c != 0x11 {
+                bail!("SDR unavailable");
+            }
+            self.0.raw(n, c, d).await
+        }
+    }
+    #[tokio::test]
+    async fn identity_does_not_depend_on_sdr_or_issue_writes() -> Result<()> {
+        let s = servers().remove(0);
+        let t = WithoutSdr(MockBmc::new(&s));
+        let mut d = Device::with_transport(s, Box::new(t));
+        assert_eq!(d.identify().await?.model, "PowerEdge R730");
+        assert_eq!(d.identity.device_id_raw.len(), 11);
+        assert!(d.sensors.is_empty());
+        assert!(d.poll().await.is_err());
+        Ok(())
+    }
+    #[tokio::test(start_paused = true)]
+    async fn lenovo_partial_writes_restore_all_touched_banks_and_retry_only_failures() -> Result<()>
+    {
+        let p = &Registry::load(None)?.profiles["lenovo-x3650-m5-imm2"];
+        for failure in [2, 3] {
+            let s = servers().remove(2);
+            let mut inner = MockBmc::new(&s);
+            inner.fail_write = Some(failure);
+            let writes = Arc::new(Mutex::new(vec![]));
+            let mut d = Device::with_transport(
+                s,
+                Box::new(Tracked {
+                    inner,
+                    writes: writes.clone(),
+                }),
+            );
+            d.manual_value(p, bmcforge_core::ControlValue::Raw(64), 1)
+                .await?;
+            let second = d
+                .manual_value(p, bmcforge_core::ControlValue::Raw(128), 2)
+                .await;
+            assert_eq!(second.is_err(), failure == 2);
+            assert!(d.taken_over);
+            let restore = d.shutdown().await;
+            assert_eq!(restore.is_err(), failure == 3);
+            assert_eq!(
+                *writes.lock().unwrap(),
+                [
+                    vec![58, 7, 1, 64, 1],
+                    vec![58, 7, 2, 128, 1],
+                    vec![58, 7, 1, 18, 0],
+                    vec![58, 7, 2, 18, 0]
+                ]
+            );
+            if failure == 3 {
+                assert!(d.taken_over);
+                d.shutdown().await?;
+                assert_eq!(writes.lock().unwrap().last(), Some(&vec![58, 7, 1, 18, 0]));
+            }
+            assert!(!d.taken_over);
+        }
         Ok(())
     }
 }

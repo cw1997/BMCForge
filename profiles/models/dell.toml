@@ -1,0 +1,486 @@
+schema_version = 1
+
+[[models]]
+id = "dell-r210"
+vendor = "Dell"
+name = "PowerEdge R210"
+aliases = ["Dell PowerEdge R210", "Dell Inc. PowerEdge R210", "R210"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+
+[[models]]
+id = "dell-r210-ii"
+vendor = "Dell"
+name = "PowerEdge R210 II"
+aliases = ["Dell PowerEdge R210 II", "Dell Inc. PowerEdge R210 II", "R210 II"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+
+[[models]]
+id = "dell-r220"
+vendor = "Dell"
+name = "PowerEdge R220"
+aliases = ["Dell PowerEdge R220", "Dell Inc. PowerEdge R220", "R220"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+
+[[models]]
+id = "dell-r230"
+vendor = "Dell"
+name = "PowerEdge R230"
+aliases = ["Dell PowerEdge R230", "Dell Inc. PowerEdge R230", "R230"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+
+[[models]]
+id = "dell-r240"
+vendor = "Dell"
+name = "PowerEdge R240"
+aliases = ["Dell PowerEdge R240", "Dell Inc. PowerEdge R240", "R240"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+
+[[models]]
+id = "dell-r310"
+vendor = "Dell"
+name = "PowerEdge R310"
+aliases = ["Dell PowerEdge R310", "Dell Inc. PowerEdge R310", "R310"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r320"
+vendor = "Dell"
+name = "PowerEdge R320"
+aliases = ["Dell PowerEdge R320", "Dell Inc. PowerEdge R320", "R320"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r330"
+vendor = "Dell"
+name = "PowerEdge R330"
+aliases = ["Dell PowerEdge R330", "Dell Inc. PowerEdge R330", "R330"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r340"
+vendor = "Dell"
+name = "PowerEdge R340"
+aliases = ["Dell PowerEdge R340", "Dell Inc. PowerEdge R340", "R340"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+
+[[models]]
+id = "dell-r410"
+vendor = "Dell"
+name = "PowerEdge R410"
+aliases = ["Dell PowerEdge R410", "Dell Inc. PowerEdge R410", "R410"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r415"
+vendor = "Dell"
+name = "PowerEdge R415"
+aliases = ["Dell PowerEdge R415", "Dell Inc. PowerEdge R415", "R415"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+
+[[models]]
+id = "dell-r420"
+vendor = "Dell"
+name = "PowerEdge R420"
+aliases = ["Dell PowerEdge R420", "Dell Inc. PowerEdge R420", "R420"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r430"
+vendor = "Dell"
+name = "PowerEdge R430"
+aliases = ["Dell PowerEdge R430", "Dell Inc. PowerEdge R430", "R430"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r440"
+vendor = "Dell"
+name = "PowerEdge R440"
+aliases = ["Dell PowerEdge R440", "Dell Inc. PowerEdge R440", "R440"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac9-legacy"
+
+[[models]]
+id = "dell-r510"
+vendor = "Dell"
+name = "PowerEdge R510"
+aliases = ["Dell PowerEdge R510", "Dell Inc. PowerEdge R510", "R510"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r515"
+vendor = "Dell"
+name = "PowerEdge R515"
+aliases = ["Dell PowerEdge R515", "Dell Inc. PowerEdge R515", "R515"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+
+[[models]]
+id = "dell-r520"
+vendor = "Dell"
+name = "PowerEdge R520"
+aliases = ["Dell PowerEdge R520", "Dell Inc. PowerEdge R520", "R520"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r530"
+vendor = "Dell"
+name = "PowerEdge R530"
+aliases = ["Dell PowerEdge R530", "Dell Inc. PowerEdge R530", "R530"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r540"
+vendor = "Dell"
+name = "PowerEdge R540"
+aliases = ["Dell PowerEdge R540", "Dell Inc. PowerEdge R540", "R540"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac9-legacy"
+
+[[models]]
+id = "dell-r610"
+vendor = "Dell"
+name = "PowerEdge R610"
+aliases = ["Dell PowerEdge R610", "Dell Inc. PowerEdge R610", "R610"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r620"
+vendor = "Dell"
+name = "PowerEdge R620"
+aliases = ["Dell PowerEdge R620", "Dell Inc. PowerEdge R620", "R620"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r630"
+vendor = "Dell"
+name = "PowerEdge R630"
+aliases = ["Dell PowerEdge R630", "Dell Inc. PowerEdge R630", "R630"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r640"
+vendor = "Dell"
+name = "PowerEdge R640"
+aliases = ["Dell PowerEdge R640", "Dell Inc. PowerEdge R640", "R640"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac9-legacy"
+
+[[models]]
+id = "dell-r710"
+vendor = "Dell"
+name = "PowerEdge R710"
+aliases = ["Dell PowerEdge R710", "Dell Inc. PowerEdge R710", "R710"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r720"
+vendor = "Dell"
+name = "PowerEdge R720"
+aliases = ["Dell PowerEdge R720", "Dell Inc. PowerEdge R720", "R720"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r720xd"
+vendor = "Dell"
+name = "PowerEdge R720xd"
+aliases = ["Dell PowerEdge R720xd", "Dell Inc. PowerEdge R720xd", "R720xd"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r730"
+vendor = "Dell"
+name = "PowerEdge R730"
+aliases = ["Dell PowerEdge R730", "Dell Inc. PowerEdge R730", "R730"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r730xd"
+vendor = "Dell"
+name = "PowerEdge R730xd"
+aliases = ["Dell PowerEdge R730xd", "Dell Inc. PowerEdge R730xd", "R730xd"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r740"
+vendor = "Dell"
+name = "PowerEdge R740"
+aliases = ["Dell PowerEdge R740", "Dell Inc. PowerEdge R740", "R740"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac9-legacy"
+
+[[models]]
+id = "dell-r740xd"
+vendor = "Dell"
+name = "PowerEdge R740xd"
+aliases = ["Dell PowerEdge R740xd", "Dell Inc. PowerEdge R740xd", "R740xd"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac9-legacy"
+
+[[models]]
+id = "dell-r740xd2"
+vendor = "Dell"
+name = "PowerEdge R740xd2"
+aliases = ["Dell PowerEdge R740xd2", "Dell Inc. PowerEdge R740xd2", "R740xd2"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+
+[[models]]
+id = "dell-r810"
+vendor = "Dell"
+name = "PowerEdge R810"
+aliases = ["Dell PowerEdge R810", "Dell Inc. PowerEdge R810", "R810"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r815"
+vendor = "Dell"
+name = "PowerEdge R815"
+aliases = ["Dell PowerEdge R815", "Dell Inc. PowerEdge R815", "R815"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+
+[[models]]
+id = "dell-r820"
+vendor = "Dell"
+name = "PowerEdge R820"
+aliases = ["Dell PowerEdge R820", "Dell Inc. PowerEdge R820", "R820"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r830"
+vendor = "Dell"
+name = "PowerEdge R830"
+aliases = ["Dell PowerEdge R830", "Dell Inc. PowerEdge R830", "R830"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r840"
+vendor = "Dell"
+name = "PowerEdge R840"
+aliases = ["Dell PowerEdge R840", "Dell Inc. PowerEdge R840", "R840"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+
+[[models]]
+id = "dell-r910"
+vendor = "Dell"
+name = "PowerEdge R910"
+aliases = ["Dell PowerEdge R910", "Dell Inc. PowerEdge R910", "R910"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r920"
+vendor = "Dell"
+name = "PowerEdge R920"
+aliases = ["Dell PowerEdge R920", "Dell Inc. PowerEdge R920", "R920"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+
+[[models]]
+id = "dell-r930"
+vendor = "Dell"
+name = "PowerEdge R930"
+aliases = ["Dell PowerEdge R930", "Dell Inc. PowerEdge R930", "R930"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-r940"
+vendor = "Dell"
+name = "PowerEdge R940"
+aliases = ["Dell PowerEdge R940", "Dell Inc. PowerEdge R940", "R940"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+
+[[models]]
+id = "dell-t110"
+vendor = "Dell"
+name = "PowerEdge T110"
+aliases = ["Dell PowerEdge T110", "Dell Inc. PowerEdge T110", "T110"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+
+[[models]]
+id = "dell-t110-ii"
+vendor = "Dell"
+name = "PowerEdge T110 II"
+aliases = ["Dell PowerEdge T110 II", "Dell Inc. PowerEdge T110 II", "T110 II"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+
+[[models]]
+id = "dell-t130"
+vendor = "Dell"
+name = "PowerEdge T130"
+aliases = ["Dell PowerEdge T130", "Dell Inc. PowerEdge T130", "T130"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+
+[[models]]
+id = "dell-t140"
+vendor = "Dell"
+name = "PowerEdge T140"
+aliases = ["Dell PowerEdge T140", "Dell Inc. PowerEdge T140", "T140"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+
+[[models]]
+id = "dell-t310"
+vendor = "Dell"
+name = "PowerEdge T310"
+aliases = ["Dell PowerEdge T310", "Dell Inc. PowerEdge T310", "T310"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+
+[[models]]
+id = "dell-t320"
+vendor = "Dell"
+name = "PowerEdge T320"
+aliases = ["Dell PowerEdge T320", "Dell Inc. PowerEdge T320", "T320"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-t330"
+vendor = "Dell"
+name = "PowerEdge T330"
+aliases = ["Dell PowerEdge T330", "Dell Inc. PowerEdge T330", "T330"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-t410"
+vendor = "Dell"
+name = "PowerEdge T410"
+aliases = ["Dell PowerEdge T410", "Dell Inc. PowerEdge T410", "T410"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+
+[[models]]
+id = "dell-t420"
+vendor = "Dell"
+name = "PowerEdge T420"
+aliases = ["Dell PowerEdge T420", "Dell Inc. PowerEdge T420", "T420"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-t430"
+vendor = "Dell"
+name = "PowerEdge T430"
+aliases = ["Dell PowerEdge T430", "Dell Inc. PowerEdge T430", "T430"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-t440"
+vendor = "Dell"
+name = "PowerEdge T440"
+aliases = ["Dell PowerEdge T440", "Dell Inc. PowerEdge T440", "T440"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac9-legacy"
+
+[[models]]
+id = "dell-t610"
+vendor = "Dell"
+name = "PowerEdge T610"
+aliases = ["Dell PowerEdge T610", "Dell Inc. PowerEdge T610", "T610"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-t620"
+vendor = "Dell"
+name = "PowerEdge T620"
+aliases = ["Dell PowerEdge T620", "Dell Inc. PowerEdge T620", "T620"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-t630"
+vendor = "Dell"
+name = "PowerEdge T630"
+aliases = ["Dell PowerEdge T630", "Dell Inc. PowerEdge T630", "T630"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"
+
+[[models]]
+id = "dell-t640"
+vendor = "Dell"
+name = "PowerEdge T640"
+aliases = ["Dell PowerEdge T640", "Dell Inc. PowerEdge T640", "T640"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac9-legacy"
+
+[[models]]
+id = "dell-t710"
+vendor = "Dell"
+name = "PowerEdge T710"
+aliases = ["Dell PowerEdge T710", "Dell Inc. PowerEdge T710", "T710"]
+manufacturer_ids = [674]
+sources = ["https://www.dell.com/support/home/en-us/products/server_int/server_int_poweredge"]
+profile = "dell-idrac6-8"

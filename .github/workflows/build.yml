@@ -50,6 +50,10 @@ jobs:
         run: ${{ matrix.tool }} test --manifest-path vendor/ipmi/Cargo.toml --locked --no-default-features --features blocking --lib --target ${{ matrix.target }}
       - name: Target executable smoke test
         run: ${{ matrix.tool }} run --release --locked --target ${{ matrix.target }} -p bmcforge -- demo-check
+      - name: Target embedded locale validation
+        run: ${{ matrix.tool }} run --release --locked --target ${{ matrix.target }} -p bmcforge -- validate-locales
+      - name: Target embedded model validation
+        run: ${{ matrix.tool }} run --release --locked --target ${{ matrix.target }} -p bmcforge -- validate-models
       - name: Package and inspect executable architecture
         run: python scripts/package_release.py --target ${{ matrix.target }} --test-mode ${{ matrix.mode }}
       - uses: actions/upload-artifact@v7

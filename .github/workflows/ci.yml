@@ -23,12 +23,17 @@ jobs:
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: python -m unittest discover -s tests -v
       - run: cargo run --locked -p bmcforge -- validate-profiles
+      - run: cargo run --locked -p bmcforge -- validate-locales
+      - run: cargo run --locked -p bmcforge -- validate-models
       - run: cargo run --locked -p bmcforge -- --config examples/config.toml validate-config
       - name: Ensure committed profile schema is current
         shell: bash
         run: |
           cargo run --locked -q -p bmcforge -- profile-schema > /tmp/profile.schema.json
           python -c "import json; assert json.load(open('profiles/schema.json')) == json.load(open('/tmp/profile.schema.json'))"
+          cargo run --locked -q -p bmcforge -- model-schema > /tmp/model.schema.json
+          cargo run --locked -q -p bmcforge -- locale-schema > /tmp/locale.schema.json
+          python -c "import json; assert json.load(open('profiles/models/schema.json')) == json.load(open('/tmp/model.schema.json')); assert json.load(open('locales/schema.json')) == json.load(open('/tmp/locale.schema.json'))"
   native-tests:
     strategy:
       matrix:

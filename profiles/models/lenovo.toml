@@ -1,0 +1,110 @@
+schema_version = 1
+
+[[models]]
+id = "lenovo-x3250-m3"
+vendor = "IBM / Lenovo"
+name = "System x3250 M3"
+aliases = ["IBM System x3250 M3", "Lenovo System x3250 M3", "x3250 M3"]
+manufacturer_ids = [2, 19046]
+machine_types = ["4251", "4252", "4261"]
+sources = ["https://lenovopress.lenovo.com/tips0803"]
+
+[[models]]
+id = "lenovo-x3250-m4"
+vendor = "IBM / Lenovo"
+name = "System x3250 M4"
+aliases = ["IBM System x3250 M4", "Lenovo System x3250 M4", "x3250 M4"]
+manufacturer_ids = [2, 19046]
+machine_types = ["2583"]
+sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference"]
+
+[[models]]
+id = "lenovo-x3250-m5"
+vendor = "IBM / Lenovo"
+name = "System x3250 M5"
+aliases = ["IBM System x3250 M5", "Lenovo System x3250 M5", "x3250 M5"]
+manufacturer_ids = [2, 19046]
+machine_types = ["5458"]
+sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference"]
+
+[[models]]
+id = "lenovo-x3500-m3"
+vendor = "IBM / Lenovo"
+name = "System x3500 M3"
+aliases = ["IBM System x3500 M3", "Lenovo System x3500 M3", "x3500 M3"]
+manufacturer_ids = [2, 19046]
+machine_types = ["7380"]
+sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference"]
+
+[[models]]
+id = "lenovo-x3500-m4"
+vendor = "IBM / Lenovo"
+name = "System x3500 M4"
+aliases = ["IBM System x3500 M4", "Lenovo System x3500 M4", "x3500 M4"]
+manufacturer_ids = [2, 19046]
+machine_types = ["7383"]
+sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference"]
+
+[[models]]
+id = "lenovo-x3500-m5"
+vendor = "IBM / Lenovo"
+name = "System x3500 M5"
+aliases = ["IBM System x3500 M5", "Lenovo System x3500 M5", "x3500 M5"]
+manufacturer_ids = [2, 19046]
+machine_types = ["5464"]
+sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference"]
+
+[[models]]
+id = "lenovo-x3550-m3"
+vendor = "IBM / Lenovo"
+name = "System x3550 M3"
+aliases = ["IBM System x3550 M3", "Lenovo System x3550 M3", "x3550 M3"]
+manufacturer_ids = [2, 19046]
+machine_types = ["7944"]
+sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference"]
+
+[[models]]
+id = "lenovo-x3550-m4"
+vendor = "IBM / Lenovo"
+name = "System x3550 M4"
+aliases = ["IBM System x3550 M4", "Lenovo System x3550 M4", "x3550 M4"]
+manufacturer_ids = [2, 19046]
+machine_types = ["7914"]
+sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference"]
+
+[[models]]
+id = "lenovo-x3550-m5"
+vendor = "IBM / Lenovo"
+name = "System x3550 M5"
+aliases = ["IBM System x3550 M5", "Lenovo System x3550 M5", "x3550 M5"]
+manufacturer_ids = [2, 19046]
+machine_types = ["5463", "8869"]
+sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference"]
+
+[[models]]
+id = "lenovo-x3650-m3"
+vendor = "IBM / Lenovo"
+name = "System x3650 M3"
+aliases = ["IBM System x3650 M3", "Lenovo System x3650 M3", "x3650 M3"]
+manufacturer_ids = [2, 19046]
+machine_types = ["7945"]
+sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference"]
+
+[[models]]
+id = "lenovo-x3650-m4"
+vendor = "IBM / Lenovo"
+name = "System x3650 M4"
+aliases = ["IBM System x3650 M4", "Lenovo System x3650 M4", "x3650 M4"]
+manufacturer_ids = [2, 19046]
+machine_types = ["7915"]
+sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference"]
+
+[[models]]
+id = "lenovo-x3650-m5"
+vendor = "IBM / Lenovo"
+name = "System x3650 M5"
+aliases = ["IBM System x3650 M5", "Lenovo System x3650 M5", "x3650 M5"]
+manufacturer_ids = [2, 19046]
+machine_types = ["5462", "8871"]
+sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference", "https://lenovopress.lenovo.com/tips1193-lenovo-system-x3650-m5-machine-type-5462", "https://lenovopress.lenovo.com/lp0068-lenovo-system-x3650-m5-machine-type-8871"]
+profile = "lenovo-x3650-m5-imm2"
