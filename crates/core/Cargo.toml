@@ -12,6 +12,3 @@ toml.workspace = true
 tempfile.workspace = true
 directories = "6"
 ipnet = "2"
-
-[dev-dependencies]
-serde_json.workspace = true

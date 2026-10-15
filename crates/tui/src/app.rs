@@ -1018,7 +1018,7 @@ impl App {
                                 if let Some((value, zone)) = manual {
                                     Command::ManualValue(Box::new(p), value, zone)
                                 } else {
-                                    Command::Automatic(Some(Box::new(p)))
+                                    Command::Automatic(Box::new(p))
                                 },
                             )
                         })

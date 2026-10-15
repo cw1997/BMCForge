@@ -9,7 +9,6 @@ rust-version.workspace = true
 schemars.workspace = true
 fluent-bundle = "0.16"
 fluent-syntax = "0.12"
-unic-langid = "0.9"
 anyhow.workspace = true
 serde.workspace = true
 serde_json.workspace = true

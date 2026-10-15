@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, bail, ensure};
+use anyhow::{Context, Result, ensure};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
@@ -317,13 +317,6 @@ pub fn parse_server(text: &str) -> Result<Server> {
     let server: Server = toml::from_str(text)?;
     server.validate()?;
     Ok(server)
-}
-
-pub fn require_file(path: &Path) -> Result<()> {
-    if !path.is_file() {
-        bail!("not a file: {}", path.display());
-    }
-    Ok(())
 }
 
 #[cfg(test)]

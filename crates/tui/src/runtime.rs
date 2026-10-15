@@ -37,7 +37,7 @@ pub enum Message {
 }
 pub enum Command {
     ManualValue(Box<Profile>, ControlValue, u8),
-    Automatic(Option<Box<Profile>>),
+    Automatic(Box<Profile>),
     Configure(Box<Server>),
     Remove,
     Shutdown,
@@ -124,7 +124,7 @@ impl Runtime {
                     Command::ManualValue(p, value, zone) => {
                         device.manual_value(&p, value, zone).await
                     }
-                    Command::Automatic(p) => device.automatic(p.as_deref()).await,
+                    Command::Automatic(p) => device.automatic(Some(p.as_ref())).await,
                     Command::Configure(server) => match device.shutdown().await {
                         Ok(()) => {
                             device = Device::new(*server, demo);
