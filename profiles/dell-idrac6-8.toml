@@ -1,0 +1,27 @@
+schema_version = 1
+id = "dell-idrac6-8"
+vendor = "Dell"
+description = "PowerEdge iDRAC 6/7/8 OEM whole-system fan duty"
+verification = "experimental"
+sources = ["https://github.com/ipmitool/ipmitool/issues/30", "https://github.com/nmaggioni/r710-fan-controller"]
+notes = "Community-documented OEM commands; no BMCForge hardware verification. Excludes R210 II due to reported different behavior. Firmware must be checked on the actual device."
+[matcher]
+manufacturer_id = 674
+models = ["PowerEdge R310", "PowerEdge R410", "PowerEdge R510", "PowerEdge R610", "PowerEdge R710", "PowerEdge R810", "PowerEdge R910", "PowerEdge T610", "PowerEdge T710", "PowerEdge R320", "PowerEdge R420", "PowerEdge R520", "PowerEdge R620", "PowerEdge R720", "PowerEdge R720xd", "PowerEdge R820", "PowerEdge T320", "PowerEdge T420", "PowerEdge T620", "PowerEdge R330", "PowerEdge R430", "PowerEdge R530", "PowerEdge R630", "PowerEdge R730", "PowerEdge R730xd", "PowerEdge R830", "PowerEdge R930", "PowerEdge T330", "PowerEdge T430", "PowerEdge T630"]
+[[default_credentials]]
+username = "root"
+password = "calvin"
+source = "https://www.dell.com/support/kbdoc/en-us/000133536/dell-poweredge-what-is-the-default-username-and-password-for-idrac"
+note = "Legacy factory default only; changed or unique-password devices require their own credentials."
+[fan]
+min_percent = 10
+max_percent = 100
+scale = 100
+zones = [{ id = 255, name = "All fans" }]
+manual = [{ netfn = 48, command = 48, data = ["0x01", "0x00"], delay_ms = 100 }]
+set = [{ netfn = 48, command = 48, data = ["0x02", "$zone", "$duty"] }]
+automatic = [{ netfn = 48, command = 48, data = ["0x01", "0x01"] }]
+[[examples]]
+percent = 35
+zone = 255
+expected = [[48, 48, 1, 0], [48, 48, 2, 255, 35]]

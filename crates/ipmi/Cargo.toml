@@ -1,0 +1,18 @@
+[package]
+name = "bmcforge-ipmi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+async-trait.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+bmcforge-core.workspace = true
+bmcforge-profiles.workspace = true
+ipmi = { version = "=0.1.2", default-features = false, features = ["blocking"] }
+
+[dev-dependencies]
+serde_json.workspace = true

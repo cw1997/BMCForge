@@ -1,0 +1,20 @@
+schema_version = 1
+id = "asrock-ast2600"
+vendor = "ASRock Rack"
+description = "AST2600 percentage interface documented in TSDQA-72"
+verification = "experimental"
+sources = ["https://download.asrock.com/Rack/TSD/FAQ/TSDQA-72.pdf"]
+notes = "Select explicitly only after verifying the controller is an ASRock Rack AST2600 with the documented 0xd0 interface. Whole-system 16-slot control; no BMCForge hardware verification. Not compatible with AST2500 or older 0x3a/0x01 boards."
+[matcher]
+[fan]
+min_percent = 20
+max_percent = 100
+scale = 100
+zones = [{ id = 255, name = "All sixteen slots" }]
+manual = [{ netfn = 58, command = 208, data = ["0x11", "2", "2", "2", "2", "2", "2", "2", "2", "2", "2", "2", "2", "2", "2", "2", "2"] }]
+set = [{ netfn = 58, command = 208, data = ["0x0e", "$duty", "$duty", "$duty", "$duty", "$duty", "$duty", "$duty", "$duty", "$duty", "$duty", "$duty", "$duty", "$duty", "$duty", "$duty", "$duty"] }]
+automatic = [{ netfn = 58, command = 208, data = ["0x11", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"] }]
+[[examples]]
+percent = 50
+zone = 255
+expected = [[58, 208, 17, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], [58, 208, 14, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50]]

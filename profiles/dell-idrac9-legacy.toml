@@ -1,0 +1,27 @@
+schema_version = 1
+id = "dell-idrac9-legacy"
+vendor = "Dell"
+description = "PowerEdge 14G with legacy iDRAC9 firmware only"
+verification = "experimental"
+sources = ["https://github.com/ipmitool/ipmitool/issues/30", "https://github.com/t3chnaztea/dell-ipmi-fan-control"]
+notes = "Known firmware restrictions from 3.34 onward; exact compatibility must be verified. Newer generations are monitoring-only by default."
+[matcher]
+manufacturer_id = 674
+models = ["PowerEdge R440", "PowerEdge R540", "PowerEdge R640", "PowerEdge R740", "PowerEdge R740xd", "PowerEdge T440", "PowerEdge T640"]
+firmware_max = "3.33.255.255"
+[[default_credentials]]
+username = "root"
+source = "https://www.dell.com/support/kbdoc/en-us/000133536/dell-poweredge-what-is-the-default-username-and-password-for-idrac"
+note = "Use the unique password printed on the system information tag; do not assume calvin."
+[fan]
+min_percent = 10
+max_percent = 100
+scale = 100
+zones = [{ id = 255, name = "All fans" }]
+manual = [{ netfn = 48, command = 48, data = ["0x01", "0x00"], delay_ms = 100 }]
+set = [{ netfn = 48, command = 48, data = ["0x02", "$zone", "$duty"] }]
+automatic = [{ netfn = 48, command = 48, data = ["0x01", "0x01"] }]
+[[examples]]
+percent = 50
+zone = 255
+expected = [[48, 48, 1, 0], [48, 48, 2, 255, 50]]

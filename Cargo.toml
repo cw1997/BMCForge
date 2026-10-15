@@ -1,0 +1,31 @@
+[workspace]
+members = ["crates/core", "crates/ipmi", "crates/profiles", "crates/tui"]
+resolver = "3"
+exclude = ["vendor/ipmi"]
+
+[patch.crates-io]
+ipmi = { path = "vendor/ipmi" }
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.92"
+license = "Apache-2.0"
+
+[workspace.dependencies]
+anyhow = "1"
+async-trait = "0.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+tokio = { version = "1", features = ["full", "test-util"] }
+tokio-util = "0.7"
+tempfile = "3"
+schemars = "0.8"
+bmcforge-core = { path = "crates/core" }
+bmcforge-ipmi = { path = "crates/ipmi" }
+bmcforge-profiles = { path = "crates/profiles" }
+
+[profile.release]
+lto = "thin"
+strip = true

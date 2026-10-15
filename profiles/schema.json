@@ -1,0 +1,315 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "definitions": {
+    "CommandExample": {
+      "additionalProperties": false,
+      "properties": {
+        "expected": {
+          "description": "Each command: netfn, command, payload bytes.",
+          "items": {
+            "items": {
+              "format": "uint8",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "type": "array"
+        },
+        "percent": {
+          "format": "uint8",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "zone": {
+          "format": "uint8",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "expected",
+        "percent",
+        "zone"
+      ],
+      "type": "object"
+    },
+    "DefaultCredential": {
+      "additionalProperties": false,
+      "properties": {
+        "note": {
+          "type": "string"
+        },
+        "password": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "note",
+        "source",
+        "username"
+      ],
+      "type": "object"
+    },
+    "FanControl": {
+      "additionalProperties": false,
+      "properties": {
+        "automatic": {
+          "items": {
+            "$ref": "#/definitions/Step"
+          },
+          "type": "array"
+        },
+        "manual": {
+          "items": {
+            "$ref": "#/definitions/Step"
+          },
+          "type": "array"
+        },
+        "max_percent": {
+          "format": "uint8",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "min_percent": {
+          "format": "uint8",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "scale": {
+          "description": "Raw value representing 100% duty: normally 100 or 255.",
+          "format": "uint8",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "set": {
+          "items": {
+            "$ref": "#/definitions/Step"
+          },
+          "type": "array"
+        },
+        "zones": {
+          "items": {
+            "$ref": "#/definitions/Zone"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "automatic",
+        "manual",
+        "max_percent",
+        "min_percent",
+        "scale",
+        "set",
+        "zones"
+      ],
+      "type": "object"
+    },
+    "Matcher": {
+      "additionalProperties": false,
+      "properties": {
+        "excluded_models": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "firmware_max": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "firmware_min": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer_id": {
+          "default": null,
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "models": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "product_ids": {
+          "default": [],
+          "items": {
+            "format": "uint16",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "Step": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "format": "uint8",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "data": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "delay_ms": {
+          "default": 0,
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "expect": {
+          "default": null,
+          "items": {
+            "format": "uint8",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "netfn": {
+          "format": "uint8",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "command",
+        "netfn"
+      ],
+      "type": "object"
+    },
+    "Verification": {
+      "enum": [
+        "hardware_verified",
+        "documented",
+        "experimental",
+        "unsupported"
+      ],
+      "type": "string"
+    },
+    "Zone": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uint8",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "type": "object"
+    }
+  },
+  "properties": {
+    "default_credentials": {
+      "default": [],
+      "items": {
+        "$ref": "#/definitions/DefaultCredential"
+      },
+      "type": "array"
+    },
+    "description": {
+      "type": "string"
+    },
+    "examples": {
+      "default": [],
+      "items": {
+        "$ref": "#/definitions/CommandExample"
+      },
+      "type": "array"
+    },
+    "fan": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/FanControl"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "id": {
+      "type": "string"
+    },
+    "matcher": {
+      "$ref": "#/definitions/Matcher"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "override_builtin": {
+      "default": false,
+      "type": "boolean"
+    },
+    "schema_version": {
+      "format": "uint32",
+      "minimum": 0.0,
+      "type": "integer"
+    },
+    "sources": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "vendor": {
+      "type": "string"
+    },
+    "verification": {
+      "$ref": "#/definitions/Verification"
+    }
+  },
+  "required": [
+    "description",
+    "id",
+    "matcher",
+    "notes",
+    "schema_version",
+    "sources",
+    "vendor",
+    "verification"
+  ],
+  "title": "Profile",
+  "type": "object"
+}

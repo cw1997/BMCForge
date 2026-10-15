@@ -1,0 +1,59 @@
+name: Eight-platform builds
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-2025, target: x86_64-pc-windows-msvc, tool: cargo, mode: native }
+          - { os: windows-2025, target: i686-pc-windows-msvc, tool: cargo, mode: native-wow64 }
+          - { os: windows-11-arm, target: aarch64-pc-windows-msvc, tool: cargo, mode: native }
+          - { os: macos-15-intel, target: x86_64-apple-darwin, tool: cargo, mode: native }
+          - { os: macos-15, target: aarch64-apple-darwin, tool: cargo, mode: native }
+          - { os: ubuntu-24.04, target: x86_64-unknown-linux-musl, tool: cross, mode: container }
+          - { os: ubuntu-24.04, target: aarch64-unknown-linux-musl, tool: cross, mode: qemu }
+          - { os: ubuntu-24.04, target: armv7-unknown-linux-musleabihf, tool: cross, mode: qemu }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install cross
+        if: matrix.tool == 'cross'
+        run: cargo install cross --version 0.2.5 --locked
+      - name: Enable ARM emulation
+        if: matrix.mode == 'qemu'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm,arm64
+      - name: Build release executable
+        run: ${{ matrix.tool }} build --release --locked --target ${{ matrix.target }} -p bmcforge
+      - name: Target unit and simulated integration tests
+        run: ${{ matrix.tool }} test --workspace --locked --target ${{ matrix.target }}
+      - name: Target protocol regression tests
+        run: ${{ matrix.tool }} test --manifest-path vendor/ipmi/Cargo.toml --locked --no-default-features --features blocking --lib --target ${{ matrix.target }}
+      - name: Target executable smoke test
+        run: ${{ matrix.tool }} run --release --locked --target ${{ matrix.target }} -p bmcforge -- demo-check
+      - name: Package and inspect executable architecture
+        run: python scripts/package_release.py --target ${{ matrix.target }} --test-mode ${{ matrix.mode }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bmcforge-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error

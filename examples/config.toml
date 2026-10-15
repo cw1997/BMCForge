@@ -1,0 +1,43 @@
+# Credentials are stored in plaintext. Use your device's own credentials.
+version = 1
+
+[settings]
+language = "zh-CN"
+theme = "dark"
+mouse = false
+concurrency = 8
+scan_concurrency = 32
+scan_port = 623
+scan_timeout_ms = 2000
+scan_retries = 1
+scan_confirm_above = 4096
+scan_rate_per_second = 32
+history_capacity = 300
+temperature_unit = "C"
+sensor_filter = ""
+
+[[servers]]
+id = "lab-dell"
+name = "Lab PowerEdge R730"
+host = "192.0.2.10"
+port = 623
+profile = "dell-idrac6-8"
+tags = ["lab", "rack-a"]
+timeout_ms = 2000
+retries = 1
+poll_seconds = 5
+privilege = 4
+allow_experimental = false
+[servers.credentials]
+username = "root"
+password = "CHANGE_ME"
+
+[[servers]]
+id = "lab-supermicro"
+name = "Lab Supermicro"
+host = "192.0.2.11"
+profile = "supermicro-x10-x13"
+tags = ["lab", "rack-b"]
+[servers.credentials]
+username = "ADMIN"
+password = "DEVICE_LABEL"

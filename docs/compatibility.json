@@ -1,0 +1,191 @@
+{
+  "reviewed": "2026-10-15",
+  "hardware_verified_by_bmcforge": false,
+  "entries": [
+    {
+      "profile": "asrock-aspeed",
+      "vendor": "ASRock Rack",
+      "description": "ASPEED d8/d6 interface: pending stateful adapter",
+      "status": "unsupported",
+      "control": false,
+      "matcher": {},
+      "sources": [
+        "https://github.com/stblassitude/asrockrack-ipmi-fan-control",
+        "https://www.asrockrack.com/support/faq.asp?id=63"
+      ],
+      "constraints": "Monitoring only. X570D4U firmware 1.35 uses raw duty 15..63 and requires reading current duty and limiting each change to 8 raw units. Stateless percentage templates cannot safely express this; no write commands shipped. Other ASRock firmware differs."
+    },
+    {
+      "profile": "asrock-ast2600",
+      "vendor": "ASRock Rack",
+      "description": "AST2600 percentage interface documented in TSDQA-72",
+      "status": "experimental",
+      "control": true,
+      "matcher": {},
+      "sources": [
+        "https://download.asrock.com/Rack/TSD/FAQ/TSDQA-72.pdf"
+      ],
+      "constraints": "Select explicitly only after verifying the controller is an ASRock Rack AST2600 with the documented 0xd0 interface. Whole-system 16-slot control; no BMCForge hardware verification. Not compatible with AST2500 or older 0x3a/0x01 boards."
+    },
+    {
+      "profile": "dell-idrac6-8",
+      "vendor": "Dell",
+      "description": "PowerEdge iDRAC 6/7/8 OEM whole-system fan duty",
+      "status": "experimental",
+      "control": true,
+      "matcher": {
+        "manufacturer_id": 674,
+        "models": [
+          "PowerEdge R310",
+          "PowerEdge R410",
+          "PowerEdge R510",
+          "PowerEdge R610",
+          "PowerEdge R710",
+          "PowerEdge R810",
+          "PowerEdge R910",
+          "PowerEdge T610",
+          "PowerEdge T710",
+          "PowerEdge R320",
+          "PowerEdge R420",
+          "PowerEdge R520",
+          "PowerEdge R620",
+          "PowerEdge R720",
+          "PowerEdge R720xd",
+          "PowerEdge R820",
+          "PowerEdge T320",
+          "PowerEdge T420",
+          "PowerEdge T620",
+          "PowerEdge R330",
+          "PowerEdge R430",
+          "PowerEdge R530",
+          "PowerEdge R630",
+          "PowerEdge R730",
+          "PowerEdge R730xd",
+          "PowerEdge R830",
+          "PowerEdge R930",
+          "PowerEdge T330",
+          "PowerEdge T430",
+          "PowerEdge T630"
+        ]
+      },
+      "sources": [
+        "https://github.com/ipmitool/ipmitool/issues/30",
+        "https://github.com/nmaggioni/r710-fan-controller"
+      ],
+      "constraints": "Community-documented OEM commands; no BMCForge hardware verification. Excludes R210 II due to reported different behavior. Firmware must be checked on the actual device."
+    },
+    {
+      "profile": "dell-idrac9-legacy",
+      "vendor": "Dell",
+      "description": "PowerEdge 14G with legacy iDRAC9 firmware only",
+      "status": "experimental",
+      "control": true,
+      "matcher": {
+        "manufacturer_id": 674,
+        "models": [
+          "PowerEdge R440",
+          "PowerEdge R540",
+          "PowerEdge R640",
+          "PowerEdge R740",
+          "PowerEdge R740xd",
+          "PowerEdge T440",
+          "PowerEdge T640"
+        ],
+        "firmware_max": "3.33.255.255"
+      },
+      "sources": [
+        "https://github.com/ipmitool/ipmitool/issues/30",
+        "https://github.com/t3chnaztea/dell-ipmi-fan-control"
+      ],
+      "constraints": "Known firmware restrictions from 3.34 onward; exact compatibility must be verified. Newer generations are monitoring-only by default."
+    },
+    {
+      "profile": "generic",
+      "vendor": "IPMI",
+      "description": "Standard IPMI sensor monitoring",
+      "status": "documented",
+      "control": false,
+      "matcher": {},
+      "sources": [
+        "https://www.intel.com/content/www/us/en/products/docs/servers/ipmi/ipmi-second-gen-interface-spec-v2-rev1-1.html"
+      ],
+      "constraints": "Monitoring only. IPMI support does not imply OEM fan control support."
+    },
+    {
+      "profile": "supermicro-x10-x13",
+      "vendor": "Supermicro",
+      "description": "ATEN BMC X10-X13/H10-H13 two-zone duty control",
+      "status": "experimental",
+      "control": true,
+      "matcher": {
+        "manufacturer_id": 10876
+      },
+      "sources": [
+        "https://github.com/petersulyok/smfc"
+      ],
+      "constraints": "Select explicitly after checking the board and BMC. Not universal across X10-X13; X10QBi and newer OpenBMC stacks need different adapters. Auto restore selects Standard mode."
+    },
+    {
+      "profile": "supermicro-x9",
+      "vendor": "Supermicro",
+      "description": "Selected X9 ATEN boards, four zones, 0-255 scaling",
+      "status": "experimental",
+      "control": true,
+      "matcher": {
+        "manufacturer_id": 10876
+      },
+      "sources": [
+        "https://github.com/petersulyok/smfc"
+      ],
+      "constraints": "Only some X9 boards support this sequence; select explicitly after verifying the exact board. Standard mode used on restore."
+    },
+    {
+      "family": "ASRock AST2500 percentage / older interfaces",
+      "status": "pending",
+      "sources": [
+        "https://download.asrock.com/Rack/TSD/FAQ/TSDQA-72.pdf"
+      ],
+      "constraints": "Separate conflicting model/firmware interfaces before enabling writes"
+    },
+    {
+      "family": "Supermicro X10QBi",
+      "status": "pending",
+      "sources": [
+        "https://github.com/petersulyok/smfc/blob/main/ARCHITECTURE.md"
+      ],
+      "constraints": "Nuvoton TMFR register setup and 0x5c interface"
+    },
+    {
+      "family": "Supermicro X14/H14",
+      "status": "pending",
+      "sources": [
+        "https://github.com/petersulyok/smfc/blob/main/doc/X14H14_MANUAL_FANCONTROL.md"
+      ],
+      "constraints": "OpenBMC versus ATEN stack discovery, per-stack release and zone discovery"
+    },
+    {
+      "family": "Lenovo System x3650 M5 IMM",
+      "status": "pending",
+      "sources": [
+        "https://github.com/Nammurg/ipmi_fan_control"
+      ],
+      "constraints": "Bank control reported; automatic restore and firmware limits need verification"
+    },
+    {
+      "family": "HPE iLO",
+      "status": "pending",
+      "sources": [
+        "https://github.com/ST-DEVPT/rack-fan-control"
+      ],
+      "constraints": "Control may need modified firmware or SSH, outside this version's protocol scope"
+    },
+    {
+      "family": "Inspur",
+      "status": "pending",
+      "sources": [
+        "https://en.inspur.com/eportal//fileDir/active_download/platformBookZh/6680/Inspur%C2%A0Server%C2%A0BMC%C2%A0User%C2%A0Manual%C2%A0V2.7.pdf"
+      ],
+      "constraints": "Vendor documents fan settings; full IPMI write/restore sequence not established here"
+    }
+  ]
+}

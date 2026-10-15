@@ -1,0 +1,21 @@
+schema_version = 1
+id = "supermicro-x9"
+vendor = "Supermicro"
+description = "Selected X9 ATEN boards, four zones, 0-255 scaling"
+verification = "experimental"
+sources = ["https://github.com/petersulyok/smfc"]
+notes = "Only some X9 boards support this sequence; select explicitly after verifying the exact board. Standard mode used on restore."
+[matcher]
+manufacturer_id = 10876
+[fan]
+min_percent = 10
+max_percent = 100
+scale = 255
+zones = [{ id = 16, name = "Zone 0x10" }, { id = 17, name = "Zone 0x11" }, { id = 18, name = "Zone 0x12" }, { id = 19, name = "Zone 0x13" }]
+manual = [{ netfn = 48, command = 69, data = ["0x01", "0x01"], delay_ms = 10000 }]
+set = [{ netfn = 48, command = 145, data = ["0x5a", "0x03", "$zone", "$duty"] }]
+automatic = [{ netfn = 48, command = 69, data = ["0x01", "0x00"] }]
+[[examples]]
+percent = 50
+zone = 16
+expected = [[48, 69, 1, 1], [48, 145, 90, 3, 16, 128]]

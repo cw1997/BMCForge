@@ -1,0 +1,26 @@
+schema_version = 1
+id = "supermicro-x10-x13"
+vendor = "Supermicro"
+description = "ATEN BMC X10-X13/H10-H13 two-zone duty control"
+verification = "experimental"
+sources = ["https://github.com/petersulyok/smfc"]
+notes = "Select explicitly after checking the board and BMC. Not universal across X10-X13; X10QBi and newer OpenBMC stacks need different adapters. Auto restore selects Standard mode."
+[matcher]
+manufacturer_id = 10876
+[[default_credentials]]
+username = "ADMIN"
+password = "ADMIN"
+source = "https://www.supermicro.com/en/support/BMC_Unique_Password"
+note = "Older boards only; recent boards use a unique password on a label."
+[fan]
+min_percent = 10
+max_percent = 100
+scale = 100
+zones = [{ id = 0, name = "CPU / system" }, { id = 1, name = "Peripheral" }]
+manual = [{ netfn = 48, command = 69, data = ["0x01", "0x01"], delay_ms = 10000 }]
+set = [{ netfn = 48, command = 112, data = ["0x66", "0x01", "$zone", "$duty"] }]
+automatic = [{ netfn = 48, command = 69, data = ["0x01", "0x00"] }]
+[[examples]]
+percent = 50
+zone = 1
+expected = [[48, 69, 1, 1], [48, 112, 102, 1, 1, 50]]

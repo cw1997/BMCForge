@@ -1,0 +1,8 @@
+schema_version = 1
+id = "asrock-aspeed"
+vendor = "ASRock Rack"
+description = "ASPEED d8/d6 interface: pending stateful adapter"
+verification = "unsupported"
+sources = ["https://github.com/stblassitude/asrockrack-ipmi-fan-control", "https://www.asrockrack.com/support/faq.asp?id=63"]
+notes = "Monitoring only. X570D4U firmware 1.35 uses raw duty 15..63 and requires reading current duty and limiting each change to 8 raw units. Stateless percentage templates cannot safely express this; no write commands shipped. Other ASRock firmware differs."
+[matcher]

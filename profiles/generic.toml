@@ -1,0 +1,8 @@
+schema_version = 1
+id = "generic"
+vendor = "IPMI"
+description = "Standard IPMI sensor monitoring"
+verification = "documented"
+sources = ["https://www.intel.com/content/www/us/en/products/docs/servers/ipmi/ipmi-second-gen-interface-spec-v2-rev1-1.html"]
+notes = "Monitoring only. IPMI support does not imply OEM fan control support."
+[matcher]

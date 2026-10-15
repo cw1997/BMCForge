@@ -1,0 +1,8 @@
+/target/
+/vendor/ipmi/target/
+/.idea/
+*.tmp
+/bmcforge.local.toml
+*.bak
+/dist/
+__pycache__/
