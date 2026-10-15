@@ -95,6 +95,24 @@
           "minimum": 0.0,
           "type": "integer"
         },
+        "percent_values": {
+          "default": [],
+          "description": "Optional exact percentage levels when intermediate duties are not documented.",
+          "items": {
+            "format": "uint8",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "probe": {
+          "default": [],
+          "description": "Reviewed read-only protocol probes, run before the first takeover.",
+          "items": {
+            "$ref": "#/definitions/Step"
+          },
+          "type": "array"
+        },
         "raw_values": {
           "default": [],
           "items": {
@@ -226,6 +244,17 @@
             "format": "uint8",
             "minimum": 0.0,
             "type": "integer"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "expect_data": {
+          "default": null,
+          "description": "Expected response encoded with the same bounded parameter tokens as request data.",
+          "items": {
+            "type": "string"
           },
           "type": [
             "array",

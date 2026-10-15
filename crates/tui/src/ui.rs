@@ -545,7 +545,15 @@ fn profiles(frame: &mut Frame, area: Rect, app: &mut App) {
                             .join(", "),
                         app.text("raw"),
                         if f.raw_values.is_empty() {
-                            format!("{}..{}%", f.min_percent, f.max_percent)
+                            if f.percent_values.is_empty() {
+                                format!("{}..{}%", f.min_percent, f.max_percent)
+                            } else {
+                                f.percent_values
+                                    .iter()
+                                    .map(|v| format!("{v}%"))
+                                    .collect::<Vec<_>>()
+                                    .join(", ")
+                            }
                         } else {
                             f.raw_values
                                 .iter()
@@ -557,7 +565,7 @@ fn profiles(frame: &mut Frame, area: Rect, app: &mut App) {
                 })
                 .unwrap_or_else(|| app.text("monitor-only").into());
             format!(
-                "{}\n{}\n\n{}\n\n{}\n\n{}:\n{}\n\n{}:\n{}",
+                "{}\n{}\n\n{}\n\n{}\n\n{}:\n{}\n\n{}:\n{}\n\n{}:\n{}",
                 p.vendor,
                 p.description,
                 p.notes,
@@ -574,6 +582,14 @@ fn profiles(frame: &mut Frame, area: Rect, app: &mut App) {
                         c.note,
                         c.source
                     ))
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+                app.text("server"),
+                app.catalog
+                    .models
+                    .values()
+                    .filter(|m| m.profile.as_deref() == Some(p.id.as_str()))
+                    .map(|m| format!("{} ({})", m.name, m.id))
                     .collect::<Vec<_>>()
                     .join("\n")
             )

@@ -1,0 +1,9 @@
+schema_version = 1
+id = "zte-monitor"
+vendor = "ZTE / 中兴通讯"
+description = "ZTE / 中兴通讯 standard IPMI monitoring (no fan writes)"
+verification = "documented"
+sources = ["https://www.zte.com.cn/china/about/news/20230112c3.html", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+notes = "Standard IPMI monitoring when supported/enabled on the installed BMC. Do not infer duty encoding or automatic restoration from vendor name or a WebUI fan policy."
+[matcher]
+manufacturer_ids = [3902]

@@ -1,0 +1,118 @@
+schema_version = 1
+
+[[models]]
+id = "h3c-uniserver-r4700-g5"
+vendor = "H3C / 新华三"
+name = "UniServer R4700 G5"
+aliases = ["H3C UniServer R4700 G5", "新华三 UniServer R4700 G5", "R4700 G5", "H3C R4700 G5"]
+manufacturer_ids = [25506, 61878]
+profile = "h3c-hdm-monitor"
+sources = ["https://www.h3c.com/en/pub/Activities/H3CNavigate2024/img/img2/Products%20Catalogue.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "h3c-uniserver-r4700-g6"
+vendor = "H3C / 新华三"
+name = "UniServer R4700 G6"
+aliases = ["H3C UniServer R4700 G6", "新华三 UniServer R4700 G6", "R4700 G6", "H3C R4700 G6"]
+manufacturer_ids = [25506, 61878]
+profile = "h3c-hdm-monitor"
+sources = ["https://www.h3c.com/en/pub/Activities/H3CNavigate2024/img/img2/Products%20Catalogue.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "h3c-uniserver-r4900-g5"
+vendor = "H3C / 新华三"
+name = "UniServer R4900 G5"
+aliases = ["H3C UniServer R4900 G5", "新华三 UniServer R4900 G5", "R4900 G5", "H3C R4900 G5"]
+manufacturer_ids = [25506, 61878]
+profile = "h3c-hdm-monitor"
+sources = ["https://www.h3c.com/en/pub/Activities/H3CNavigate2024/img/img2/Products%20Catalogue.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "h3c-uniserver-r4900-g6"
+vendor = "H3C / 新华三"
+name = "UniServer R4900 G6"
+aliases = ["H3C UniServer R4900 G6", "新华三 UniServer R4900 G6", "R4900 G6", "H3C R4900 G6"]
+manufacturer_ids = [25506, 61878]
+profile = "h3c-hdm-monitor"
+sources = ["https://www.h3c.com/en/pub/Activities/H3CNavigate2024/img/img2/Products%20Catalogue.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "h3c-uniserver-r4900-g6-ultra"
+vendor = "H3C / 新华三"
+name = "UniServer R4900 G6 Ultra"
+aliases = ["H3C UniServer R4900 G6 Ultra", "新华三 UniServer R4900 G6 Ultra", "R4900 G6 Ultra", "H3C R4900 G6 Ultra"]
+manufacturer_ids = [25506, 61878]
+profile = "h3c-hdm-monitor"
+sources = ["https://www.h3c.com/en/pub/Activities/H3CNavigate2024/img/img2/Products%20Catalogue.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "h3c-uniserver-r4950-g6"
+vendor = "H3C / 新华三"
+name = "UniServer R4950 G6"
+aliases = ["H3C UniServer R4950 G6", "新华三 UniServer R4950 G6", "R4950 G6", "H3C R4950 G6"]
+manufacturer_ids = [25506, 61878]
+profile = "h3c-hdm-monitor"
+sources = ["https://www.h3c.com/en/pub/Activities/H3CNavigate2024/img/img2/Products%20Catalogue.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "h3c-uniserver-r6700-g6"
+vendor = "H3C / 新华三"
+name = "UniServer R6700 G6"
+aliases = ["H3C UniServer R6700 G6", "新华三 UniServer R6700 G6", "R6700 G6", "H3C R6700 G6"]
+manufacturer_ids = [25506, 61878]
+profile = "h3c-hdm-monitor"
+sources = ["https://www.h3c.com/en/pub/Activities/H3CNavigate2024/img/img2/Products%20Catalogue.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "h3c-uniserver-r6900-g5"
+vendor = "H3C / 新华三"
+name = "UniServer R6900 G5"
+aliases = ["H3C UniServer R6900 G5", "新华三 UniServer R6900 G5", "R6900 G5", "H3C R6900 G5"]
+manufacturer_ids = [25506, 61878]
+profile = "h3c-hdm-monitor"
+sources = ["https://www.h3c.com/en/pub/Activities/H3CNavigate2024/img/img2/Products%20Catalogue.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "h3c-uniserver-r6900-g6"
+vendor = "H3C / 新华三"
+name = "UniServer R6900 G6"
+aliases = ["H3C UniServer R6900 G6", "新华三 UniServer R6900 G6", "R6900 G6", "H3C R6900 G6"]
+manufacturer_ids = [25506, 61878]
+profile = "h3c-hdm-monitor"
+sources = ["https://www.h3c.com/en/pub/Activities/H3CNavigate2024/img/img2/Products%20Catalogue.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "h3c-uniserver-r4300-g5"
+vendor = "H3C / 新华三"
+name = "UniServer R4300 G5"
+aliases = ["H3C UniServer R4300 G5", "新华三 UniServer R4300 G5", "R4300 G5", "H3C R4300 G5"]
+manufacturer_ids = [25506, 61878]
+profile = "h3c-hdm-monitor"
+sources = ["https://www.h3c.com/en/pub/Activities/H3CNavigate2024/img/img2/Products%20Catalogue.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "h3c-uniserver-r4300-g6"
+vendor = "H3C / 新华三"
+name = "UniServer R4300 G6"
+aliases = ["H3C UniServer R4300 G6", "新华三 UniServer R4300 G6", "R4300 G6", "H3C R4300 G6"]
+manufacturer_ids = [25506, 61878]
+profile = "h3c-hdm-monitor"
+sources = ["https://www.h3c.com/en/pub/Activities/H3CNavigate2024/img/img2/Products%20Catalogue.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "h3c-uniserver-r4500-g6"
+vendor = "H3C / 新华三"
+name = "UniServer R4500 G6"
+aliases = ["H3C UniServer R4500 G6", "新华三 UniServer R4500 G6", "R4500 G6", "H3C R4500 G6"]
+manufacturer_ids = [25506, 61878]
+profile = "h3c-hdm-monitor"
+sources = ["https://www.h3c.com/en/pub/Activities/H3CNavigate2024/img/img2/Products%20Catalogue.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "h3c-uis2000-g6"
+vendor = "H3C / 新华三"
+name = "H3C UIS 2000 G6"
+aliases = ["UIS 2000 G6"]
+manufacturer_ids = [25506, 58794, 61878]
+profile = "h3c-uis2000-g6"
+sources = ["https://www.h3c.com/cn/Service/Document_Software/Document_Center/H3Cloud/Catalog/H3C_UIS/2000_G6/Developer_Guides/API_Reference/H3C_UIS_2000_G6_IPMI_OEM-15014/", "https://www.iana.org/assignments/enterprise-numbers.txt"]

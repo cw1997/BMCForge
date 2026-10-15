@@ -1,0 +1,9 @@
+schema_version = 1
+id = "hpe-ilo-monitor"
+vendor = "HPE / HP"
+description = "HPE / HP standard IPMI monitoring (no fan writes)"
+verification = "documented"
+sources = ["https://support.hpe.com/hpesc/public/docDisplay?docId=sd00001703en_us&docLocale=en_US&page=s_supported-DL-servers-fusion.html", "https://www.iana.org/assignments/enterprise-numbers.txt", "https://github.com/alex3025/ilo-fans-controller"]
+notes = "Standard IPMI monitoring when LAN access and suite 3 are enabled. HPE fan values can be percentages or states rather than RPM; retain reported units. Common community fan-write solutions need patched iLO/SSH, outside this native IPMI adapter. Use the per-device iLO credentials; no shared password is assumed."
+[matcher]
+manufacturer_ids = [11, 47196]

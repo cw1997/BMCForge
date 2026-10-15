@@ -1,6 +1,6 @@
 # Compatibility and evidence
 
-Inventory reviewed 2026-10-15. No adapter in this repository has been verified on physical hardware by BMCForge. Public implementation reports are evidence for experimental profiles, not a blanket compatibility claim. Machine-readable research inventory: `docs/compatibility.json`.
+Inventory reviewed 2026-10-16. No adapter in this repository has been verified on physical hardware by BMCForge. Public implementation reports are evidence for experimental profiles, not a blanket compatibility claim. Machine-readable research inventory: `docs/compatibility.json`.
 
 ## Included control adapters
 
@@ -12,7 +12,9 @@ Inventory reviewed 2026-10-15. No adapter in this repository has been verified o
 
 - `lenovo-x3650-m5-imm2`: IBM/Lenovo x3650 M5 IMM2, two independent banks with sourced non-linear raw levels and automatic recovery. Experimental; no claim about other System x models or every firmware. Source: https://github.com/laingcc/Lenovo-M3650-Nvidia-GPU-Fan-Control. See [catalog and control details](models.md).
 
-The separate `profiles/models/` catalog recognizes 68 Dell PowerEdge and IBM/Lenovo System x models/variants, including monitoring-only entries. Recognition does not promote their fan control status.
+- `h3c-uis2000-g6`: experimental UIS OEM PWM interface, read-only signature probe before takeover and checked write/recovery responses. Only documented 20/40/60/80/100 percent levels are exposed. Not the UniServer HDM interface. See [vendor coverage and source](vendor-coverage.md).
+
+The separate `profiles/models/` catalog contains 164 sourced model/variant entries, including HPE, Lenovo ThinkSystem/System x, Dell, Inspur, H3C, Huawei, xFusion, Sugon, ZTE and China Greatwall. Recognition does not promote fan control status; monitoring availability still depends on the installed BMC. Nine new monitoring profiles have no fan write commands. See [vendor coverage](vendor-coverage.md) for source links and limitations.
 
 ## Known candidates requiring more work
 
@@ -21,7 +23,7 @@ The separate `profiles/models/` catalog recognizes 68 Dell PowerEdge and IBM/Len
 - Supermicro X10QBi: Nuvoton register setup differs from ordinary X9 commands. X14/H14: OpenBMC and ATEN require different manual-state discovery, release and zone logic. Sources: https://github.com/petersulyok/smfc/blob/main/ARCHITECTURE.md and https://github.com/petersulyok/smfc/blob/main/doc/X14H14_MANUAL_FANCONTROL.md.
 - HPE iLO: generic IPMI monitoring is separate from fan control, which may require modified firmware or SSH and is outside this version's protocol scope. Source: https://github.com/ST-DEVPT/rack-fan-control.
 - Inspur: vendor documents BMC fan controls, but a complete model-specific IPMI write/restore sequence has not been established here. Source: https://en.inspur.com/eportal//fileDir/active_download/platformBookZh/6680/Inspur%C2%A0Server%C2%A0BMC%C2%A0User%C2%A0Manual%C2%A0V2.7.pdf.
-- Gigabyte, Huawei, ASUS, Fujitsu, Quanta, Intel, Cisco and other OEMs remain generic monitoring unless a reviewed external profile is supplied. This inventory makes no unsupported assertion that those vendors cannot control fans.
+- Gigabyte, ASUS, Fujitsu, Quanta, Intel, Cisco and other OEMs remain generic monitoring unless a reviewed external profile is supplied. This inventory makes no unsupported assertion that those vendors cannot control fans.
 
 There is no authoritative finite list of every server/firmware that supports OEM fan writes. New reports should extend this catalog and add reproducible profiles rather than treating an unverified product name as supported.
 

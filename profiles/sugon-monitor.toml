@@ -1,0 +1,9 @@
+schema_version = 1
+id = "sugon-monitor"
+vendor = "Sugon / Dawning / 曙光"
+description = "Sugon / Dawning / 曙光 standard IPMI monitoring (no fan writes)"
+verification = "documented"
+sources = ["https://spcresults.org/sites/default/files/files/full_disclosure_report/A32029_FDR_0.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+notes = "Standard IPMI monitoring. Platform-specific full-speed and advanced-user commands from benchmark reports do not prove return to BMC automatic mode on these models; no raw fan writes are enabled."
+[matcher]
+manufacturer_ids = [27500, 57098]

@@ -1,0 +1,9 @@
+schema_version = 1
+id = "inspur-monitor"
+vendor = "Inspur / 浪潮"
+description = "Inspur / 浪潮 standard IPMI monitoring (no fan writes)"
+verification = "documented"
+sources = ["https://en.inspur.com/eportal//fileDir/active_download/platformBookZh/6680/Inspur%C2%A0Server%C2%A0BMC%C2%A0User%C2%A0Manual%C2%A0V2.7.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+notes = "Standard IPMI monitoring. Vendor WebUI manual fan controls do not establish a portable raw-IPMI write and automatic recovery sequence. BMC families differ; do not reuse Dell raw commands. Use configured device credentials."
+[matcher]
+manufacturer_ids = [37945, 48512, 58059]

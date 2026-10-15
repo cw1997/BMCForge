@@ -1,0 +1,163 @@
+schema_version = 1
+
+[[models]]
+id = "hpe-proliant-dl360p-gen8"
+vendor = "HPE / HP"
+name = "ProLiant DL360p Gen8"
+aliases = ["HP ProLiant DL360p Gen8", "HPE ProLiant DL360p Gen8", "Hewlett-Packard ProLiant DL360p Gen8", "DL360p Gen8"]
+manufacturer_ids = [11, 47196]
+profile = "hpe-ilo-monitor"
+sources = ["https://support.hpe.com/hpesc/public/docDisplay?docId=sd00001703en_us&docLocale=en_US&page=s_supported-DL-servers-fusion.html", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "hpe-proliant-dl380p-gen8"
+vendor = "HPE / HP"
+name = "ProLiant DL380p Gen8"
+aliases = ["HP ProLiant DL380p Gen8", "HPE ProLiant DL380p Gen8", "Hewlett-Packard ProLiant DL380p Gen8", "DL380p Gen8"]
+manufacturer_ids = [11, 47196]
+profile = "hpe-ilo-monitor"
+sources = ["https://support.hpe.com/hpesc/public/docDisplay?docId=sd00001703en_us&docLocale=en_US&page=s_supported-DL-servers-fusion.html", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "hpe-proliant-dl360-gen9"
+vendor = "HPE / HP"
+name = "ProLiant DL360 Gen9"
+aliases = ["HP ProLiant DL360 Gen9", "HPE ProLiant DL360 Gen9", "Hewlett-Packard ProLiant DL360 Gen9", "DL360 Gen9"]
+manufacturer_ids = [11, 47196]
+profile = "hpe-ilo-monitor"
+sources = ["https://support.hpe.com/hpesc/public/docDisplay?docId=sd00001703en_us&docLocale=en_US&page=s_supported-DL-servers-fusion.html", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "hpe-proliant-dl380-gen9"
+vendor = "HPE / HP"
+name = "ProLiant DL380 Gen9"
+aliases = ["HP ProLiant DL380 Gen9", "HPE ProLiant DL380 Gen9", "Hewlett-Packard ProLiant DL380 Gen9", "DL380 Gen9"]
+manufacturer_ids = [11, 47196]
+profile = "hpe-ilo-monitor"
+sources = ["https://support.hpe.com/hpesc/public/docDisplay?docId=sd00001703en_us&docLocale=en_US&page=s_supported-DL-servers-fusion.html", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "hpe-proliant-dl360-gen10"
+vendor = "HPE / HP"
+name = "ProLiant DL360 Gen10"
+aliases = ["HP ProLiant DL360 Gen10", "HPE ProLiant DL360 Gen10", "Hewlett-Packard ProLiant DL360 Gen10", "DL360 Gen10"]
+manufacturer_ids = [11, 47196]
+profile = "hpe-ilo-monitor"
+sources = ["https://support.hpe.com/hpesc/public/docDisplay?docId=sd00001703en_us&docLocale=en_US&page=s_supported-DL-servers-fusion.html", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "hpe-proliant-dl380-gen10"
+vendor = "HPE / HP"
+name = "ProLiant DL380 Gen10"
+aliases = ["HP ProLiant DL380 Gen10", "HPE ProLiant DL380 Gen10", "Hewlett-Packard ProLiant DL380 Gen10", "DL380 Gen10"]
+manufacturer_ids = [11, 47196]
+profile = "hpe-ilo-monitor"
+sources = ["https://support.hpe.com/hpesc/public/docDisplay?docId=sd00001703en_us&docLocale=en_US&page=s_supported-DL-servers-fusion.html", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "hpe-proliant-dl360-gen10-plus"
+vendor = "HPE / HP"
+name = "ProLiant DL360 Gen10 Plus"
+aliases = ["HP ProLiant DL360 Gen10 Plus", "HPE ProLiant DL360 Gen10 Plus", "Hewlett-Packard ProLiant DL360 Gen10 Plus", "DL360 Gen10 Plus"]
+manufacturer_ids = [11, 47196]
+profile = "hpe-ilo-monitor"
+sources = ["https://support.hpe.com/hpesc/public/docDisplay?docId=sd00001703en_us&docLocale=en_US&page=s_supported-DL-servers-fusion.html", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "hpe-proliant-dl380-gen10-plus"
+vendor = "HPE / HP"
+name = "ProLiant DL380 Gen10 Plus"
+aliases = ["HP ProLiant DL380 Gen10 Plus", "HPE ProLiant DL380 Gen10 Plus", "Hewlett-Packard ProLiant DL380 Gen10 Plus", "DL380 Gen10 Plus"]
+manufacturer_ids = [11, 47196]
+profile = "hpe-ilo-monitor"
+sources = ["https://support.hpe.com/hpesc/public/docDisplay?docId=sd00001703en_us&docLocale=en_US&page=s_supported-DL-servers-fusion.html", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "hpe-proliant-dl360-gen11"
+vendor = "HPE / HP"
+name = "ProLiant DL360 Gen11"
+aliases = ["HP ProLiant DL360 Gen11", "HPE ProLiant DL360 Gen11", "Hewlett-Packard ProLiant DL360 Gen11", "DL360 Gen11"]
+manufacturer_ids = [11, 47196]
+profile = "hpe-ilo-monitor"
+sources = ["https://www.hpe.com/sg/en/products/compute/proliant/dl360-gen11.html", "https://support.hpe.com/hpesc/public/docDisplay?docId=sd00001703en_us&docLocale=en_US&page=s_supported-DL-servers-fusion.html", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "hpe-proliant-dl380-gen11"
+vendor = "HPE / HP"
+name = "ProLiant DL380 Gen11"
+aliases = ["HP ProLiant DL380 Gen11", "HPE ProLiant DL380 Gen11", "Hewlett-Packard ProLiant DL380 Gen11", "DL380 Gen11"]
+manufacturer_ids = [11, 47196]
+profile = "hpe-ilo-monitor"
+sources = ["https://www.hpe.com/br/en/collaterals/collateral.a50004307enw.html", "https://support.hpe.com/hpesc/public/docDisplay?docId=sd00001703en_us&docLocale=en_US&page=s_supported-DL-servers-fusion.html", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "hpe-proliant-compute-dl320-gen12"
+vendor = "HPE / HP"
+name = "ProLiant Compute DL320 Gen12"
+aliases = ["HPE ProLiant Compute DL320 Gen12", "ProLiant DL320 Gen12", "HPE ProLiant DL320 Gen12", "DL320 Gen12"]
+manufacturer_ids = [11, 47196]
+profile = "hpe-ilo-monitor"
+sources = ["https://support.hpe.com/hpesc/public/docDisplay?docId=a00150045ja_jp&docLocale=ja_JP", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "hpe-proliant-compute-dl340-gen12"
+vendor = "HPE / HP"
+name = "ProLiant Compute DL340 Gen12"
+aliases = ["HPE ProLiant Compute DL340 Gen12", "ProLiant DL340 Gen12", "HPE ProLiant DL340 Gen12", "DL340 Gen12"]
+manufacturer_ids = [11, 47196]
+profile = "hpe-ilo-monitor"
+sources = ["https://support.hpe.com/hpesc/public/docDisplay?docId=a00150045ja_jp&docLocale=ja_JP", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "hpe-proliant-compute-dl360-gen12"
+vendor = "HPE / HP"
+name = "ProLiant Compute DL360 Gen12"
+aliases = ["HPE ProLiant Compute DL360 Gen12", "ProLiant DL360 Gen12", "HPE ProLiant DL360 Gen12", "DL360 Gen12"]
+manufacturer_ids = [11, 47196]
+profile = "hpe-ilo-monitor"
+sources = ["https://support.hpe.com/hpesc/public/docDisplay?docId=a00150045ja_jp&docLocale=ja_JP", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "hpe-proliant-compute-dl380-gen12"
+vendor = "HPE / HP"
+name = "ProLiant Compute DL380 Gen12"
+aliases = ["HPE ProLiant Compute DL380 Gen12", "ProLiant DL380 Gen12", "HPE ProLiant DL380 Gen12", "DL380 Gen12"]
+manufacturer_ids = [11, 47196]
+profile = "hpe-ilo-monitor"
+sources = ["https://support.hpe.com/hpesc/public/docDisplay?docId=a00150045ja_jp&docLocale=ja_JP", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "hpe-proliant-compute-dl380a-gen12"
+vendor = "HPE / HP"
+name = "ProLiant Compute DL380a Gen12"
+aliases = ["HPE ProLiant Compute DL380a Gen12", "ProLiant DL380a Gen12", "HPE ProLiant DL380a Gen12", "DL380a Gen12"]
+manufacturer_ids = [11, 47196]
+profile = "hpe-ilo-monitor"
+sources = ["https://support.hpe.com/hpesc/public/docDisplay?docId=a00150045ja_jp&docLocale=ja_JP", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "hpe-proliant-compute-dl384-gen12"
+vendor = "HPE / HP"
+name = "ProLiant Compute DL384 Gen12"
+aliases = ["HPE ProLiant Compute DL384 Gen12", "ProLiant DL384 Gen12", "HPE ProLiant DL384 Gen12", "DL384 Gen12"]
+manufacturer_ids = [11, 47196]
+profile = "hpe-ilo-monitor"
+sources = ["https://support.hpe.com/hpesc/public/docDisplay?docId=a00150045ja_jp&docLocale=ja_JP", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "hpe-proliant-compute-dl580-gen12"
+vendor = "HPE / HP"
+name = "ProLiant Compute DL580 Gen12"
+aliases = ["HPE ProLiant Compute DL580 Gen12", "ProLiant DL580 Gen12", "HPE ProLiant DL580 Gen12", "DL580 Gen12"]
+manufacturer_ids = [11, 47196]
+profile = "hpe-ilo-monitor"
+sources = ["https://support.hpe.com/hpesc/public/docDisplay?docId=a00150045ja_jp&docLocale=ja_JP", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "hpe-proliant-compute-ml350-gen12"
+vendor = "HPE / HP"
+name = "ProLiant Compute ML350 Gen12"
+aliases = ["HPE ProLiant Compute ML350 Gen12", "ProLiant ML350 Gen12", "HPE ProLiant ML350 Gen12", "ML350 Gen12"]
+manufacturer_ids = [11, 47196]
+profile = "hpe-ilo-monitor"
+sources = ["https://support.hpe.com/hpesc/public/docDisplay?docId=a00150045ja_jp&docLocale=ja_JP", "https://www.iana.org/assignments/enterprise-numbers.txt"]

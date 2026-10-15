@@ -24,6 +24,16 @@ class ReleaseTests(unittest.TestCase):
         registry=(root / "crates/profiles/src/lib.rs").read_text(encoding="utf-8")
         for path in (root / "profiles").glob("*.toml"):
             self.assertIn(f'profiles/{path.name}',registry)
+        model_registry=(root / "crates/profiles/src/models.rs").read_text(encoding="utf-8")
+        for path in (root / "profiles/models").glob("*.toml"):
+            self.assertIn(f'profiles/models/{path.name}',model_registry)
+        self.assertEqual(inventory['model_count'],len(inventory['models']))
+        self.assertEqual(len({m['id'] for m in inventory['models']}),inventory['model_count'])
+        for model in inventory['models']:
+            self.assertEqual(model['identification'],'catalogued_not_hardware_verified')
+            if model.get('profile','').endswith('-monitor'):
+                self.assertIsNone(model['fan_adapter'])
+                self.assertEqual(model['control_status'],'monitoring_only')
 
     def test_package_contains_binary_docs_status_and_correct_checksum(self):
         with tempfile.TemporaryDirectory() as directory:

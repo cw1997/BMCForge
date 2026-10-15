@@ -1,0 +1,46 @@
+schema_version = 1
+
+[[models]]
+id = "greatwall-rf5260-v5"
+vendor = "China Greatwall / 中国长城"
+name = "擎天RF5260 V5"
+aliases = ["Great Wall 擎天RF5260 V5", "Greatwall 擎天RF5260 V5", "China Greatwall 擎天RF5260 V5", "中国长城 擎天RF5260 V5", "长城 擎天RF5260 V5", "RF5260 V5", "Great Wall RF5260 V5", "长城擎天RF5260 V5"]
+manufacturer_ids = [10808, 58838]
+profile = "greatwall-monitor"
+sources = ["https://www.greatwall.com.cn/category/智慧计算与存储/通用型服务器", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "greatwall-rf6260-v5"
+vendor = "China Greatwall / 中国长城"
+name = "擎天RF6260 V5"
+aliases = ["Great Wall 擎天RF6260 V5", "Greatwall 擎天RF6260 V5", "China Greatwall 擎天RF6260 V5", "中国长城 擎天RF6260 V5", "长城 擎天RF6260 V5", "RF6260 V5", "Great Wall RF6260 V5", "长城擎天RF6260 V5"]
+manufacturer_ids = [10808, 58838]
+profile = "greatwall-monitor"
+sources = ["https://www.greatwall.com.cn/category/智慧计算与存储/通用型服务器", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "greatwall-df729"
+vendor = "China Greatwall / 中国长城"
+name = "擎天DF729"
+aliases = ["Great Wall 擎天DF729", "Greatwall 擎天DF729", "China Greatwall 擎天DF729", "中国长城 擎天DF729", "长城 擎天DF729", "DF729", "Great Wall DF729", "长城擎天DF729"]
+manufacturer_ids = [10808, 58838]
+profile = "greatwall-monitor"
+sources = ["https://www.greatwall.com.cn/category/智慧计算与存储/通用型服务器", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "greatwall-ef860"
+vendor = "China Greatwall / 中国长城"
+name = "擎天EF860"
+aliases = ["Great Wall 擎天EF860", "Greatwall 擎天EF860", "China Greatwall 擎天EF860", "中国长城 擎天EF860", "长城 擎天EF860", "EF860", "Great Wall EF860", "长城擎天EF860"]
+manufacturer_ids = [10808, 58838]
+profile = "greatwall-monitor"
+sources = ["https://www.greatwall.com.cn/category/智慧计算与存储/通用型服务器", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "greatwall-ef862"
+vendor = "China Greatwall / 中国长城"
+name = "擎天EF862"
+aliases = ["Great Wall 擎天EF862", "Greatwall 擎天EF862", "China Greatwall 擎天EF862", "中国长城 擎天EF862", "长城 擎天EF862", "EF862", "Great Wall EF862", "长城擎天EF862"]
+manufacturer_ids = [10808, 58838]
+profile = "greatwall-monitor"
+sources = ["https://www.greatwall.com.cn/category/智慧计算与存储/通用型服务器", "https://www.iana.org/assignments/enterprise-numbers.txt"]

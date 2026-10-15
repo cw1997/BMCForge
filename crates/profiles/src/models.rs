@@ -51,6 +51,19 @@ impl Catalog {
         };
         catalog.merge(include_str!("../../../profiles/models/dell.toml"), false)?;
         catalog.merge(include_str!("../../../profiles/models/lenovo.toml"), false)?;
+        for text in [
+            include_str!("../../../profiles/models/hpe.toml"),
+            include_str!("../../../profiles/models/lenovo-thinksystem.toml"),
+            include_str!("../../../profiles/models/inspur.toml"),
+            include_str!("../../../profiles/models/h3c.toml"),
+            include_str!("../../../profiles/models/huawei.toml"),
+            include_str!("../../../profiles/models/xfusion.toml"),
+            include_str!("../../../profiles/models/sugon.toml"),
+            include_str!("../../../profiles/models/zte.toml"),
+            include_str!("../../../profiles/models/greatwall.toml"),
+        ] {
+            catalog.merge(text, false)?;
+        }
         if let Some(dir) = dir.map(|p| p.join("models")).filter(|p| p.exists()) {
             let mut paths = std::fs::read_dir(dir)?
                 .map(|e| e.map(|e| e.path()))
@@ -121,9 +134,11 @@ impl Catalog {
                     .chain(&m.aliases)
                     .any(|s| normalized(s) == raw);
             let mt = m.machine_types.iter().find(|mt| {
+                let mt = mt.to_lowercase();
                 fields.iter().any(|s| {
                     s.split(|c: char| !c.is_ascii_alphanumeric()).any(|part| {
-                        part == mt.as_str() || (part.starts_with(mt.as_str()) && part.len() == 7)
+                        part == mt.as_str()
+                            || (part.starts_with(mt.as_str()) && part.len() == mt.len() + 3)
                     })
                 })
             });
@@ -199,6 +214,61 @@ mod tests {
         d.model = "Dell PowerEdge R730".into();
         assert_eq!(c.candidates(&d).len(), 1);
         assert!(c.candidates(&d)[0].explicit);
+        Ok(())
+    }
+    #[test]
+    fn mainstream_vendor_aliases_match_only_with_the_expected_manufacturer() -> Result<()> {
+        let c = Catalog::load(None)?;
+        for (manufacturer, raw, expected) in [
+            (11, "HP ProLiant DL380 Gen9", "hpe-proliant-dl380-gen9"),
+            (
+                19046,
+                "Lenovo ThinkSystem SR650 V3",
+                "lenovo-thinksystem-sr650-v3",
+            ),
+            (37945, "浪潮 NF5280M5", "inspur-nf5280m5"),
+            (25506, "H3C UniServer R4900 G6", "h3c-uniserver-r4900-g6"),
+            (2011, "华为 RH2288 V3", "huawei-rh2288-v3"),
+            (2011, "Huawei 2288H V5", "xfusion-fusionserver-2288h-v5"),
+            (58132, "xFusion 2288H V7", "xfusion-fusionserver-2288h-v7"),
+            (57098, "曙光 I620-G30", "sugon-i620-g30"),
+            (3902, "中兴 R5300 G5", "zte-r5300-g5"),
+            (58838, "长城擎天EF860", "greatwall-ef860"),
+        ] {
+            let mut d = DeviceIdentity {
+                manufacturer_id: manufacturer,
+                model: raw.into(),
+                ..Default::default()
+            };
+            assert_eq!(
+                c.candidates(&d)
+                    .iter()
+                    .map(|c| c.id.as_str())
+                    .collect::<Vec<_>>(),
+                [expected],
+                "{raw}"
+            );
+            d.manufacturer_id = 674;
+            assert!(
+                c.candidates(&d).is_empty(),
+                "must not guess vendor for {raw}"
+            );
+        }
+        Ok(())
+    }
+    #[test]
+    fn thinksystem_alphanumeric_machine_types_and_shared_types_are_not_guessed() -> Result<()> {
+        let c = Catalog::load(None)?;
+        let mut d = DeviceIdentity {
+            manufacturer_id: 19046,
+            machine_types: vec!["7d75abc".into()],
+            ..Default::default()
+        };
+        assert_eq!(c.candidates(&d)[0].id, "lenovo-thinksystem-sr650-v3");
+        d.machine_types = vec!["7DGC".into()];
+        assert_eq!(c.candidates(&d).len(), 2);
+        d.machine_types = vec!["7DG".into()];
+        assert!(c.candidates(&d).is_empty());
         Ok(())
     }
 }

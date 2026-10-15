@@ -1,0 +1,46 @@
+schema_version = 1
+
+[[models]]
+id = "inspur-nf5270m4"
+vendor = "Inspur / 浪潮"
+name = "NF5270M4"
+aliases = ["Inspur NF5270M4", "浪潮 NF5270M4", "IEIT SYSTEMS NF5270M4"]
+manufacturer_ids = [37945, 48512, 58059]
+profile = "inspur-monitor"
+sources = ["https://github.com/Dok-T/inspur-nf5270m4", "https://en.inspur.com/eportal//fileDir/active_download/platformBookZh/6680/Inspur%C2%A0Server%C2%A0BMC%C2%A0User%C2%A0Manual%C2%A0V2.7.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "inspur-nf5280m5"
+vendor = "Inspur / 浪潮"
+name = "NF5280M5"
+aliases = ["Inspur NF5280M5", "浪潮 NF5280M5", "IEIT SYSTEMS NF5280M5"]
+manufacturer_ids = [37945, 48512, 58059]
+profile = "inspur-monitor"
+sources = ["https://www.inspur.com/eportal/fileDir/defaultCurSite/resource/cms/2020/04/2020040211224398612.pdf", "https://en.inspur.com/eportal//fileDir/active_download/platformBookZh/6680/Inspur%C2%A0Server%C2%A0BMC%C2%A0User%C2%A0Manual%C2%A0V2.7.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "inspur-nf5180m6"
+vendor = "Inspur / 浪潮"
+name = "NF5180M6"
+aliases = ["Inspur NF5180M6", "浪潮 NF5180M6", "IEIT SYSTEMS NF5180M6"]
+manufacturer_ids = [37945, 48512, 58059]
+profile = "inspur-monitor"
+sources = ["https://www.inspur.com/eportal/fileDir/en/resource/cms/2023/01/2023011012494835506.pdf", "https://en.inspur.com/eportal//fileDir/active_download/platformBookZh/6680/Inspur%C2%A0Server%C2%A0BMC%C2%A0User%C2%A0Manual%C2%A0V2.7.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "inspur-nf5280m6"
+vendor = "Inspur / 浪潮"
+name = "NF5280M6"
+aliases = ["Inspur NF5280M6", "浪潮 NF5280M6", "IEIT SYSTEMS NF5280M6"]
+manufacturer_ids = [37945, 48512, 58059]
+profile = "inspur-monitor"
+sources = ["https://en.inspur.com/eportal//fileDir/active_download/platformBookZh/6680/Inspur%C2%A0Server%C2%A0BMC%C2%A0User%C2%A0Manual%C2%A0V2.7.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "inspur-nf5280m7"
+vendor = "Inspur / 浪潮"
+name = "NF5280M7"
+aliases = ["Inspur NF5280M7", "浪潮 NF5280M7", "IEIT SYSTEMS NF5280M7"]
+manufacturer_ids = [37945, 48512, 58059]
+profile = "inspur-monitor"
+sources = ["https://www.inspur.com/eportal/fileDir/lcjtww/resource/cms/article/2561747/2564978/2024070816251426869.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]

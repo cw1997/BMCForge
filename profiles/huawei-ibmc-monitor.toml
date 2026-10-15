@@ -1,0 +1,9 @@
+schema_version = 1
+id = "huawei-ibmc-monitor"
+vendor = "Huawei / 华为"
+description = "Huawei / 华为 standard IPMI monitoring (no fan writes)"
+verification = "documented"
+sources = ["https://support.huawei.com/enterprise/en/bulletins-product/life-cycle-notices/rack-servers-pid-1548148621914", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+notes = "Standard IPMI monitoring for supported iBMC LAN configurations. CLI fanmode/fanlevel and Redfish are not native IPMI command evidence; no raw fan writes are enabled."
+[matcher]
+manufacturer_ids = [2011]

@@ -1,0 +1,28 @@
+schema_version = 1
+id = "h3c-uis2000-g6"
+vendor = "H3C / 新华三"
+description = "UIS 2000 G6 OEM fan PWM, signature-probed experimental interface"
+verification = "experimental"
+sources = ["https://www.h3c.com/cn/Service/Document_Software/Document_Center/H3Cloud/Catalog/H3C_UIS/2000_G6/Developer_Guides/API_Reference/H3C_UIS_2000_G6_IPMI_OEM-15014/"]
+notes = "Only the UIS 2000 G6 OEM protocol, not UniServer HDM. Documentation introduces fan mode in 1.01.07; standard Device ID does not establish that full version. A read-only Get Fan Mode must return exactly aa e5 00 00 before any takeover. Signature/byte-order mismatch fails closed; no alternate prefixes are tried. Only the five documented PWM percentage points are exposed. Response bytes are checked after writes. Requires explicit experimental enablement; no BMCForge hardware verification."
+[matcher]
+manufacturer_ids = [25506, 58794, 61878]
+models = ["H3C UIS 2000 G6", "UIS 2000 G6"]
+[fan]
+min_percent = 20
+max_percent = 100
+percent_values = [20, 40, 60, 80, 100]
+scale = 255
+zones = [{ id = 0, name = "All fans" }]
+probe = [{ netfn = 60, command = 49, data = ["0xaa", "0xe5", "0x00", "0x01"], expect = [170, 229, 0, 0] }]
+manual = [{ netfn = 60, command = 49, data = ["0xaa", "0xe5", "0x00", "0x02", "0x01"], expect = [170, 229, 0, 1] }]
+set = [{ netfn = 60, command = 50, data = ["0xaa", "0xe5", "0x00", "0x02", "0x01", "0x00", "$duty"], expect_data = ["0xaa", "0xe5", "0x00", "$duty"] }]
+automatic = [{ netfn = 60, command = 49, data = ["0xaa", "0xe5", "0x00", "0x02", "0x00"], expect = [170, 229, 0, 0] }]
+[[examples]]
+percent = 20
+zone = 0
+expected = [[60, 49, 170, 229, 0, 2, 1], [60, 50, 170, 229, 0, 2, 1, 0, 51]]
+[[examples]]
+percent = 100
+zone = 0
+expected = [[60, 49, 170, 229, 0, 2, 1], [60, 50, 170, 229, 0, 2, 1, 0, 255]]

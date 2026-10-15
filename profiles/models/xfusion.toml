@@ -1,0 +1,55 @@
+schema_version = 1
+
+[[models]]
+id = "xfusion-fusionserver-1288h-v6"
+vendor = "xFusion / 超聚变 (legacy Huawei FusionServer)"
+name = "FusionServer 1288H V6"
+aliases = ["xFusion FusionServer 1288H V6", "Huawei FusionServer 1288H V6", "超聚变 FusionServer 1288H V6", "1288H V6", "Huawei 1288H V6", "xFusion 1288H V6", "超聚变 1288H V6"]
+manufacturer_ids = [2011, 58132]
+profile = "xfusion-ibmc-monitor"
+sources = ["https://www.xfusion.com/en/product/rack-server/", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "xfusion-fusionserver-2288h-v6"
+vendor = "xFusion / 超聚变 (legacy Huawei FusionServer)"
+name = "FusionServer 2288H V6"
+aliases = ["xFusion FusionServer 2288H V6", "Huawei FusionServer 2288H V6", "超聚变 FusionServer 2288H V6", "2288H V6", "Huawei 2288H V6", "xFusion 2288H V6", "超聚变 2288H V6"]
+manufacturer_ids = [2011, 58132]
+profile = "xfusion-ibmc-monitor"
+sources = ["https://www.xfusion.com/en/product/rack-server/", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "xfusion-fusionserver-1288h-v7"
+vendor = "xFusion / 超聚变 (legacy Huawei FusionServer)"
+name = "FusionServer 1288H V7"
+aliases = ["xFusion FusionServer 1288H V7", "Huawei FusionServer 1288H V7", "超聚变 FusionServer 1288H V7", "1288H V7", "Huawei 1288H V7", "xFusion 1288H V7", "超聚变 1288H V7"]
+manufacturer_ids = [2011, 58132]
+profile = "xfusion-ibmc-monitor"
+sources = ["https://www.xfusion.com/en/product/rack-server/", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "xfusion-fusionserver-2288h-v7"
+vendor = "xFusion / 超聚变 (legacy Huawei FusionServer)"
+name = "FusionServer 2288H V7"
+aliases = ["xFusion FusionServer 2288H V7", "Huawei FusionServer 2288H V7", "超聚变 FusionServer 2288H V7", "2288H V7", "Huawei 2288H V7", "xFusion 2288H V7", "超聚变 2288H V7"]
+manufacturer_ids = [2011, 58132]
+profile = "xfusion-ibmc-monitor"
+sources = ["https://www.xfusion.com/en/product/rack-server/", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "xfusion-fusionserver-1288h-v5"
+vendor = "xFusion / 超聚变 (legacy Huawei FusionServer)"
+name = "FusionServer 1288H V5"
+aliases = ["1288H V5", "Huawei 1288H V5", "Huawei FusionServer 1288H V5", "xFusion 1288H V5", "华为 1288H V5", "超聚变 1288H V5"]
+manufacturer_ids = [2011, 58132]
+profile = "xfusion-ibmc-monitor"
+sources = ["https://www.xfusion.com/wp-content/uploads/2025/11/Smart-Provisioning-1.8.10-User-Guide.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "xfusion-fusionserver-2288h-v5"
+vendor = "xFusion / 超聚变 (legacy Huawei FusionServer)"
+name = "FusionServer 2288H V5"
+aliases = ["2288H V5", "Huawei 2288H V5", "Huawei FusionServer 2288H V5", "xFusion 2288H V5", "华为 2288H V5", "超聚变 2288H V5"]
+manufacturer_ids = [2011, 58132]
+profile = "xfusion-ibmc-monitor"
+sources = ["https://www.xfusion.com/wp-content/uploads/2025/11/Smart-Provisioning-1.8.10-User-Guide.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]

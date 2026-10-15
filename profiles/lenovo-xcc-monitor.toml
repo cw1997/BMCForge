@@ -1,0 +1,9 @@
+schema_version = 1
+id = "lenovo-xcc-monitor"
+vendor = "Lenovo / 联想"
+description = "ThinkSystem XClarity Controller standard IPMI monitoring"
+verification = "documented"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+notes = "Recognition and standard IPMI monitoring when LAN/suite 3 are enabled. XCC is not IMM2: the x3650 M5 raw bank protocol is never applied to ThinkSystem. Use the configured account or device label; do not assume legacy IMM2 credentials for every XCC generation."
+[matcher]
+manufacturer_ids = [19046]

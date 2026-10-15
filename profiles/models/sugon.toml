@@ -1,0 +1,28 @@
+schema_version = 1
+
+[[models]]
+id = "sugon-i620-g30"
+vendor = "Sugon / Dawning / 曙光"
+name = "I620-G30"
+aliases = ["Sugon I620-G30", "Dawning I620-G30", "曙光 I620-G30", "天阔 I620-G30"]
+manufacturer_ids = [27500, 57098]
+profile = "sugon-monitor"
+sources = ["https://www.sugon.com/en/product/432.html", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "sugon-i620-g20"
+vendor = "Sugon / Dawning / 曙光"
+name = "I620-G20"
+aliases = ["Sugon I620-G20", "Dawning I620-G20", "曙光 I620-G20", "天阔 I620-G20"]
+manufacturer_ids = [27500, 57098]
+profile = "sugon-monitor"
+sources = ["https://static.sugon.com/www/attached/file/20151130/20151130113231_51329.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "sugon-i620-g40"
+vendor = "Sugon / Dawning / 曙光"
+name = "I620-G40"
+aliases = ["Sugon I620-G40", "Dawning I620-G40", "曙光 I620-G40", "天阔 I620-G40"]
+manufacturer_ids = [27500, 57098]
+profile = "sugon-monitor"
+sources = ["https://spcresults.org/sites/default/files/files/full_disclosure_report/A32029_FDR_0.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt"]

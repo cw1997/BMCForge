@@ -514,11 +514,16 @@ impl App {
                 .fan
                 .as_ref()
                 .and_then(|f| f.raw_values.first().copied());
+            let percent = profile
+                .fan
+                .as_ref()
+                .and_then(|f| f.percent_values.first().copied())
+                .unwrap_or(50);
             self.edit(
                 self.text("fixed-duty-percentage-and-zone-id").to_owned(),
                 EditKind::Manual(ids),
                 &toml::to_string_pretty(&ManualForm {
-                    percent: raw.is_none().then_some(50),
+                    percent: raw.is_none().then_some(percent),
                     raw,
                     zone,
                 })?,

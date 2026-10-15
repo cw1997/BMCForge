@@ -1,0 +1,9 @@
+schema_version = 1
+id = "h3c-hdm-monitor"
+vendor = "H3C / 新华三"
+description = "H3C / 新华三 standard IPMI monitoring (no fan writes)"
+verification = "documented"
+sources = ["https://www.h3c.com/en/pub/Activities/H3CNavigate2024/img/img2/Products%20Catalogue.pdf", "https://www.iana.org/assignments/enterprise-numbers.txt", "https://www.h3c.com/en/Support/Resource_Center/EN/Home/Public/00-Public/Technical_Documents/Developer_Documents/API_References/H3C_CR-13775/202401/2017531_294551_0.htm"]
+notes = "Standard IPMI monitoring for UniServer HDM. HDM fan-speed policy and configuration reload are not the UIS OEM PWM interface. No fixed-duty or automatic-recovery sequence is enabled for HDM by this profile."
+[matcher]
+manufacturer_ids = [25506, 61878]

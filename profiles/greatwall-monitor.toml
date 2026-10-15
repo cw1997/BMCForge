@@ -1,0 +1,9 @@
+schema_version = 1
+id = "greatwall-monitor"
+vendor = "China Greatwall / 中国长城"
+description = "China Greatwall / 中国长城 standard IPMI monitoring (no fan writes)"
+verification = "documented"
+sources = ["https://www.greatwall.com.cn/category/智慧计算与存储/通用型服务器", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+notes = "Standard IPMI monitoring when supported/enabled by the installed platform and firmware. BMC/OEM implementations vary across CPU platforms. A catalog entry is not a promise of IPMI availability or raw fan control."
+[matcher]
+manufacturer_ids = [10808, 58838]

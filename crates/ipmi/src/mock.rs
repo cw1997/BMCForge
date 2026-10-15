@@ -85,15 +85,19 @@ fn fru_fields(model: &str, serial: &str) -> Vec<u8> {
 pub struct MockBmc {
     pub writes: Vec<Vec<u8>>,
     pub fail_write: Option<usize>,
+    pub fail_probe: bool,
     records: Vec<Vec<u8>>,
     fru: Vec<u8>,
     smc: bool,
     lenovo: bool,
+    uis: bool,
+    uis_manual: bool,
     duty: u8,
     tick: u8,
 }
 impl MockBmc {
     pub fn new(server: &Server) -> Self {
+        let uis = server.profile.as_deref() == Some("h3c-uis2000-g6");
         let smc = server.host.ends_with(".11")
             || server.host.ends_with(".21")
             || server
@@ -120,9 +124,12 @@ impl MockBmc {
         Self {
             writes: vec![],
             fail_write: None,
+            fail_probe: false,
             records,
             fru: fru_fields(
-                if smc {
+                if uis {
+                    "H3C UIS 2000 G6"
+                } else if smc {
                     "X11SSL-F"
                 } else if lenovo {
                     "System x3650 M5"
@@ -137,6 +144,8 @@ impl MockBmc {
             ),
             smc,
             lenovo,
+            uis,
+            uis_manual: false,
             duty: 50,
             tick: 0,
         }
@@ -147,7 +156,9 @@ impl RawTransport for MockBmc {
     async fn raw(&mut self, netfn: u8, command: u8, data: &[u8]) -> Result<Vec<u8>> {
         match (netfn, command) {
             (6, 1) => {
-                let m: u32 = if self.smc {
+                let m: u32 = if self.uis {
+                    25506
+                } else if self.smc {
                     10876
                 } else if self.lenovo {
                     19046
@@ -212,6 +223,37 @@ impl RawTransport for MockBmc {
                 };
                 Ok(vec![v, 0xc0, 0, 0])
             }
+            (0x3c, 0x31 | 0x32) if self.uis => {
+                ensure!(data.starts_with(&[170, 229, 0]), "unexpected UIS signature");
+                if command == 0x31 && data == [170, 229, 0, 1] {
+                    return Ok(if self.fail_probe {
+                        vec![0, 229, 170, 0]
+                    } else {
+                        vec![170, 229, 0, u8::from(self.uis_manual)]
+                    });
+                }
+                let mut request = vec![netfn, command];
+                request.extend(data);
+                self.writes.push(request);
+                if self.fail_write == Some(self.writes.len()) {
+                    bail!("simulated UIS write timeout");
+                }
+                if command == 0x31 {
+                    ensure!(
+                        data.len() == 5 && data[3] == 2 && data[4] <= 1,
+                        "invalid UIS fan mode"
+                    );
+                    self.uis_manual = data[4] == 1;
+                    Ok(vec![170, 229, 0, data[4]])
+                } else {
+                    ensure!(
+                        self.uis_manual && data.len() == 7 && data[3..6] == [2, 1, 0],
+                        "invalid UIS all-fan PWM"
+                    );
+                    self.duty = data[6] / 3;
+                    Ok(vec![170, 229, 0, data[6]])
+                }
+            }
             (0x30, _) | (0x3a, 7) => {
                 let mut request = vec![netfn, command];
                 request.extend_from_slice(data);
@@ -250,7 +292,7 @@ mod tests {
     #[async_trait]
     impl RawTransport for Tracked {
         async fn raw(&mut self, n: u8, c: u8, data: &[u8]) -> Result<Vec<u8>> {
-            if n == 0x30 || n == 0x3a {
+            if n == 0x30 || n == 0x3a || (n == 0x3c && data.get(3) == Some(&2)) {
                 let mut v = vec![n, c];
                 v.extend_from_slice(data);
                 self.writes.lock().unwrap().push(v);
@@ -376,6 +418,52 @@ mod tests {
         assert!(d.shutdown().await.is_err());
         assert!(d.taken_over);
         assert_eq!(d.control, ControlState::Uncertain);
+        Ok(())
+    }
+    #[tokio::test]
+    async fn uis_probe_rejects_other_protocols_before_writes_and_partial_writes_restore()
+    -> Result<()> {
+        let r = Registry::load(None)?;
+        let p = &r.profiles["h3c-uis2000-g6"];
+        for (bad_probe, fail_write) in [(true, None), (false, None), (false, Some(2))] {
+            let s = Server {
+                id: "uis".into(),
+                host: "192.0.2.90".into(),
+                profile: Some(p.id.clone()),
+                allow_experimental: true,
+                ..Default::default()
+            };
+            let mut inner = MockBmc::new(&s);
+            inner.fail_probe = bad_probe;
+            inner.fail_write = fail_write;
+            let writes = Arc::new(Mutex::new(vec![]));
+            let mut d = Device::with_transport(
+                s,
+                Box::new(Tracked {
+                    inner,
+                    writes: writes.clone(),
+                }),
+            );
+            let result = d.manual(p, 40, 0).await;
+            if bad_probe {
+                assert!(result.is_err());
+                assert!(!d.taken_over);
+                assert!(writes.lock().unwrap().is_empty());
+            } else {
+                assert_eq!(result.is_err(), fail_write.is_some());
+                assert!(d.taken_over);
+                d.shutdown().await?;
+                assert!(!d.taken_over);
+                assert_eq!(
+                    *writes.lock().unwrap(),
+                    [
+                        vec![60, 49, 170, 229, 0, 2, 1],
+                        vec![60, 50, 170, 229, 0, 2, 1, 0, 102],
+                        vec![60, 49, 170, 229, 0, 2, 0]
+                    ]
+                );
+            }
+        }
         Ok(())
     }
     struct WithoutSdr(MockBmc);

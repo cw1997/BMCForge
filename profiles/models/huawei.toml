@@ -1,0 +1,127 @@
+schema_version = 1
+
+[[models]]
+id = "huawei-rh1288-v3"
+vendor = "Huawei / 华为"
+name = "RH1288 V3"
+aliases = ["Huawei RH1288 V3", "HUAWEI RH1288 V3", "华为 RH1288 V3"]
+manufacturer_ids = [2011]
+profile = "huawei-ibmc-monitor"
+sources = ["https://support.huawei.com/enterprise/en/bulletins-product/life-cycle-notices/rack-servers-pid-1548148621914", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "huawei-rh2288-v3"
+vendor = "Huawei / 华为"
+name = "RH2288 V3"
+aliases = ["Huawei RH2288 V3", "HUAWEI RH2288 V3", "华为 RH2288 V3"]
+manufacturer_ids = [2011]
+profile = "huawei-ibmc-monitor"
+sources = ["https://support.huawei.com/enterprise/en/bulletins-product/life-cycle-notices/rack-servers-pid-1548148621914", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "huawei-rh2288h-v3"
+vendor = "Huawei / 华为"
+name = "RH2288H V3"
+aliases = ["Huawei RH2288H V3", "HUAWEI RH2288H V3", "华为 RH2288H V3"]
+manufacturer_ids = [2011]
+profile = "huawei-ibmc-monitor"
+sources = ["https://support.huawei.com/enterprise/en/bulletins-product/life-cycle-notices/rack-servers-pid-1548148621914", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "huawei-rh5885h-v3"
+vendor = "Huawei / 华为"
+name = "RH5885H V3"
+aliases = ["Huawei RH5885H V3", "HUAWEI RH5885H V3", "华为 RH5885H V3"]
+manufacturer_ids = [2011]
+profile = "huawei-ibmc-monitor"
+sources = ["https://support.huawei.com/enterprise/en/bulletins-product/life-cycle-notices/rack-servers-pid-1548148621914", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "huawei-rh8100-v3"
+vendor = "Huawei / 华为"
+name = "RH8100 V3"
+aliases = ["Huawei RH8100 V3", "HUAWEI RH8100 V3", "华为 RH8100 V3"]
+manufacturer_ids = [2011]
+profile = "huawei-ibmc-monitor"
+sources = ["https://support.huawei.com/enterprise/en/bulletins-product/life-cycle-notices/rack-servers-pid-1548148621914", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "huawei-5288-v3"
+vendor = "Huawei / 华为"
+name = "5288 V3"
+aliases = ["Huawei 5288 V3", "HUAWEI 5288 V3", "华为 5288 V3"]
+manufacturer_ids = [2011]
+profile = "huawei-ibmc-monitor"
+sources = ["https://support.huawei.com/enterprise/en/bulletins-product/life-cycle-notices/rack-servers-pid-1548148621914", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "huawei-2288-v5"
+vendor = "Huawei / 华为"
+name = "2288 V5"
+aliases = ["Huawei 2288 V5", "HUAWEI 2288 V5", "华为 2288 V5"]
+manufacturer_ids = [2011]
+profile = "huawei-ibmc-monitor"
+sources = ["https://support.huawei.com/enterprise/en/bulletins-product/life-cycle-notices/rack-servers-pid-1548148621914", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "huawei-2288c-v5"
+vendor = "Huawei / 华为"
+name = "2288C V5"
+aliases = ["Huawei 2288C V5", "HUAWEI 2288C V5", "华为 2288C V5"]
+manufacturer_ids = [2011]
+profile = "huawei-ibmc-monitor"
+sources = ["https://support.huawei.com/enterprise/en/bulletins-product/life-cycle-notices/rack-servers-pid-1548148621914", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "huawei-2488-v5"
+vendor = "Huawei / 华为"
+name = "2488 V5"
+aliases = ["Huawei 2488 V5", "HUAWEI 2488 V5", "华为 2488 V5"]
+manufacturer_ids = [2011]
+profile = "huawei-ibmc-monitor"
+sources = ["https://support.huawei.com/enterprise/en/bulletins-product/life-cycle-notices/rack-servers-pid-1548148621914", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "huawei-5885h-v5"
+vendor = "Huawei / 华为"
+name = "5885H V5"
+aliases = ["Huawei 5885H V5", "HUAWEI 5885H V5", "华为 5885H V5"]
+manufacturer_ids = [2011]
+profile = "huawei-ibmc-monitor"
+sources = ["https://support.huawei.com/enterprise/en/bulletins-product/life-cycle-notices/rack-servers-pid-1548148621914", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "huawei-8100-v5"
+vendor = "Huawei / 华为"
+name = "8100 V5"
+aliases = ["Huawei 8100 V5", "HUAWEI 8100 V5", "华为 8100 V5"]
+manufacturer_ids = [2011]
+profile = "huawei-ibmc-monitor"
+sources = ["https://support.huawei.com/enterprise/en/bulletins-product/life-cycle-notices/rack-servers-pid-1548148621914", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "huawei-taishan-200-1280"
+vendor = "Huawei / 华为"
+name = "TaiShan 200 1280"
+aliases = ["Huawei TaiShan 200 1280", "TaiShan 200 (Model 1280)", "华为 TaiShan 200 1280"]
+manufacturer_ids = [2011]
+profile = "huawei-ibmc-monitor"
+sources = ["https://support.huawei.com/enterprise/zh/doc/EDOC1100088653/45adb7e5", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "huawei-taishan-200-2280"
+vendor = "Huawei / 华为"
+name = "TaiShan 200 2280"
+aliases = ["Huawei TaiShan 200 2280", "TaiShan 200 (Model 2280)", "华为 TaiShan 200 2280"]
+manufacturer_ids = [2011]
+profile = "huawei-ibmc-monitor"
+sources = ["https://support.huawei.com/enterprise/zh/doc/EDOC1100088653/45adb7e5", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "huawei-taishan-200-5280"
+vendor = "Huawei / 华为"
+name = "TaiShan 200 5280"
+aliases = ["Huawei TaiShan 200 5280", "TaiShan 200 (Model 5280)", "华为 TaiShan 200 5280"]
+manufacturer_ids = [2011]
+profile = "huawei-ibmc-monitor"
+sources = ["https://support.huawei.com/enterprise/zh/doc/EDOC1100088653/45adb7e5", "https://www.iana.org/assignments/enterprise-numbers.txt"]

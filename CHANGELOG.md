@@ -4,6 +4,10 @@
 
 ### Added
 
+- Expanded the sourced identity catalog to 164 entries, adding HPE, ThinkSystem, Inspur, H3C, Huawei, xFusion, Sugon, ZTE and China Greatwall models with separate monitoring profiles.
+- Experimental H3C UIS 2000 G6 control with a read-only protocol probe, five documented PWM levels, checked response templates and automatic recovery; UniServer HDM remains monitoring-only.
+- Alphanumeric ThinkSystem machine-type matching, vendor-filtered `list-models`, model lists in adapter details and a generated per-model compatibility inventory.
+
 - Clickable TUI controls, double-click details, pane-local scrolling, wide-character cursor positioning and immediate mouse toggling.
 - Eleven embedded Fluent language packs, native-name switching, external packs, validation, English fallback and structured background events.
 - Independent Dell PowerEdge and IBM/Lenovo System x identity catalogs; cancellable identity-only batches, evidence-preserving model selection and final import review.

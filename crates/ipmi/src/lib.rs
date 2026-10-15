@@ -188,7 +188,8 @@ impl Device {
                         .flat_map(|s| s.split(|c: char| !c.is_ascii_alphanumeric()))
                         .filter(|s| {
                             (s.len() == 4 || s.len() == 7)
-                                && s.bytes().take(4).all(|c| c.is_ascii_digit())
+                                && s.as_bytes()[0].is_ascii_digit()
+                                && s.bytes().take(4).all(|c| c.is_ascii_alphanumeric())
                         })
                         .map(str::to_owned)
                         .collect();
@@ -332,6 +333,11 @@ impl Device {
             profile.compatible(&self.identity),
             "device identity or firmware is outside this profile's constraints"
         );
+        if !self.taken_over {
+            self.sequence(&profile.probe(value, zone)?)
+                .await
+                .context("adapter protocol probe failed; fan writes were not started")?;
+        }
         if self.taken_over {
             ensure!(
                 self.active_profile.as_deref() == Some(profile.id.as_str())

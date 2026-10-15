@@ -8,6 +8,8 @@ Register a new built-in with `include_str!` in the profile registry and update t
 
 No live network discovery or real device writes should run in regular automated tests. New read/modify/write protocols require a stateful engine and recovery tests before they can be offered as control adapters.
 
+For new vendors, use [the coverage inventory](docs/vendor-coverage.md) and keep recognition-only models independent of write capability. OEM protocol probes must be read-only, have checked responses, and fail before manual writes on mismatching data. Test rejected device IDs, cross-family commands, finite documented levels and partial-write recovery. A registered IANA vendor ID or a WebUI fan option does not establish an IPMI fan-write protocol.
+
 Language contributions use `locales/<tag>/locale.toml` plus `main.ftl`; preserve English message IDs/variables and use native names and Fluent plural rules. Run `validate-locales` and TestBackend tests. See [localization](docs/localization.md).
 
 Recognition-only contributions belong in `profiles/models/`, with source links for aliases and machine types, separately from fan adapters. Run `validate-models`, retain raw hardware evidence and test ambiguous/unknown cases. See [models and Lenovo raw control](docs/models.md). Regenerate the model/locale schemas using `model-schema` / `locale-schema` when metadata types change. Packaging includes the complete resource directories.

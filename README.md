@@ -61,6 +61,8 @@ cargo run --locked -p bmcforge -- profile-schema
 
 实际 RPM 来自传感器；请求的占空比单独显示。当前占空比没有读回实现，因此显示 unknown。写操作超时不会重放命令，状态标为不确定；正常退出会对本次接管过的设备尝试恢复自动控制。强杀、断电、网络故障时无法保证恢复。此版本没有温控曲线或后台保护服务。
 
+目录已扩展到 164 项：新增 HPE、ThinkSystem、浪潮、新华三、华为、超聚变、曙光、中兴及中国长城的代表性型号识别与监控。H3C UIS 2000 G6 提供经过只读协议探测的独立实验性调速适配；识别、监控和调速范围分别记录，不承诺整个品牌都可调速。参见 [厂商覆盖与依据](docs/vendor-coverage.md)。用 `list-models --vendor HPE` 或 `list-models --vendor 曙光 --json` 查看目录。
+
 ## 开发与验证
 
 ```sh

@@ -1,0 +1,9 @@
+schema_version = 1
+id = "xfusion-ibmc-monitor"
+vendor = "xFusion / 超聚变 (legacy Huawei FusionServer)"
+description = "xFusion / 超聚变 (legacy Huawei FusionServer) standard IPMI monitoring (no fan writes)"
+verification = "documented"
+sources = ["https://www.xfusion.com/en/product/rack-server/", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+notes = "Standard IPMI monitoring. Preserve original Huawei/xFusion manufacturer IDs and FRU identity across product transitions. iBMC WebUI/SSH thermal features do not prove an IPMI write/recovery sequence."
+[matcher]
+manufacturer_ids = [2011, 58132]

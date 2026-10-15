@@ -1,0 +1,271 @@
+schema_version = 1
+
+[[models]]
+id = "lenovo-thinksystem-sr530"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR530"
+aliases = ["Lenovo ThinkSystem SR530", "联想 ThinkSystem SR530"]
+manufacturer_ids = [19046]
+machine_types = ["7X07", "7X08"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr550"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR550"
+aliases = ["Lenovo ThinkSystem SR550", "联想 ThinkSystem SR550"]
+manufacturer_ids = [19046]
+machine_types = ["7X03", "7X04"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr570"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR570"
+aliases = ["Lenovo ThinkSystem SR570", "联想 ThinkSystem SR570"]
+manufacturer_ids = [19046]
+machine_types = ["7Y02", "7Y03"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr590"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR590"
+aliases = ["Lenovo ThinkSystem SR590", "联想 ThinkSystem SR590"]
+manufacturer_ids = [19046]
+machine_types = ["7X98", "7X99"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr630"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR630"
+aliases = ["Lenovo ThinkSystem SR630", "联想 ThinkSystem SR630"]
+manufacturer_ids = [19046]
+machine_types = ["7X01", "7X02"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr630-v2"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR630 V2"
+aliases = ["Lenovo ThinkSystem SR630 V2", "联想 ThinkSystem SR630 V2"]
+manufacturer_ids = [19046]
+machine_types = ["7Z70", "7Z71"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr630-v3"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR630 V3"
+aliases = ["Lenovo ThinkSystem SR630 V3", "联想 ThinkSystem SR630 V3"]
+manufacturer_ids = [19046]
+machine_types = ["7D72", "7D73", "7D74"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr630-v4"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR630 V4"
+aliases = ["Lenovo ThinkSystem SR630 V4", "联想 ThinkSystem SR630 V4"]
+manufacturer_ids = [19046]
+machine_types = ["7DG8", "7DG9", "7DGA", "7DGB", "7DK1", "7DLM"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr650"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR650"
+aliases = ["Lenovo ThinkSystem SR650", "联想 ThinkSystem SR650"]
+manufacturer_ids = [19046]
+machine_types = ["7X05", "7X06"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr650-v2"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR650 V2"
+aliases = ["Lenovo ThinkSystem SR650 V2", "联想 ThinkSystem SR650 V2"]
+manufacturer_ids = [19046]
+machine_types = ["7Z72", "7Z73"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr650-v3"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR650 V3"
+aliases = ["Lenovo ThinkSystem SR650 V3", "联想 ThinkSystem SR650 V3"]
+manufacturer_ids = [19046]
+machine_types = ["7D75", "7D76", "7D77"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr650-v4"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR650 V4"
+aliases = ["Lenovo ThinkSystem SR650 V4", "联想 ThinkSystem SR650 V4"]
+manufacturer_ids = [19046]
+machine_types = ["7DGC", "7DGD", "7DGE", "7DGF", "7DLN", "7DK2"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr650a-v4"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR650a V4"
+aliases = ["Lenovo ThinkSystem SR650a V4", "联想 ThinkSystem SR650a V4"]
+manufacturer_ids = [19046]
+machine_types = ["7DGC", "7DGD"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr635"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR635"
+aliases = ["Lenovo ThinkSystem SR635", "联想 ThinkSystem SR635"]
+manufacturer_ids = [19046]
+machine_types = ["7Y98", "7Y99"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr635-v3"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR635 V3"
+aliases = ["Lenovo ThinkSystem SR635 V3", "联想 ThinkSystem SR635 V3"]
+manufacturer_ids = [19046]
+machine_types = ["7D9G", "7D9H"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr645"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR645"
+aliases = ["Lenovo ThinkSystem SR645", "联想 ThinkSystem SR645"]
+manufacturer_ids = [19046]
+machine_types = ["7D2X", "7D2Y"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr645-v3"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR645 V3"
+aliases = ["Lenovo ThinkSystem SR645 V3", "联想 ThinkSystem SR645 V3"]
+manufacturer_ids = [19046]
+machine_types = ["7D9C", "7D9D"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr655"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR655"
+aliases = ["Lenovo ThinkSystem SR655", "联想 ThinkSystem SR655"]
+manufacturer_ids = [19046]
+machine_types = ["7Y00", "7Z01"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr655-v3"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR655 V3"
+aliases = ["Lenovo ThinkSystem SR655 V3", "联想 ThinkSystem SR655 V3"]
+manufacturer_ids = [19046]
+machine_types = ["7D9E", "7D9F"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr665"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR665"
+aliases = ["Lenovo ThinkSystem SR665", "联想 ThinkSystem SR665"]
+manufacturer_ids = [19046]
+machine_types = ["7D2V", "7D2W"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr665-v3"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR665 V3"
+aliases = ["Lenovo ThinkSystem SR665 V3", "联想 ThinkSystem SR665 V3"]
+manufacturer_ids = [19046]
+machine_types = ["7D9A", "7D9B"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr850"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR850"
+aliases = ["Lenovo ThinkSystem SR850", "联想 ThinkSystem SR850"]
+manufacturer_ids = [19046]
+machine_types = ["7X18", "7X19"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr860"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR860"
+aliases = ["Lenovo ThinkSystem SR860", "联想 ThinkSystem SR860"]
+manufacturer_ids = [19046]
+machine_types = ["7X69", "7X70"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-sr950"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem SR950"
+aliases = ["Lenovo ThinkSystem SR950", "联想 ThinkSystem SR950"]
+manufacturer_ids = [19046]
+machine_types = ["7X11", "7X12", "7X13"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-st550"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem ST550"
+aliases = ["Lenovo ThinkSystem ST550", "联想 ThinkSystem ST550"]
+manufacturer_ids = [19046]
+machine_types = ["7X09", "7X10"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-st650-v2"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem ST650 V2"
+aliases = ["Lenovo ThinkSystem ST650 V2", "联想 ThinkSystem ST650 V2"]
+manufacturer_ids = [19046]
+machine_types = ["7Z74", "7Z75"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "lenovo-thinksystem-st650-v3"
+vendor = "Lenovo / 联想"
+name = "ThinkSystem ST650 V3"
+aliases = ["Lenovo ThinkSystem ST650 V3", "联想 ThinkSystem ST650 V3"]
+manufacturer_ids = [19046]
+machine_types = ["7D7A", "7D7B"]
+profile = "lenovo-xcc-monitor"
+sources = ["https://pubs.lenovo.com/thinksystem", "https://www.iana.org/assignments/enterprise-numbers.txt"]

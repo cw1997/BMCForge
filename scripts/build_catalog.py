@@ -15,11 +15,22 @@ PENDING = [
 
 def catalog():
     entries = []
+    profiles = {}
     for file in sorted((ROOT / "profiles").glob("*.toml")):
         profile = tomllib.loads(file.read_text(encoding="utf-8"))
+        profiles[profile['id']] = profile
         entries.append({"profile": profile["id"], "vendor": profile["vendor"], "description": profile["description"], "status": profile["verification"], "control": "fan" in profile, "matcher": profile["matcher"], "sources": profile["sources"], "constraints": profile["notes"]})
     entries.extend({"family": family, "status": "pending", "sources": [source], "constraints": constraints} for family, source, constraints in PENDING)
-    return {"reviewed": "2026-10-15", "hardware_verified_by_bmcforge": False, "entries": entries}
+    models = []
+    for file in sorted((ROOT / "profiles/models").glob("*.toml")):
+        for model in tomllib.loads(file.read_text(encoding="utf-8"))['models']:
+            profile_id = model.get('profile')
+            profile = profiles.get(profile_id, {})
+            models.append({**model, "identification": "catalogued_not_hardware_verified",
+                           "fan_adapter": profile_id if "fan" in profile else None,
+                           "control_status": profile.get('verification') if 'fan' in profile else 'monitoring_only'})
+    return {"reviewed": "2026-10-16", "hardware_verified_by_bmcforge": False, "entries": entries,
+            "model_count": len(models), "models": sorted(models, key=lambda m: m['id'])}
 
 
 if __name__ == "__main__":

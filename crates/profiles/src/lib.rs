@@ -56,11 +56,20 @@ pub struct Step {
     pub delay_ms: u64,
     #[serde(default)]
     pub expect: Option<Vec<u8>>,
+    /// Expected response encoded with the same bounded parameter tokens as request data.
+    #[serde(default)]
+    pub expect_data: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct FanControl {
+    /// Optional exact percentage levels when intermediate duties are not documented.
+    #[serde(default)]
+    pub percent_values: Vec<u8>,
+    /// Reviewed read-only protocol probes, run before the first takeover.
+    #[serde(default)]
+    pub probe: Vec<Step>,
     #[serde(default)]
     pub raw_values: Vec<u8>,
     #[serde(default)]
@@ -203,12 +212,42 @@ impl Profile {
             for z in &fan.zones {
                 ensure!(zones.insert(z.id), "duplicate zone");
             }
-            for s in fan.manual.iter().chain(&fan.set).chain(&fan.automatic) {
+            ensure!(
+                fan.probe
+                    .iter()
+                    .all(|p| p.expect.is_some() || p.expect_data.is_some()),
+                "protocol probes require an expected response"
+            );
+            ensure!(
+                fan.percent_values
+                    .iter()
+                    .all(|v| (fan.min_percent..=fan.max_percent).contains(v)),
+                "percentage level outside adapter bounds"
+            );
+            ensure!(
+                fan.raw_values.is_empty() || fan.percent_values.is_empty(),
+                "raw and percentage levels cannot be mixed"
+            );
+            for s in fan
+                .probe
+                .iter()
+                .chain(&fan.manual)
+                .chain(&fan.set)
+                .chain(&fan.automatic)
+            {
                 ensure!(
                     s.netfn < 64 && s.netfn % 2 == 0 && s.data.len() <= 128 && s.delay_ms <= 30_000,
                     "invalid IPMI step"
                 );
-                for token in &s.data {
+                ensure!(
+                    s.expect.is_none() || s.expect_data.is_none(),
+                    "choose expect or expect_data"
+                );
+                ensure!(
+                    s.expect_data.as_ref().is_none_or(|v| v.len() <= 128),
+                    "expected response too long"
+                );
+                for token in s.data.iter().chain(s.expect_data.iter().flatten()) {
                     Self::byte(token, fan.min_percent, fan.zones[0].id, fan.scale)?;
                     ensure!(
                         fan.raw_values.is_empty() || (token != "$percent" && token != "$duty"),
@@ -291,6 +330,10 @@ impl Profile {
             f.min_percent,
             f.max_percent
         );
+        ensure!(
+            f.percent_values.is_empty() || f.percent_values.contains(&percent),
+            "percentage is not a documented adapter level"
+        );
         ensure!(f.zones.iter().any(|z| z.id == zone), "unknown fan zone");
         let steps: Vec<_> = if include_manual {
             f.manual.iter().chain(&f.set).collect()
@@ -313,8 +356,27 @@ impl Profile {
                 .map(|t| Self::byte(t, percent, zone, scale))
                 .collect::<Result<_>>()?,
             delay_ms: s.delay_ms,
-            expect: s.expect.clone(),
+            expect: match &s.expect_data {
+                Some(tokens) => Some(
+                    tokens
+                        .iter()
+                        .map(|t| Self::byte(t, percent, zone, scale))
+                        .collect::<Result<_>>()?,
+                ),
+                None => s.expect.clone(),
+            },
         })
+    }
+    pub fn probe(&self, value: ControlValue, zone: u8) -> Result<Vec<Command>> {
+        self.commands_value(value, zone, false)?;
+        let f = self.fan.as_ref().context("monitoring-only profile")?;
+        let number = match value {
+            ControlValue::Percent(p) | ControlValue::Raw(p) => p,
+        };
+        f.probe
+            .iter()
+            .map(|s| self.compile(s, number, zone))
+            .collect()
     }
     pub fn automatic(&self) -> Result<Vec<Command>> {
         let f = self.fan.as_ref().context("monitoring-only profile")?;
@@ -419,6 +481,16 @@ impl Registry {
             include_str!("../../../profiles/asrock-aspeed.toml"),
             include_str!("../../../profiles/asrock-ast2600.toml"),
             include_str!("../../../profiles/lenovo-x3650-m5-imm2.toml"),
+            include_str!("../../../profiles/h3c-uis2000-g6.toml"),
+            include_str!("../../../profiles/hpe-ilo-monitor.toml"),
+            include_str!("../../../profiles/lenovo-xcc-monitor.toml"),
+            include_str!("../../../profiles/inspur-monitor.toml"),
+            include_str!("../../../profiles/h3c-hdm-monitor.toml"),
+            include_str!("../../../profiles/huawei-ibmc-monitor.toml"),
+            include_str!("../../../profiles/xfusion-ibmc-monitor.toml"),
+            include_str!("../../../profiles/sugon-monitor.toml"),
+            include_str!("../../../profiles/zte-monitor.toml"),
+            include_str!("../../../profiles/greatwall-monitor.toml"),
         ];
         let mut profiles = BTreeMap::new();
         for text in builtins {
@@ -471,7 +543,7 @@ mod tests {
     #[test]
     fn builtins_validate_and_encode() -> Result<()> {
         let r = Registry::load(None)?;
-        assert_eq!(r.profiles.len(), 8);
+        assert_eq!(r.profiles.len(), 18);
         let dell = &r.profiles["dell-idrac6-8"];
         assert_eq!(dell.commands(35, 255, true)?[1].data, [2, 255, 35]);
         assert!(dell.commands(101, 255, true).is_err());
@@ -545,6 +617,55 @@ mod tests {
         assert!(dell.compatible(&d));
         d.firmware = "3.34".into();
         assert!(!dell.compatible(&d));
+        Ok(())
+    }
+    #[test]
+    fn every_catalog_adapter_exists_and_monitoring_profiles_have_no_writes() -> Result<()> {
+        let r = Registry::load(None)?;
+        let catalog = models::Catalog::load(None)?;
+        for m in catalog.models.values() {
+            if let Some(id) = &m.profile {
+                ensure!(
+                    r.profiles.contains_key(id),
+                    "model {}: unknown adapter {id}",
+                    m.id
+                );
+            }
+        }
+        for id in [
+            "hpe-ilo-monitor",
+            "lenovo-xcc-monitor",
+            "inspur-monitor",
+            "h3c-hdm-monitor",
+            "huawei-ibmc-monitor",
+            "xfusion-ibmc-monitor",
+            "sugon-monitor",
+            "zte-monitor",
+            "greatwall-monitor",
+        ] {
+            let p = &r.profiles[id];
+            assert!(!p.eligible(true));
+            assert!(p.commands(50, 0, true).is_err());
+            assert!(p.automatic().is_err());
+        }
+        let p = &r.profiles["h3c-uis2000-g6"];
+        assert!(p.commands(21, 0, true).is_err());
+        assert!(p.commands_value(ControlValue::Raw(51), 0, true).is_err());
+        assert_eq!(
+            p.probe(ControlValue::Percent(20), 0)?[0].data,
+            [170, 229, 0, 1]
+        );
+        for (percent, duty) in [(20, 51), (40, 102), (60, 153), (80, 204), (100, 255)] {
+            let commands = p.commands(percent, 0, true)?;
+            assert_eq!(commands[1].expect, Some(vec![170, 229, 0, duty]));
+            assert_eq!(commands[1].data.last(), Some(&duty));
+        }
+        let d = DeviceIdentity {
+            manufacturer_id: 25506,
+            model: "H3C UniServer R4900 G6".into(),
+            ..Default::default()
+        };
+        assert!(!p.compatible(&d));
         Ok(())
     }
 }

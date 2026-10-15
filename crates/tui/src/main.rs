@@ -49,6 +49,13 @@ enum CliCommand {
     ValidateProfiles,
     ValidateLocales,
     ValidateModels,
+    /// List sourced model IDs and their associated adapters; vendor accepts native aliases.
+    ListModels {
+        #[arg(long)]
+        vendor: Option<String>,
+        #[arg(long)]
+        json: bool,
+    },
     ModelSchema,
     LocaleSchema,
     /// Print the profile JSON schema (applies to parsed TOML data).
@@ -73,6 +80,32 @@ async fn main() -> Result<()> {
         eprintln!("Locale ignored: {warning}");
     }
     match args.command {
+        Some(CliCommand::ListModels { vendor, json }) => {
+            let query = vendor.unwrap_or_default().to_lowercase();
+            let rows: Vec<_> = catalog
+                .models
+                .values()
+                .filter(|m| {
+                    format!("{} {} {}", m.vendor, m.name, m.aliases.join(" "))
+                        .to_lowercase()
+                        .contains(&query)
+                })
+                .collect();
+            if json {
+                println!("{}", serde_json::to_string_pretty(&rows)?);
+            } else {
+                for m in rows {
+                    println!(
+                        "{} | {} | {} | {}",
+                        m.id,
+                        m.vendor,
+                        m.name,
+                        m.profile.as_deref().unwrap_or("generic")
+                    );
+                }
+            }
+            return Ok(());
+        }
         Some(CliCommand::ValidateLocales) => {
             anyhow::ensure!(
                 locales.diagnostics.is_empty(),
@@ -295,7 +328,16 @@ async fn termination() {
     let _ = tokio::signal::ctrl_c().await;
 }
 async fn demo_check(registry: Registry) -> Result<()> {
-    for server in bmcforge_ipmi::mock::servers() {
+    let mut simulated = bmcforge_ipmi::mock::servers();
+    simulated.push(bmcforge_core::config::Server {
+        id: "demo-uis".into(),
+        host: "192.0.2.90".into(),
+        name: "H3C UIS 2000 G6".into(),
+        profile: Some("h3c-uis2000-g6".into()),
+        allow_experimental: true,
+        ..Default::default()
+    });
+    for server in simulated {
         let profile = registry
             .profiles
             .get(server.profile.as_deref().context("profile")?)

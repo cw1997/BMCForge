@@ -1,0 +1,46 @@
+schema_version = 1
+
+[[models]]
+id = "zte-r5200-g5"
+vendor = "ZTE / 中兴通讯"
+name = "R5200 G5"
+aliases = ["ZTE R5200 G5", "中兴 R5200 G5", "中兴通讯 R5200 G5"]
+manufacturer_ids = [3902]
+profile = "zte-monitor"
+sources = ["https://www.zte.com.cn/china/about/news/20230112c3.html", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "zte-r5300-g5"
+vendor = "ZTE / 中兴通讯"
+name = "R5300 G5"
+aliases = ["ZTE R5300 G5", "中兴 R5300 G5", "中兴通讯 R5300 G5"]
+manufacturer_ids = [3902]
+profile = "zte-monitor"
+sources = ["https://www.zte.com.cn/china/about/news/20230112c3.html", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "zte-r5500-g5"
+vendor = "ZTE / 中兴通讯"
+name = "R5500 G5"
+aliases = ["ZTE R5500 G5", "中兴 R5500 G5", "中兴通讯 R5500 G5"]
+manufacturer_ids = [3902]
+profile = "zte-monitor"
+sources = ["https://www.zte.com.cn/china/about/news/20230112c3.html", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "zte-r6500-g5"
+vendor = "ZTE / 中兴通讯"
+name = "R6500 G5"
+aliases = ["ZTE R6500 G5", "中兴 R6500 G5", "中兴通讯 R6500 G5"]
+manufacturer_ids = [3902]
+profile = "zte-monitor"
+sources = ["https://www.zte.com.cn/china/about/news/20230112c3.html", "https://www.iana.org/assignments/enterprise-numbers.txt"]
+
+[[models]]
+id = "zte-r8500-g5"
+vendor = "ZTE / 中兴通讯"
+name = "R8500 G5"
+aliases = ["ZTE R8500 G5", "中兴 R8500 G5", "中兴通讯 R8500 G5"]
+manufacturer_ids = [3902]
+profile = "zte-monitor"
+sources = ["https://www.zte.com.cn/china/about/news/20230112c3.html", "https://www.iana.org/assignments/enterprise-numbers.txt"]
