@@ -5,7 +5,7 @@ use crate::{
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     layout::Rect,
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
 };
 use std::time::{Duration, Instant};
 
@@ -26,6 +26,8 @@ pub const ACTIONS: &[&str] = &[
 
 #[derive(Default)]
 pub struct Interaction {
+    pub light: bool,
+    pub leader: Option<Instant>,
     pub hover: Option<Target>,
     pub pressed: Option<(Target, Instant)>,
     pub viewport: Option<(Rect, usize, Option<std::mem::Discriminant<Modal>>)>,
@@ -38,17 +40,18 @@ impl Interaction {
         self.pressed = Some((target, Instant::now()));
     }
     pub fn style(&self, target: &Target) -> Style {
+        let theme = crate::theme::Theme::named(if self.light { "light" } else { "dark" });
         if self
             .pressed
             .as_ref()
             .is_some_and(|(t, time)| t == target && time.elapsed() < Duration::from_millis(150))
         {
             Style::default()
-                .fg(Color::Black)
-                .bg(Color::Yellow)
+                .fg(theme.background)
+                .bg(theme.warning)
                 .add_modifier(Modifier::BOLD)
         } else if self.hover.as_ref() == Some(target) {
-            Style::default().fg(Color::Black).bg(Color::Cyan)
+            Style::default().fg(theme.background).bg(theme.accent)
         } else {
             Style::default()
         }
@@ -86,6 +89,9 @@ impl App {
         }
     }
     pub fn target_label(&self, target: &Target) -> String {
+        if matches!(target, Target::Shortcut(name) if name.starts_with("theme:")) {
+            return "Enter".into();
+        }
         self.target_key(target)
             .map(key_label)
             .unwrap_or_else(|| "F8".into())

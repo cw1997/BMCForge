@@ -96,7 +96,7 @@ operation-ok = Operação concluída: { $server }
 scan-failed = Falha na verificação
 scan-finished = Descoberta concluída. Sem resposta significa desconhecido, não ausente.
 safety = Ao sair, tenta restaurar as ventoinhas controladas aqui. Encerramento forçado, falta de energia ou rede podem impedir a restauração.
-help = 1–5 / Tab: páginas; setas: navegar; Espaço: selecionar; F2: salvar; F3: idioma; F4: mouse; F5: desconhecido; F6: ignorar; A: todos; G: grupo /24; c: cancelar identificação. Shift+arrastar ou seleção do terminal para copiar. Teclas configuráveis.
+help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab: páginas; setas: navegar; Espaço: selecionar; F2: salvar; F3: idioma; F4: mouse; F5: desconhecido; F6: ignorar; A: todos; G: grupo /24; c: cancelar identificação. Shift+arrastar ou seleção do terminal para copiar. Teclas configuráveis.
 device-count = { $count ->
     [one] { $count } dispositivo
    *[other] { $count } dispositivos
@@ -155,3 +155,12 @@ form-error-username = Usuário: no máximo 16 bytes UTF-8.
 form-error-secret = Senha e Kg: no máximo 20 bytes UTF-8.
 form-error-required = Este campo é obrigatório.
 form-error-tags = Feche as aspas da etiqueta.
+
+command-palette = Comandos
+command-needs-server = Selecione um servidor
+command-theme = Tema
+command-no-results = Nenhum comando correspondente
+terminal-too-small = Aumente o terminal
+dark = Escuro
+light = Claro
+command-empty = Nenhum item para exibir

@@ -96,7 +96,7 @@ operation-ok = 操作成功：{ $server }
 scan-failed = 扫描失败
 scan-finished = 发现完成。无响应表示未知，不能证明不存在。
 safety = 退出时尝试恢复本进程接管的风扇。强杀、断电或断网时无法保证恢复。
-help = 1–5 / Tab 切页；方向键导航；空格选择；F2 保存；F3 语言；F4 鼠标；F5 保留未知；F6 跳过；A 全选发现；G 选择 /24 分组；c 取消识别。Shift+拖动或终端原生选择可复制文本。快捷键可在设置中修改。
+help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab 切页；方向键导航；空格选择；F2 保存；F3 语言；F4 鼠标；F5 保留未知；F6 跳过；A 全选发现；G 选择 /24 分组；c 取消识别。Shift+拖动或终端原生选择可复制文本。快捷键可在设置中修改。
 device-count = { $count } 台设备
 
 # Guided forms and interaction hints
@@ -152,3 +152,12 @@ form-error-username = 用户名不能超过 16 个 UTF-8 字节。
 form-error-secret = 密码和 Kg 不能超过 20 个 UTF-8 字节。
 form-error-required = 此字段不能为空。
 form-error-tags = 请补全标签的双引号。
+
+command-palette = 命令面板
+command-needs-server = 请先选择服务器
+command-theme = 主题
+command-no-results = 没有匹配的命令
+terminal-too-small = 请增大终端窗口
+dark = 深色
+light = 浅色
+command-empty = 暂无可显示项目

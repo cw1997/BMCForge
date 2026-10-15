@@ -96,7 +96,7 @@ operation-ok = Operation succeeded: { $server }
 scan-failed = Scan failed
 scan-finished = Discovery finished. No response means unknown, not absent.
 safety = Exit attempts automatic restore only for fans taken over here. Forced termination, power or network loss cannot guarantee recovery.
-help = 1–5 / Tab: pages; arrows: navigate; Space: select; F2: save; F3: language; F4: mouse; F5: unknown model; F6: skip; A: select all discovery; G: select /24 group; c: cancel identification. Shift+drag or terminal native selection copies text. Shortcuts are configurable in Settings.
+help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab: pages; arrows: navigate; Space: select; F2: save; F3: language; F4: mouse; F5: unknown model; F6: skip; A: select all discovery; G: select /24 group; c: cancel identification. Shift+drag or terminal native selection copies text. Shortcuts are configurable in Settings.
 device-count = { $count ->
     [one] { $count } device
    *[other] { $count } devices
@@ -155,3 +155,12 @@ form-error-username = Username must fit within 16 UTF-8 bytes.
 form-error-secret = Password and Kg must fit within 20 UTF-8 bytes.
 form-error-required = This field is required.
 form-error-tags = Close the quoted tag with a double quote.
+
+command-palette = Commands
+command-needs-server = Select a server first
+command-theme = Theme
+command-no-results = No matching commands
+terminal-too-small = Increase terminal size
+dark = Dark
+light = Light
+command-empty = No items to display

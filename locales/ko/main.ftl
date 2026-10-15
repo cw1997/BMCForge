@@ -96,7 +96,7 @@ operation-ok = 작업 성공: { $server }
 scan-failed = 스캔 실패
 scan-finished = 검색 완료. 무응답은 미확인이며 장치 부재를 뜻하지 않습니다.
 safety = 종료 시 이 프로세스가 제어한 팬의 자동 모드를 복원합니다. 강제 종료, 정전, 네트워크 손실 시 복원은 보장되지 않습니다.
-help = 1–5 / Tab: 페이지, 화살표: 이동, Space: 선택, F2: 저장, F3: 언어, F4: 마우스, F5: 미확인 유지, F6: 건너뛰기, A: 모두 선택, G: /24 그룹, c: 식별 취소. Shift+드래그 또는 터미널 선택으로 복사. 설정에서 단축키 변경.
+help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab: 페이지, 화살표: 이동, Space: 선택, F2: 저장, F3: 언어, F4: 마우스, F5: 미확인 유지, F6: 건너뛰기, A: 모두 선택, G: /24 그룹, c: 식별 취소. Shift+드래그 또는 터미널 선택으로 복사. 설정에서 단축키 변경.
 device-count = 장치 { $count }개
 
 # Guided forms and interaction hints
@@ -152,3 +152,12 @@ form-error-username = 사용자 이름은 UTF-8 16바이트 이내여야 합니�
 form-error-secret = 암호와 Kg는 UTF-8 20바이트 이내여야 합니다.
 form-error-required = 필수 항목입니다.
 form-error-tags = 태그의 큰따옴표를 닫으세요.
+
+command-palette = 명령
+command-needs-server = 서버를 먼저 선택하세요
+command-theme = 테마
+command-no-results = 일치하는 명령 없음
+terminal-too-small = 터미널 크기를 늘리세요
+dark = 어둡게
+light = 밝게
+command-empty = 표시할 항목이 없습니다

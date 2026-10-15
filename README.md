@@ -90,3 +90,5 @@ GitHub Actions builds, tests, and packages for Windows x64/ARM64/x86, macOS Inte
 For new adapters, submit source references, clear model/firmware ranges, the method to restore auto mode, and command test samples, following [contributing guidelines](CONTRIBUTING.md). Do not assume same-brand or IPMI support equals fan control support.
 
 BMCForge is licensed under [Apache-2.0](LICENSE). The native session implementation is based on ipmi 0.1.2 maintained in-repo; see [third-party sources and modifications](vendor/ipmi/BMCFORGE-PATCHES.md).
+
+Ctrl+P opens the searchable command palette with effective shortcuts and unavailable reasons. After Ctrl+X, press p for commands, 1–5 for pages, t for themes, h for help, or q for normal shutdown. The prefix expires after two seconds; Esc cancels it. Existing shortcuts remain available, and text inputs retain their editing keys. Wide terminals show fleet details alongside the list; below 80 columns, Enter opens details in a dialog.

@@ -96,7 +96,7 @@ operation-ok = 操作成功：{ $server }
 scan-failed = 掃描失敗
 scan-finished = 探索完成。無回應表示未知，不能證明不存在。
 safety = 離開時嘗試恢復本程序接管的風扇。強制結束、斷電或斷網時無法保證恢復。
-help = 1–5 / Tab 切頁；方向鍵導覽；空白鍵選取；F2 儲存；F3 語言；F4 滑鼠；F5 保留未知；F6 略過；A 全選探索；G 選取 /24 群組；c 取消識別。Shift+拖曳或終端原生選取可複製文字。快捷鍵可在設定中修改。
+help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab 切頁；方向鍵導覽；空白鍵選取；F2 儲存；F3 語言；F4 滑鼠；F5 保留未知；F6 略過；A 全選探索；G 選取 /24 群組；c 取消識別。Shift+拖曳或終端原生選取可複製文字。快捷鍵可在設定中修改。
 device-count = { $count } 台裝置
 
 # Guided forms and interaction hints
@@ -152,3 +152,12 @@ form-error-username = 使用者名稱不可超過 16 個 UTF-8 位元組。
 form-error-secret = 密碼和 Kg 不可超過 20 個 UTF-8 位元組。
 form-error-required = 此欄位不可為空。
 form-error-tags = 請補齊標籤的雙引號。
+
+command-palette = 命令面板
+command-needs-server = 請先選擇伺服器
+command-theme = 主題
+command-no-results = 沒有符合的命令
+terminal-too-small = 請放大終端視窗
+dark = 深色
+light = 淺色
+command-empty = 目前沒有可顯示的項目

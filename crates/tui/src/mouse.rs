@@ -9,6 +9,7 @@ use unicode_width::UnicodeWidthChar;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Target {
+    CommandRow(usize),
     Page(usize),
     Field(usize),
     ChoiceRow(usize),
@@ -72,7 +73,8 @@ impl App {
                         && (self.modal.is_none()
                             || matches!(
                                 h.target,
-                                Target::Field(_)
+                                Target::CommandRow(_)
+                                    | Target::Field(_)
                                     | Target::ChoiceRow(_)
                                     | Target::Key(_)
                                     | Target::LanguageRow(_)
@@ -95,7 +97,8 @@ impl App {
         if self.modal.is_some()
             && !matches!(
                 hit.target,
-                Target::Field(_)
+                Target::CommandRow(_)
+                    | Target::Field(_)
                     | Target::ChoiceRow(_)
                     | Target::Key(_)
                     | Target::LanguageRow(_)
@@ -117,7 +120,8 @@ impl App {
                 Target::Server(..) => Pane::Fleet,
                 Target::Discovery(..) => Pane::Discovery,
                 Target::Profile(_) => Pane::Profiles,
-                Target::Field(_)
+                Target::CommandRow(_)
+                | Target::Field(_)
                 | Target::ChoiceRow(_)
                 | Target::Editor { .. }
                 | Target::LanguageRow(_)
@@ -159,7 +163,8 @@ impl App {
                 }
                 Pane::Modal => match &mut self.modal {
                     Some(
-                        Modal::Languages { .. }
+                        Modal::Commands { .. }
+                        | Modal::Languages { .. }
                         | Modal::ModelChoice { .. }
                         | Modal::FieldChoice { .. },
                     ) => {
@@ -291,6 +296,12 @@ impl App {
                     self.profile_cursor = index;
                 }
                 return vec![];
+            }
+            Target::CommandRow(index) => {
+                if let Some(Modal::Commands { cursor, .. }) = &mut self.modal {
+                    *cursor = index;
+                }
+                return self.input(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
             }
             Target::LanguageRow(index) => {
                 if let Some(Modal::Languages { cursor }) = &mut self.modal {

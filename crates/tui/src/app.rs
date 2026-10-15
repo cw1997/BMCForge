@@ -38,6 +38,10 @@ pub enum EditKind {
     Manual(Vec<String>),
 }
 pub enum Modal {
+    Commands {
+        query: String,
+        cursor: usize,
+    },
     Form(crate::form::Form),
     FieldChoice {
         form: Box<crate::form::Form>,
@@ -528,6 +532,9 @@ impl App {
         if !matches!(key.kind, KeyEventKind::Press | KeyEventKind::Repeat) {
             return vec![];
         }
+        if let Some(actions) = self.command_input(key) {
+            return actions;
+        }
         if self
             .interaction
             .viewport
@@ -628,6 +635,34 @@ impl App {
             }
         }
         self.fixed_input(key)
+    }
+    pub(crate) fn command_reason(&self, action: &str) -> String {
+        let result: Result<()> = (|| {
+            if action == "import" {
+                ensure!(!self.identifying, "{}", self.text("identifying"));
+            }
+            if action == "edit"
+                && let Some(server) = self.current()
+            {
+                ensure!(
+                    !self.snapshots.get(&server.id).is_some_and(|s| s.taken_over),
+                    "{}",
+                    self.text("automatic")
+                );
+            }
+            if matches!(action, "manual" | "automatic") {
+                let ids = self.targets();
+                for id in ids {
+                    let profile = self.profile(&id)?;
+                    ensure!(profile.fan.is_some(), "{}", self.text("monitoring-only"));
+                }
+            }
+            Ok(())
+        })();
+        result
+            .err()
+            .map(|error| error.to_string())
+            .unwrap_or_default()
     }
     fn normal_action(&mut self, action: &str) -> Result<Vec<Action>> {
         if action == "quit" {
@@ -872,7 +907,18 @@ impl App {
                     }
                 }
             }
-            KeyCode::Enter if self.page == 0 => self.page = 1,
+            KeyCode::Enter if self.page == 0 => {
+                if self
+                    .interaction
+                    .viewport
+                    .as_ref()
+                    .is_some_and(|(area, _, _)| area.width < 80)
+                {
+                    self.modal = Some(Modal::Info(crate::ui::server_detail(self)));
+                } else {
+                    self.page = 1;
+                }
+            }
             KeyCode::Enter if self.page == 3 => self.assign_profile()?,
             KeyCode::Char('u') if self.page == 3 => self.default_credential()?,
             KeyCode::Char('f') if self.page == 2 => {
@@ -1066,7 +1112,7 @@ impl App {
         match &mut self.modal {
             Some(Modal::Editor { editor, .. }) => editor.paste(text),
             Some(Modal::Form(form)) => form.paste(text),
-            Some(Modal::FieldChoice { query, cursor, .. }) => {
+            Some(Modal::Commands { query, cursor } | Modal::FieldChoice { query, cursor, .. }) => {
                 query.push_str(&text.replace(['\r', '\n'], ""));
                 *cursor = 0;
             }
@@ -1108,6 +1154,7 @@ impl App {
             self.modal_scroll = 0;
         }
         match modal {
+            Modal::Commands { .. } => vec![],
             Modal::FieldChoice {
                 mut form,
                 mut query,

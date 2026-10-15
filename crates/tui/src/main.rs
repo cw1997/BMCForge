@@ -1,10 +1,12 @@
 mod app;
+mod commands;
 mod editor;
 mod form;
 mod i18n;
 mod interaction;
 mod mouse;
 mod runtime;
+mod theme;
 mod ui;
 
 use anyhow::{Context, Result, bail};
@@ -79,7 +81,7 @@ async fn main() -> Result<()> {
     let locales = i18n::Locales::load(args.locales_dir.as_deref())?;
     let catalog = bmcforge_profiles::models::Catalog::load(args.profiles_dir.as_deref())?;
     for warning in &locales.diagnostics {
-        eprintln!("Locale ignored: {warning}");
+        eprintln!("warning: locale ignored: {warning}");
     }
     match args.command {
         Some(CliCommand::ListModels { vendor, json }) => {

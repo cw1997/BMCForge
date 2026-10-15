@@ -96,7 +96,7 @@ operation-ok = 操作成功：{ $server }
 scan-failed = スキャン失敗
 scan-finished = 検出完了。無応答は不明であり、不在とは限りません。
 safety = 終了時に本プロセスが制御したファンを自動制御に戻します。強制終了・停電・通信断では復帰を保証できません。
-help = 1–5 / Tab：ページ、矢印：移動、Space：選択、F2：保存、F3：言語、F4：マウス、F5：不明のまま保持、F6：スキップ、A：全選択、G：/24 グループ、c：識別取消。Shift+ドラッグまたは端末の選択でコピー。設定でキー変更可。
+help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab：ページ、矢印：移動、Space：選択、F2：保存、F3：言語、F4：マウス、F5：不明のまま保持、F6：スキップ、A：全選択、G：/24 グループ、c：識別取消。Shift+ドラッグまたは端末の選択でコピー。設定でキー変更可。
 device-count = { $count } 台
 
 # Guided forms and interaction hints
@@ -152,3 +152,12 @@ form-error-username = ユーザー名は UTF-8 で16バイト以内です。
 form-error-secret = パスワードと Kg は UTF-8 で20バイト以内です。
 form-error-required = 必須項目です。
 form-error-tags = タグの二重引用符を閉じてください。
+
+command-palette = コマンド
+command-needs-server = サーバーを選択してください
+command-theme = テーマ
+command-no-results = 一致するコマンドがありません
+terminal-too-small = 端末を大きくしてください
+dark = ダーク
+light = ライト
+command-empty = 表示する項目がありません

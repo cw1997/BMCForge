@@ -5,7 +5,7 @@ use crossterm::event::KeyCode;
 use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::Line,
     widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Sparkline, Table, TableState, Wrap},
 };
@@ -27,17 +27,21 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         app.interaction.hover = None;
     }
     app.hits.clear();
-    let light = app.config.settings.theme == "light";
-    let bg = if light {
-        Color::Rgb(240, 244, 250)
-    } else {
-        Color::Rgb(13, 19, 29)
-    };
-    let fg = if light {
-        Color::Rgb(25, 36, 52)
-    } else {
-        Color::Rgb(210, 221, 235)
-    };
+    let theme = crate::theme::Theme::named(&app.config.settings.theme);
+    app.interaction.light = app.config.settings.theme == "light";
+    let bg = theme.background;
+    let fg = theme.foreground;
+    if frame.area().width < 20 || frame.area().height < 8 {
+        frame.render_widget(
+            Paragraph::new(format!(
+                "BMCForge\n{}\nCtrl+C / q",
+                app.text("terminal-too-small")
+            ))
+            .style(theme.base()),
+            frame.area(),
+        );
+        return;
+    }
     frame.render_widget(
         Block::default().style(Style::default().bg(bg).fg(fg)),
         frame.area(),
@@ -47,7 +51,7 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         .constraints([
             Constraint::Length(3),
             Constraint::Min(4),
-            Constraint::Length(6),
+            Constraint::Length(4),
         ])
         .split(frame.area());
     let title = format!(
@@ -55,7 +59,10 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         env!("CARGO_PKG_VERSION"),
         if app.demo { "[DEMO]" } else { "" }
     );
-    let nav = Block::bordered().title(title);
+    let nav = Block::default()
+        .borders(Borders::BOTTOM)
+        .title(title)
+        .style(Style::default().bg(theme.surface));
     let inner = nav.inner(layout[0]);
     frame.render_widget(nav, layout[0]);
     let language_width = 18.min(inner.width / 3);
@@ -87,7 +94,7 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
             Paragraph::new(label).style(
                 (if page == app.page {
                     Style::default()
-                        .fg(Color::Cyan)
+                        .fg(theme.accent)
                         .add_modifier(Modifier::BOLD)
                 } else {
                     Style::default()
@@ -119,6 +126,25 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         3 => profiles(frame, layout[1], app),
         _ => logs(frame, layout[1], app),
     }
+    let empty = match app.page {
+        0 => app.visible().is_empty(),
+        1 => app.current().is_none(),
+        2 => app.discovery.is_empty() && !app.scanning,
+        3 => app.registry.profiles.is_empty(),
+        _ => app.logs.is_empty(),
+    };
+    if empty && layout[1].height > 3 {
+        frame.render_widget(
+            Paragraph::new(format!("{}  · Ctrl+P", app.text("command-empty")))
+                .style(Style::default().fg(theme.muted).bg(theme.background)),
+            Rect::new(
+                layout[1].x + 1,
+                layout[1].y + 2,
+                layout[1].width.saturating_sub(2),
+                1,
+            ),
+        );
+    }
     let actions = [
         "import",
         "discover",
@@ -131,11 +157,13 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         "export",
         "quit",
     ];
-    let footer = Block::default().borders(Borders::TOP);
+    let footer = Block::default()
+        .borders(Borders::TOP)
+        .style(Style::default().fg(theme.muted));
     let footer_inner = footer.inner(layout[2]);
     frame.render_widget(footer, layout[2]);
     let footer_lines =
-        Layout::vertical([Constraint::Length(3), Constraint::Min(1)]).split(footer_inner);
+        Layout::vertical([Constraint::Length(1), Constraint::Min(1)]).split(footer_inner);
     let mut buttons = actions
         .iter()
         .map(|name| (app.text(name).to_owned(), Target::Shortcut((*name).into())))
@@ -172,6 +200,12 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
     if app.page == 3 {
         buttons.rotate_right(if app.identifying { 3 } else { 2 });
     }
+    if app.page == 0 {
+        buttons.rotate_left(2);
+    }
+    if app.page == 1 {
+        buttons.rotate_left(3);
+    }
     button_bar(frame, footer_lines[0], app, buttons);
     frame.render_widget(
         Paragraph::new(if app.identifying {
@@ -189,16 +223,24 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         .wrap(Wrap { trim: false }),
         footer_lines[1],
     );
-    let navigation = format!(
-        "F8: {} · ↑↓ j/k · {}: {} · Enter: {} · Tab/Shift+Tab: 1–5",
-        app.text("form-actions"),
-        crate::interaction::key_label(
-            app.target_key(&Target::Shortcut("select".into()))
-                .unwrap_or(KeyCode::Char(' '))
-        ),
-        app.text("select"),
-        app.text("confirm")
-    );
+    let navigation = if app
+        .interaction
+        .leader
+        .is_some_and(|time| time.elapsed() < std::time::Duration::from_secs(2))
+    {
+        "Ctrl+X → p · 1–5 · t · h · q · Esc".into()
+    } else {
+        format!(
+            "Ctrl+P · F8: {} · ↑↓ j/k · {}: {} · Enter: {} · Tab/Shift+Tab: 1–5",
+            app.text("form-actions"),
+            crate::interaction::key_label(
+                app.target_key(&Target::Shortcut("select".into()))
+                    .unwrap_or(KeyCode::Char(' '))
+            ),
+            app.text("select"),
+            app.text("confirm")
+        )
+    };
     if footer_lines[1].height > 1 {
         frame.render_widget(
             Paragraph::new(navigation),
@@ -248,15 +290,30 @@ fn spinner() -> char {
     ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
         [(START.get_or_init(Instant::now).elapsed().as_millis() / 100 % 10) as usize]
 }
-fn header(cells: &[&str]) -> Row<'static> {
+fn header(theme: crate::theme::Theme, cells: &[&str]) -> Row<'static> {
     Row::new(cells.iter().map(|s| Cell::from(s.to_string()))).style(
         Style::default()
-            .fg(Color::Cyan)
+            .fg(theme.accent)
             .add_modifier(Modifier::BOLD),
     )
 }
 fn fleet(frame: &mut Frame, area: Rect, app: &mut App) {
-    let parts = Layout::vertical([Constraint::Min(4), Constraint::Length(7)]).split(area);
+    let theme = crate::theme::Theme::named(&app.config.settings.theme);
+    let parts = if area.width >= 120 {
+        Layout::horizontal([Constraint::Percentage(64), Constraint::Percentage(36)]).split(area)
+    } else {
+        Layout::vertical([
+            Constraint::Min(4),
+            Constraint::Length(if area.width < 80 {
+                0
+            } else if area.height >= 18 {
+                7
+            } else {
+                4
+            }),
+        ])
+        .split(area)
+    };
     let visible = app.visible();
     let rows: Vec<_> = visible
         .iter()
@@ -276,7 +333,7 @@ fn fleet(frame: &mut Frame, area: Rect, app: &mut App) {
                 })
                 .map(|v| format!("{v:.0}"))
                 .unwrap_or_else(|| "—".into());
-            Row::new(vec![
+            let cells = vec![
                 if app.selected.contains(&s.id) {
                     "[x]".into()
                 } else {
@@ -287,37 +344,60 @@ fn fleet(frame: &mut Frame, area: Rect, app: &mut App) {
                 s.endpoint(),
                 state,
                 rpm,
-            ])
+            ];
+            Row::new(
+                cells
+                    .into_iter()
+                    .enumerate()
+                    .filter(|(index, _)| area.width >= 80 || matches!(index, 0 | 2 | 4))
+                    .map(|(_, cell)| cell),
+            )
         })
         .collect();
-    let table = Table::new(
-        rows,
-        [
+    let widths = if area.width < 80 {
+        vec![
+            Constraint::Length(3),
+            Constraint::Percentage(45),
+            Constraint::Min(8),
+        ]
+    } else {
+        vec![
             Constraint::Length(3),
             Constraint::Percentage(15),
             Constraint::Percentage(22),
             Constraint::Percentage(22),
             Constraint::Min(12),
             Constraint::Length(8),
-        ],
-    )
-    .header(header(&[
-        "",
-        app.text("group"),
-        app.text("server"),
-        app.text("bmc-endpoint"),
-        app.text("status"),
-        app.text("max-rpm"),
-    ]))
-    .block(Block::bordered().title(format!(
-        " {} — {}: {} — {}: {} ",
-        app.text("fleet"),
-        app.text("selected"),
-        app.selected.len(),
-        app.text("filter"),
-        app.search
-    )))
-    .row_highlight_style(Style::default().bg(Color::Rgb(35, 58, 78)).fg(Color::White));
+        ]
+    };
+    let headings = if area.width < 80 {
+        vec!["", app.text("server"), app.text("status")]
+    } else {
+        vec![
+            "",
+            app.text("group"),
+            app.text("server"),
+            app.text("bmc-endpoint"),
+            app.text("status"),
+            app.text("max-rpm"),
+        ]
+    };
+    let table = Table::new(rows, widths)
+        .header(header(theme, &headings))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(theme.muted))
+                .title(format!(
+                    " {} — {}: {} — {}: {} ",
+                    app.text("fleet"),
+                    app.text("selected"),
+                    app.selected.len(),
+                    app.text("filter"),
+                    app.search
+                )),
+        )
+        .row_highlight_style(Style::default().bg(theme.selection).fg(theme.foreground));
     let mut state = TableState::default().with_selected(if visible.is_empty() {
         None
     } else {
@@ -338,13 +418,18 @@ fn fleet(frame: &mut Frame, area: Rect, app: &mut App) {
         .push(Hit::new(parts[1], Target::Scroll(Pane::Detail)));
     frame.render_widget(
         Paragraph::new(server_detail(app))
-            .block(Block::bordered().title(app.text("server-details")))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(theme.muted))
+                    .title(app.text("server-details")),
+            )
             .wrap(Wrap { trim: false })
             .scroll((app.detail_scroll, 0)),
         parts[1],
     );
 }
-fn server_detail(app: &App) -> String {
+pub(crate) fn server_detail(app: &App) -> String {
     let Some(server) = app.current() else {
         return app
             .text("press-i-to-import-servers-or-d-to-discover-a-subnet-each-server")
@@ -400,6 +485,7 @@ fn server_detail(app: &App) -> String {
     )
 }
 fn sensors(frame: &mut Frame, area: Rect, app: &mut App) {
+    let theme = crate::theme::Theme::named(&app.config.settings.theme);
     let parts = Layout::vertical([
         Constraint::Length(5),
         Constraint::Min(3),
@@ -412,7 +498,12 @@ fn sensors(frame: &mut Frame, area: Rect, app: &mut App) {
         .push(Hit::new(parts[1], Target::Scroll(Pane::Sensors)));
     frame.render_widget(
         Paragraph::new(server_detail(app))
-            .block(Block::bordered().title(app.text("fan-control-identity")))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(theme.muted))
+                    .title(app.text("fan-control-identity")),
+            )
             .wrap(Wrap { trim: false }),
         parts[0],
     );
@@ -434,7 +525,7 @@ fn sensors(frame: &mut Frame, area: Rect, app: &mut App) {
                 .value
                 .map(|v| format!("{:.2}", if fahrenheit { v * 1.8 + 32.0 } else { v }))
                 .unwrap_or_else(|| "—".into());
-            Row::new(vec![
+            let cells = vec![
                 s.id.clone(),
                 s.name.clone(),
                 s.kind.clone(),
@@ -442,23 +533,43 @@ fn sensors(frame: &mut Frame, area: Rect, app: &mut App) {
                 unit.into(),
                 s.state.clone(),
                 s.raw.iter().map(|b| format!("{b:02x} ")).collect(),
-            ])
+            ];
+            Row::new(
+                cells
+                    .into_iter()
+                    .enumerate()
+                    .filter(|(index, _)| area.width >= 80 || matches!(index, 1 | 3 | 4 | 5))
+                    .map(|(_, cell)| cell),
+            )
         })
         .collect();
-    frame.render_widget(
-        Table::new(
-            rows,
-            [
-                Constraint::Length(8),
-                Constraint::Percentage(20),
-                Constraint::Percentage(15),
-                Constraint::Length(10),
-                Constraint::Length(6),
-                Constraint::Min(12),
-                Constraint::Length(14),
-            ],
-        )
-        .header(header(&[
+    let widths = if area.width < 80 {
+        vec![
+            Constraint::Percentage(38),
+            Constraint::Length(10),
+            Constraint::Length(5),
+            Constraint::Min(8),
+        ]
+    } else {
+        vec![
+            Constraint::Length(8),
+            Constraint::Percentage(20),
+            Constraint::Percentage(15),
+            Constraint::Length(10),
+            Constraint::Length(6),
+            Constraint::Min(12),
+            Constraint::Length(14),
+        ]
+    };
+    let headings = if area.width < 80 {
+        vec![
+            app.text("sensor"),
+            app.text("reading"),
+            app.text("unit"),
+            app.text("state"),
+        ]
+    } else {
+        vec![
             "ID",
             app.text("sensor"),
             app.text("type"),
@@ -466,11 +577,17 @@ fn sensors(frame: &mut Frame, area: Rect, app: &mut App) {
             app.text("unit"),
             app.text("state"),
             app.text("raw"),
-        ]))
-        .block(
-            Block::bordered()
-                .title(app.text("sensors-up-down-switch-server-pgup-pgdn-scroll-details")),
-        ),
+        ]
+    };
+    frame.render_widget(
+        Table::new(rows, widths)
+            .header(header(theme, &headings))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(theme.muted))
+                    .title(app.text("sensors-up-down-switch-server-pgup-pgdn-scroll-details")),
+            ),
         parts[1],
     );
     let data: Vec<u64> = app
@@ -481,12 +598,18 @@ fn sensors(frame: &mut Frame, area: Rect, app: &mut App) {
     frame.render_widget(
         Sparkline::default()
             .data(&data)
-            .style(Style::default().fg(Color::Cyan))
-            .block(Block::bordered().title(app.text("max-rpm"))),
+            .style(Style::default().fg(theme.accent))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(theme.muted))
+                    .title(app.text("max-rpm")),
+            ),
         parts[2],
     );
 }
 fn discovery(frame: &mut Frame, area: Rect, app: &mut App) {
+    let theme = crate::theme::Theme::named(&app.config.settings.theme);
     let visible = app.scan_visible();
     let rows: Vec<_> = visible
         .iter()
@@ -528,22 +651,25 @@ fn discovery(frame: &mut Frame, area: Rect, app: &mut App) {
                 Constraint::Min(10),
             ],
         )
-        .header(header(&[
-            "",
-            "BMC IPv4",
-            app.text("probe-status"),
-            app.text("note"),
-        ]))
-        .block(Block::bordered().title(format!(
-            " {}/{} {} | {}: {} | i: {} ",
-            app.discovery.len(),
-            app.scan_total,
-            app.text(if app.scanning { "scanning" } else { "idle" }),
-            app.text("selected"),
-            app.discovery_selected.len(),
-            app.text("identify")
-        )))
-        .row_highlight_style(Style::default().bg(Color::Rgb(35, 58, 78)).fg(Color::White)),
+        .header(header(
+            crate::theme::Theme::named(&app.config.settings.theme),
+            &["", "BMC IPv4", app.text("probe-status"), app.text("note")],
+        ))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(theme.muted))
+                .title(format!(
+                    " {}/{} {} | {}: {} | i: {} ",
+                    app.discovery.len(),
+                    app.scan_total,
+                    app.text(if app.scanning { "scanning" } else { "idle" }),
+                    app.text("selected"),
+                    app.discovery_selected.len(),
+                    app.text("identify")
+                )),
+        )
+        .row_highlight_style(Style::default().bg(theme.selection).fg(theme.foreground)),
         area,
         &mut state,
     );
@@ -568,7 +694,8 @@ fn verification<'a>(app: &'a App, v: &bmcforge_profiles::Verification) -> &'a st
     })
 }
 fn profiles(frame: &mut Frame, area: Rect, app: &mut App) {
-    let parts = if area.width >= 95 {
+    let theme = crate::theme::Theme::named(&app.config.settings.theme);
+    let parts = if area.width >= 120 {
         Layout::horizontal([Constraint::Percentage(40), Constraint::Percentage(60)]).split(area)
     } else {
         Layout::vertical([Constraint::Percentage(40), Constraint::Percentage(60)]).split(area)
@@ -587,9 +714,17 @@ fn profiles(frame: &mut Frame, area: Rect, app: &mut App) {
     let mut state = TableState::default().with_selected(Some(app.profile_cursor));
     frame.render_stateful_widget(
         Table::new(rows, [Constraint::Percentage(65), Constraint::Min(10)])
-            .header(header(&[app.text("profile"), app.text("verification")]))
-            .block(Block::bordered().title(app.text("profiles")))
-            .row_highlight_style(Style::default().bg(Color::Rgb(35, 58, 78)).fg(Color::White)),
+            .header(header(
+                crate::theme::Theme::named(&app.config.settings.theme),
+                &[app.text("profile"), app.text("verification")],
+            ))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(theme.muted))
+                    .title(app.text("profiles")),
+            )
+            .row_highlight_style(Style::default().bg(theme.selection).fg(theme.foreground)),
         parts[0],
         &mut state,
     );
@@ -677,13 +812,19 @@ fn profiles(frame: &mut Frame, area: Rect, app: &mut App) {
         .unwrap_or_default();
     frame.render_widget(
         Paragraph::new(text)
-            .block(Block::bordered().title(app.text("profiles")))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(theme.muted))
+                    .title(app.text("profiles")),
+            )
             .wrap(Wrap { trim: false })
             .scroll((app.detail_scroll, 0)),
         parts[1],
     );
 }
 fn logs(frame: &mut Frame, area: Rect, app: &mut App) {
+    let theme = crate::theme::Theme::named(&app.config.settings.theme);
     app.hits.push(Hit::new(area, Target::Scroll(Pane::Logs)));
     frame.render_widget(
         Paragraph::new(
@@ -692,13 +833,19 @@ fn logs(frame: &mut Frame, area: Rect, app: &mut App) {
                 .map(|s| Line::from(app.locales.render(&app.config.settings.language, s)))
                 .collect::<Vec<_>>(),
         )
-        .block(Block::bordered().title(app.text("activity-redacted-x-exports-diagnostics")))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(theme.muted))
+                .title(app.text("activity-redacted-x-exports-diagnostics")),
+        )
         .wrap(Wrap { trim: false })
         .scroll((app.log_scroll, 0)),
         area,
     );
 }
 fn button_bar(frame: &mut Frame, area: Rect, app: &mut App, buttons: Vec<(String, Target)>) {
+    let theme = crate::theme::Theme::named(&app.config.settings.theme);
     app.interaction.actions = buttons.iter().map(|(_, t)| t.clone()).collect();
     let labels = buttons
         .iter()
@@ -772,11 +919,11 @@ fn button_bar(frame: &mut Frame, area: Rect, app: &mut App, buttons: Vec<(String
         let rect = Rect::new(x, y, width, 1);
         let style = if app.interaction.action_focus == Some(index) {
             Style::default()
-                .fg(Color::Black)
-                .bg(Color::Cyan)
+                .fg(theme.background)
+                .bg(theme.accent)
                 .add_modifier(Modifier::BOLD)
         } else {
-            Style::default().fg(Color::Cyan)
+            Style::default().fg(theme.accent)
         };
         frame.render_widget(Paragraph::new(label).style(style), rect);
         app.hits.push(Hit::new(rect, target));
@@ -816,12 +963,15 @@ fn table_hits(app: &mut App, area: Rect, offset: usize, items: Vec<Target>, pane
     }
 }
 fn draw_form(frame: &mut Frame, area: Rect, app: &mut App) {
+    let theme = crate::theme::Theme::named(&app.config.settings.theme);
     use crate::form::FieldType;
     let Some(Modal::Form(form)) = &app.modal else {
         return;
     };
     let title = form.title.clone();
-    let block = Block::bordered()
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(theme.muted))
         .title(title)
         .title_bottom(" Tab/Shift+Tab · ↑↓ · F2 · Esc · F8 ");
     let inner = block.inner(area);
@@ -888,15 +1038,17 @@ fn draw_form(frame: &mut Frame, area: Rect, app: &mut App) {
             app.text(&field.label).into()
         };
         let style = if !field.error.is_empty() {
-            Style::default().fg(Color::Red)
+            Style::default().fg(theme.danger)
         } else if index == form.focus {
             Style::default()
-                .fg(Color::Cyan)
+                .fg(theme.accent)
                 .add_modifier(Modifier::BOLD)
         } else {
             Style::default()
         };
-        let block = Block::bordered()
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(theme.muted))
             .title(format!(
                 "{} / {} · {}/{}",
                 app.text(field.group),
@@ -958,12 +1110,13 @@ fn draw_form(frame: &mut Frame, area: Rect, app: &mut App) {
     };
     frame.render_widget(
         Paragraph::new(app.text(error).to_owned())
-            .style(Style::default().fg(Color::Red))
+            .style(Style::default().fg(theme.danger))
             .wrap(Wrap { trim: false }),
         parts[2],
     );
 }
 fn modal(frame: &mut Frame, app: &mut App) {
+    let theme = crate::theme::Theme::named(&app.config.settings.theme);
     let area = frame.area();
     let popup = Rect {
         x: area.x + area.width / 20,
@@ -972,6 +1125,10 @@ fn modal(frame: &mut Frame, app: &mut App) {
         height: area.height.saturating_sub(area.height / 6),
     };
     frame.render_widget(Clear, popup);
+    frame.render_widget(
+        Block::default().style(Style::default().bg(theme.surface).fg(theme.foreground)),
+        popup,
+    );
     let buttons_area = Rect::new(
         popup.x,
         popup.bottom().saturating_sub(2),
@@ -1110,7 +1267,12 @@ fn modal(frame: &mut Frame, app: &mut App) {
                 "{}: {query} · ↑↓ Enter · Esc · F8",
                 app.text("search")
             ))
-            .block(Block::bordered().title(app.text(&field.label))),
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(theme.muted))
+                    .title(app.text(&field.label)),
+            ),
             parts[0],
         );
         let mut state = TableState::default().with_selected(Some(*cursor));
@@ -1127,7 +1289,7 @@ fn modal(frame: &mut Frame, app: &mut App) {
             )
             .row_highlight_style(
                 Style::default()
-                    .fg(Color::Cyan)
+                    .fg(theme.accent)
                     .add_modifier(Modifier::BOLD),
             ),
             parts[1],
@@ -1150,10 +1312,69 @@ fn modal(frame: &mut Frame, app: &mut App) {
         button_bar(frame, buttons_area, app, buttons);
         return;
     }
+    if let Some(Modal::Commands { query, cursor }) = &app.modal {
+        let entries = app.commands(query);
+        let parts = Layout::vertical([Constraint::Length(3), Constraint::Min(1)]).split(popup);
+        frame.render_widget(
+            Paragraph::new(format!("{}  › {}", app.text("command-palette"), query))
+                .block(Block::default().borders(Borders::BOTTOM)),
+            parts[0],
+        );
+        let rows = entries.iter().map(|entry| {
+            Row::new(vec![
+                entry.label.clone(),
+                app.target_label(&entry.target),
+                entry.reason.clone(),
+            ])
+            .style(if entry.reason.is_empty() {
+                Style::default().fg(theme.foreground)
+            } else {
+                Style::default().fg(theme.muted)
+            })
+        });
+        let mut state = TableState::default().with_selected(if entries.is_empty() {
+            None
+        } else {
+            Some((*cursor).min(entries.len() - 1))
+        });
+        frame.render_stateful_widget(
+            Table::new(
+                rows,
+                [
+                    Constraint::Percentage(45),
+                    Constraint::Length(10),
+                    Constraint::Min(1),
+                ],
+            )
+            .row_highlight_style(theme.selected()),
+            parts[1],
+            &mut state,
+        );
+        if entries.is_empty() {
+            frame.render_widget(
+                Paragraph::new(app.text("command-no-results"))
+                    .style(Style::default().fg(theme.muted)),
+                parts[1],
+            );
+        }
+        for row in 0..parts[1].height {
+            let index = state.offset() + usize::from(row);
+            if index < entries.len() {
+                app.hits.push(Hit::new(
+                    Rect::new(parts[1].x, parts[1].y + row, parts[1].width, 1),
+                    Target::CommandRow(index),
+                ));
+            }
+        }
+        button_bar(frame, buttons_area, app, buttons);
+        return;
+    }
     let Some(modal) = &mut app.modal else {
         return;
     };
     match modal {
+        Modal::Commands { .. } => unreachable!(),
+
         Modal::Form(_) | Modal::FieldChoice { .. } => unreachable!(),
         Modal::Languages { cursor } => {
             let mut state = TableState::default().with_selected(Some(*cursor));
@@ -1162,8 +1383,13 @@ fn modal(frame: &mut Frame, app: &mut App) {
                     languages.iter().map(|s| Row::new([s.clone()])),
                     [Constraint::Min(1)],
                 )
-                .block(Block::bordered().title("🌐 ↑↓ Enter · F8"))
-                .row_highlight_style(Style::default().fg(Color::Cyan)),
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_style(Style::default().fg(theme.muted))
+                        .title("🌐 ↑↓ Enter · F8"),
+                )
+                .row_highlight_style(Style::default().fg(theme.accent)),
                 popup,
                 &mut state,
             );
@@ -1189,7 +1415,12 @@ fn modal(frame: &mut Frame, app: &mut App) {
                     "{evidence}\n{}: {query} | F5: {} | F6: {}",
                     labels["search"], labels["unknown"], labels["skip"]
                 ))
-                .block(Block::bordered().title(model_title))
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_style(Style::default().fg(theme.muted))
+                        .title(model_title),
+                )
                 .wrap(Wrap { trim: false }),
                 parts[0],
             );
@@ -1199,7 +1430,7 @@ fn modal(frame: &mut Frame, app: &mut App) {
                     model_rows.iter().map(|s| Row::new([s.clone()])),
                     [Constraint::Min(1)],
                 )
-                .row_highlight_style(Style::default().fg(Color::Cyan)),
+                .row_highlight_style(Style::default().fg(theme.accent)),
                 parts[1],
                 &mut state,
             );
@@ -1232,7 +1463,12 @@ fn modal(frame: &mut Frame, app: &mut App) {
                     &labels["save-plaintext"]
                 }
             ))
-            .block(Block::bordered().title(labels["preview"].clone()))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(theme.muted))
+                    .title(labels["preview"].clone()),
+            )
             .wrap(Wrap { trim: false })
             .scroll((app.modal_scroll, 0)),
             popup,
@@ -1243,10 +1479,14 @@ fn modal(frame: &mut Frame, app: &mut App) {
             error,
             ..
         } => {
-            let block = Block::bordered().title(title.clone()).title_bottom(format!(
-                " F7: ↩ | F8: actions | F2 / Ctrl+Enter: {} | Esc: {} ",
-                labels["confirm"], labels["cancel"]
-            ));
+            let block = Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(theme.muted))
+                .title(title.clone())
+                .title_bottom(format!(
+                    " F7: ↩ | F8: actions | F2 / Ctrl+Enter: {} | Esc: {} ",
+                    labels["confirm"], labels["cancel"]
+                ));
             let inner = block.inner(popup);
             frame.render_widget(block, popup);
             let parts = Layout::vertical([Constraint::Min(1), Constraint::Length(2)]).split(inner);
@@ -1273,7 +1513,7 @@ fn modal(frame: &mut Frame, app: &mut App) {
             );
             frame.render_widget(
                 Paragraph::new(error.clone())
-                    .style(Style::default().fg(Color::Red))
+                    .style(Style::default().fg(theme.danger))
                     .wrap(Wrap { trim: false }),
                 parts[1],
             );
@@ -1311,7 +1551,12 @@ fn modal(frame: &mut Frame, app: &mut App) {
             );
             frame.render_widget(
                 Paragraph::new(text)
-                    .block(Block::bordered().title(labels["preview"].clone()))
+                    .block(
+                        Block::default()
+                            .borders(Borders::ALL)
+                            .border_style(Style::default().fg(theme.muted))
+                            .title(labels["preview"].clone()),
+                    )
                     .wrap(Wrap { trim: false }),
                 popup,
             );
@@ -1321,7 +1566,7 @@ fn modal(frame: &mut Frame, app: &mut App) {
                 Line::styled(
                     title.clone(),
                     Style::default()
-                        .fg(Color::Yellow)
+                        .fg(theme.warning)
                         .add_modifier(Modifier::BOLD),
                 ),
                 Line::from(""),
@@ -1334,7 +1579,12 @@ fn modal(frame: &mut Frame, app: &mut App) {
             )));
             frame.render_widget(
                 Paragraph::new(lines)
-                    .block(Block::bordered().title(labels["preview"].clone()))
+                    .block(
+                        Block::default()
+                            .borders(Borders::ALL)
+                            .border_style(Style::default().fg(theme.muted))
+                            .title(labels["preview"].clone()),
+                    )
                     .wrap(Wrap { trim: false })
                     .scroll((app.modal_scroll, 0)),
                 popup,
@@ -1342,7 +1592,12 @@ fn modal(frame: &mut Frame, app: &mut App) {
         }
         Modal::Info(text) => frame.render_widget(
             Paragraph::new(text.clone())
-                .block(Block::bordered().title(" BMCForge "))
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_style(Style::default().fg(theme.muted))
+                        .title(" BMCForge "),
+                )
                 .wrap(Wrap { trim: false })
                 .scroll((app.modal_scroll, 0)),
             popup,
@@ -1352,7 +1607,12 @@ fn modal(frame: &mut Frame, app: &mut App) {
                 "{}\n{name}\n{}",
                 labels["remove-server"], labels["safety"]
             ))
-            .block(Block::bordered().title(labels["confirm"].clone()))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(theme.muted))
+                    .title(labels["confirm"].clone()),
+            )
             .wrap(Wrap { trim: false }),
             popup,
         ),
@@ -1362,6 +1622,7 @@ fn modal(frame: &mut Frame, app: &mut App) {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
     use bmcforge_core::config::Config;
     use ratatui::{Terminal, backend::TestBackend};
@@ -1663,7 +1924,7 @@ mod tests {
         terminal.draw(|f| draw(f, &mut app)).unwrap();
         assert_eq!(
             terminal.backend().buffer()[(hit.area.x, hit.area.y)].bg,
-            Color::Cyan
+            crate::theme::Theme::named("dark").accent
         );
         app.mouse(MouseEvent {
             column: 119,
@@ -1679,14 +1940,14 @@ mod tests {
         terminal.draw(|f| draw(f, &mut app)).unwrap();
         assert_eq!(
             terminal.backend().buffer()[(hit.area.x, hit.area.y)].bg,
-            Color::Yellow
+            crate::theme::Theme::named("dark").warning
         );
         app.interaction.pressed =
             Some((Target::Page(4), Instant::now() - Duration::from_millis(151)));
         terminal.draw(|f| draw(f, &mut app)).unwrap();
         assert_ne!(
             terminal.backend().buffer()[(hit.area.x, hit.area.y)].bg,
-            Color::Yellow
+            crate::theme::Theme::named("dark").warning
         );
         app.mouse(event);
         app.modal = Some(Modal::Info("test".into()));

@@ -90,3 +90,5 @@ GitHub Actions 为 Windows x64/ARM64/x86、macOS Intel/Apple Silicon、Linux mus
 新增适配请提交来源、明确的型号和固件范围、恢复自动模式的方法和命令测试样例，遵循 [贡献说明](CONTRIBUTING.md)。不将品牌相同或支持 IPMI 当作可调速的依据。
 
 BMCForge 使用 [Apache-2.0](LICENSE)。原生会话实现基于仓库内维护的 ipmi 0.1.2，见 [第三方来源和修改](vendor/ipmi/BMCFORGE-PATCHES.md)。
+
+Ctrl+P 打开可搜索命令面板，显示实际快捷键与不可用原因。Ctrl+X 后按 p 打开命令面板，1–5 切页，t 选择深浅主题，h 打开帮助，q 正常退出；组合键等待2秒，Esc 取消。原有快捷键保留，输入框独占文本输入。宽屏并排展示服务器列表与详情；不足80列精简列并以 Enter 打开详情。

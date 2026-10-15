@@ -96,7 +96,7 @@ operation-ok = Operazione riuscita: { $server }
 scan-failed = Scansione fallita
 scan-finished = Rilevamento terminato. Nessuna risposta indica stato sconosciuto, non assenza.
 safety = All’uscita si tenta il ripristino delle ventole controllate qui. Arresto forzato, perdita di corrente o rete possono impedirlo.
-help = 1–5 / Tab: pagine; frecce: naviga; Spazio: seleziona; F2: salva; F3: lingua; F4: mouse; F5: sconosciuto; F6: salta; A: tutti; G: gruppo /24; c: annulla identificazione. Maiusc+trascina o selezione del terminale per copiare. Tasti configurabili.
+help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab: pagine; frecce: naviga; Spazio: seleziona; F2: salva; F3: lingua; F4: mouse; F5: sconosciuto; F6: salta; A: tutti; G: gruppo /24; c: annulla identificazione. Maiusc+trascina o selezione del terminale per copiare. Tasti configurabili.
 device-count = { $count ->
     [one] { $count } dispositivo
    *[other] { $count } dispositivi
@@ -155,3 +155,12 @@ form-error-username = Utente: massimo 16 byte UTF-8.
 form-error-secret = Password e Kg: massimo 20 byte UTF-8.
 form-error-required = Questo campo è obbligatorio.
 form-error-tags = Chiudere le virgolette dell’etichetta.
+
+command-palette = Comandi
+command-needs-server = Selezionare un server
+command-theme = Tema
+command-no-results = Nessun comando corrispondente
+terminal-too-small = Ingrandire il terminale
+dark = Scuro
+light = Chiaro
+command-empty = Nessun elemento da mostrare

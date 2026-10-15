@@ -41,3 +41,5 @@ Saving validates the complete configuration, writes and syncs a temporary file i
 The UI does not persist a running manual-control request. Every application start begins in unknown control state and only monitors until the user requests a change. Exiting restores only devices taken over in that process; a failed restore exits with a nonzero status and names the affected server.
 
 
+
+The `dark` and `light` values of `settings.theme` apply to all terminal surfaces, including dialogs, selection and pointer feedback. Use Ctrl+X then t to select a theme; the selection is saved immediately outside demo mode. Ctrl+P lists actions with their effective configured shortcuts. No configuration migration is required.

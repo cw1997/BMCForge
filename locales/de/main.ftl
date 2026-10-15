@@ -96,7 +96,7 @@ operation-ok = Vorgang erfolgreich: { $server }
 scan-failed = Scan fehlgeschlagen
 scan-finished = Erkennung beendet. Keine Antwort bedeutet unbekannt, nicht abwesend.
 safety = Beim Beenden werden übernommene Lüfter zurückgesetzt. Bei erzwungenem Abbruch, Strom- oder Netzwerkausfall ist dies nicht garantiert.
-help = 1–5 / Tab: Seiten; Pfeile: Navigation; Leertaste: Auswahl; F2: Speichern; F3: Sprache; F4: Maus; F5: unbekannt; F6: überspringen; A: alle; G: /24-Gruppe; c: Identifizierung abbrechen. Umschalt+Ziehen oder Terminalauswahl kopiert Text. Tasten sind einstellbar.
+help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab: Seiten; Pfeile: Navigation; Leertaste: Auswahl; F2: Speichern; F3: Sprache; F4: Maus; F5: unbekannt; F6: überspringen; A: alle; G: /24-Gruppe; c: Identifizierung abbrechen. Umschalt+Ziehen oder Terminalauswahl kopiert Text. Tasten sind einstellbar.
 device-count = { $count ->
     [one] { $count } Gerät
    *[other] { $count } Geräte
@@ -155,3 +155,12 @@ form-error-username = Benutzername: maximal 16 UTF-8-Bytes.
 form-error-secret = Passwort und Kg: maximal 20 UTF-8-Bytes.
 form-error-required = Dieses Feld ist erforderlich.
 form-error-tags = Anführungszeichen des Tags schließen.
+
+command-palette = Befehle
+command-needs-server = Zuerst einen Server auswählen
+command-theme = Design
+command-no-results = Keine passenden Befehle
+terminal-too-small = Terminal vergrößern
+dark = Dunkel
+light = Hell
+command-empty = Keine Einträge vorhanden
