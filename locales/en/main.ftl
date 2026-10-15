@@ -101,3 +101,57 @@ device-count = { $count ->
     [one] { $count } device
    *[other] { $count } devices
 }
+
+# Guided forms and interaction hints
+field-name = Name
+field-host = BMC address
+field-port = Port
+field-username = Username
+field-password = Password
+field-tags = Tags
+field-profile = Adapter
+field-timeout-ms = Timeout (ms)
+field-retries = Retries
+field-poll-seconds = Polling interval (s)
+field-privilege = Privilege level
+field-kg = Kg key
+field-allow-experimental = Enable experimental control
+field-language = Language
+field-theme = Theme
+field-mouse = Mouse
+field-concurrency = Worker concurrency
+field-scan-concurrency = Scan concurrency
+field-scan-port = Scan port
+field-scan-timeout-ms = Scan timeout (ms)
+field-scan-retries = Scan retries
+field-scan-confirm-above = Confirmation threshold (hosts)
+field-scan-rate-per-second = Scan rate (hosts/s)
+field-history-capacity = History capacity
+field-temperature-unit = Temperature unit
+field-sensor-filter = Sensor filter
+field-percent = Duty (%)
+field-raw = Raw value
+field-zone = Zone
+field-targets = Targets
+form-basic = Basic information
+form-appearance = Appearance
+form-runtime = Connection and runtime
+form-shortcuts = Keyboard shortcuts
+form-advanced = Advanced TOML / return to form
+form-reveal = Show / hide secret
+form-actions = Actions
+form-toggle = Space/Enter: toggle
+form-choice = ←/→ Enter: choose
+form-tags = Comma-separated tags
+form-lines = Enter: new line · IP / hostname / CIDR / range
+form-error-number = Enter a whole number (decimal or 0x hexadecimal).
+form-error-range = Value is outside the displayed range.
+form-error-choice = Choose an available option.
+form-help = Tab/Shift+Tab: fields · Enter: activate · F2: continue · Esc: cancel · F8: actions
+form-key-help = 1–5 Tab/Shift+Tab: pages · ↑↓ j/k: rows · Enter: details/apply (double-click server) · Space: select · PgUp/PgDn: scroll · F1: help · F3: language · F4: mouse · Del: remove · F8: action focus, arrows/Tab to navigate, Enter to activate, Esc to leave · Discovery: f filter, A select all, G /24, c cancel identification · Profiles: u credentials · Model review: F5 unknown, F6 skip · Forms: Tab/Shift+Tab fields, ←→ options, F2/Ctrl+Enter submit, F6 show/hide secret, F7 advanced/return, Esc cancel · Ctrl+C: exit
+form-error-shortcut = This shortcut is reserved for navigation or a page action.
+form-error-key = Use one unique character other than 1–5.
+form-error-username = Username must fit within 16 UTF-8 bytes.
+form-error-secret = Password and Kg must fit within 20 UTF-8 bytes.
+form-error-required = This field is required.
+form-error-tags = Close the quoted tag with a double quote.

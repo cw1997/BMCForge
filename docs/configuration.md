@@ -8,13 +8,19 @@
 
 `bmcforge init` prints the exact path. A first TUI launch with no file starts an empty fleet; importing or saving settings creates the file. `validate-config` requires an existing file and never connects to a device.
 
+## Guided input
+
+The TUI opens prompts and typed forms by default. Tab/Shift+Tab moves between fields; Enter toggles a switch or opens a searchable choice list. F2/Ctrl+Enter validates and submits; Esc cancels without saving. Target prompts support multi-line paste. Password and Kg fields are masked, with F6 to show/hide the focused secret.
+
+F7 explicitly opens advanced TOML for settings, server, credential and manual-duty forms. F7 validates the edited text before returning to the form; invalid drafts remain editable. Saving a server still waits for its worker to acknowledge reconfiguration. Manual duty requests still require a separate preview and confirmation.
+
 ## Global settings
 
 `language` defaults to `en`; built-in IDs are `en`, `zh-CN`, `zh-TW`, `ja`, `ko`, `de`, `fr`, `es`, `pt-BR`, `it`, `ru`. Community language tags are accepted and missing packs fall back to embedded English. `theme`: `dark` or `light`; `mouse` defaults to true and enables clicks, double-clicks, local wheel scrolling and editor cursor positioning. Existing explicit preferences remain unchanged. Language and mouse changes apply immediately; concurrency changes require restarting. `concurrency` limits simultaneous device operations; device and scan concurrency must be 1..1024. See [language packs](localization.md).
 
 Discovery defaults: `scan_concurrency = 32`, `scan_port = 623`, `scan_timeout_ms = 2000`, `scan_retries = 1`, `scan_rate_per_second = 32`, `scan_confirm_above = 4096`. Every scan has a target preview; larger scans display a large-scan notice. Inputs larger than 1,048,576 addresses are rejected before expansion, so split large networks. Configuration may reduce the confirmation threshold.
 
-`history_capacity = 300` bounds per-device max-RPM history and activity entries. `temperature_unit` accepts `C` or `F`; `sensor_filter` selects sensor names/types by substring. `[settings.keys]` maps actions to unique single-character shortcuts; the number keys 1..5 remain reserved. See the footer for active shortcuts. Missing keys in a fully supplied keys map are unbound.
+`history_capacity = 300` bounds per-device max-RPM history and activity entries. `temperature_unit` accepts `C` or `F`; `sensor_filter` selects sensor names/types by substring. `[settings.keys]` maps actions to unique single-character shortcuts; the number keys 1..5 remain reserved. The Settings form edits these bindings; clearing a binding removes it. Navigation/page action keys are reserved when assigning new bindings through the TUI. See the footer for active shortcuts. Missing keys in a fully supplied keys map are unbound; the corresponding actions remain available by mouse or in the F8 action area.
 
 ## Server records
 

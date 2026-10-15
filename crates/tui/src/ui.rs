@@ -12,6 +12,20 @@ use ratatui::{
 use unicode_width::UnicodeWidthStr;
 
 pub fn draw(frame: &mut Frame, app: &mut App) {
+    let viewport = (
+        frame.area(),
+        app.page,
+        app.modal.as_ref().map(std::mem::discriminant),
+    );
+    if app.interaction.viewport != Some(viewport) {
+        app.interaction.hover = None;
+        app.interaction.action_focus = None;
+        app.interaction.action_offset = 0;
+        app.interaction.viewport = Some(viewport);
+    }
+    if !app.config.settings.mouse {
+        app.interaction.hover = None;
+    }
     app.hits.clear();
     let light = app.config.settings.theme == "light";
     let bg = if light {
@@ -70,13 +84,16 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         }
         let r = Rect::new(x, left.y, width, 1);
         frame.render_widget(
-            Paragraph::new(label).style(if page == app.page {
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default()
-            }),
+            Paragraph::new(label).style(
+                (if page == app.page {
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default()
+                })
+                .patch(app.interaction.style(&Target::Page(page))),
+            ),
             r,
         );
         app.hits.push(Hit::new(r, Target::Page(page)));
@@ -84,13 +101,14 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
     }
     frame.render_widget(
         Paragraph::new(format!(
-            "[{} ▾]",
+            "[F3 {} ▾]",
             app.locales
                 .packs
                 .get(&app.config.settings.language)
                 .map(|p| p.name.as_str())
                 .unwrap_or("English")
-        )),
+        ))
+        .style(app.interaction.style(&Target::Language)),
         lang,
     );
     app.hits.push(Hit::new(lang, Target::Language));
@@ -132,6 +150,7 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
             Target::Key(KeyCode::Char('A')),
         ));
         buttons.push(("/24".into(), Target::Key(KeyCode::Char('G'))));
+        buttons.push((app.text("filter").into(), Target::Key(KeyCode::Char('f'))));
         buttons.push((
             app.text("identify").into(),
             Target::Shortcut("import".into()),
@@ -147,11 +166,18 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
     if app.identifying {
         buttons.push((app.text("cancel").into(), Target::Key(KeyCode::Char('c'))));
     }
+    if app.page == 2 {
+        buttons.rotate_right(if app.identifying { 5 } else { 4 });
+    }
+    if app.page == 3 {
+        buttons.rotate_right(if app.identifying { 3 } else { 2 });
+    }
     button_bar(frame, footer_lines[0], app, buttons);
     frame.render_widget(
         Paragraph::new(if app.identifying {
             format!(
-                "{} {}/{}",
+                "{} {} {}/{}",
+                spinner(),
                 app.text("identifying"),
                 app.pending.len(),
                 app.identify_total
@@ -163,10 +189,64 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         .wrap(Wrap { trim: false }),
         footer_lines[1],
     );
+    let navigation = format!(
+        "F8: {} · ↑↓ j/k · {}: {} · Enter: {} · Tab/Shift+Tab: 1–5",
+        app.text("form-actions"),
+        crate::interaction::key_label(
+            app.target_key(&Target::Shortcut("select".into()))
+                .unwrap_or(KeyCode::Char(' '))
+        ),
+        app.text("select"),
+        app.text("confirm")
+    );
+    if footer_lines[1].height > 1 {
+        frame.render_widget(
+            Paragraph::new(navigation),
+            Rect::new(
+                footer_lines[1].x,
+                footer_lines[1].bottom() - 1,
+                footer_lines[1].width,
+                1,
+            ),
+        );
+    }
+    if app.scanning && !app.identifying && footer_lines[1].height > 1 {
+        frame.render_widget(
+            Paragraph::new(format!(
+                "{} {} {}/{} · F8: {}",
+                spinner(),
+                app.text("scanning"),
+                app.discovery.len(),
+                app.scan_total,
+                app.text("form-actions")
+            )),
+            Rect::new(
+                footer_lines[1].x,
+                footer_lines[1].bottom() - 1,
+                footer_lines[1].width,
+                1,
+            ),
+        );
+    }
     if app.modal.is_some() {
         app.hits.clear(); // A modal owns all input, including clicks outside its content.
         modal(frame, app);
     }
+    // Apply feedback after rendering so tables and nested checkbox targets share the same treatment.
+    for hit in &app.hits {
+        if !matches!(hit.target, Target::Scroll(_) | Target::Editor { .. }) {
+            let style = app.interaction.style(&hit.target);
+            if style != Style::default() {
+                frame.buffer_mut().set_style(hit.area, style);
+            }
+        }
+    }
+}
+fn spinner() -> char {
+    use std::{sync::OnceLock, time::Instant};
+    static START: OnceLock<Instant> = OnceLock::new();
+    ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+        [(START.get_or_init(Instant::now).elapsed().as_millis() / 100 % 10) as usize]
 }
 fn header(cells: &[&str]) -> Row<'static> {
     Row::new(cells.iter().map(|s| Cell::from(s.to_string()))).style(
@@ -619,10 +699,68 @@ fn logs(frame: &mut Frame, area: Rect, app: &mut App) {
     );
 }
 fn button_bar(frame: &mut Frame, area: Rect, app: &mut App, buttons: Vec<(String, Target)>) {
+    app.interaction.actions = buttons.iter().map(|(_, t)| t.clone()).collect();
+    let labels = buttons
+        .iter()
+        .map(|(text, target)| format!("[{} {text}]", app.target_label(target)))
+        .collect::<Vec<_>>();
+    let mut required_rows = 1;
+    let mut used = 0;
+    for label in &labels {
+        let width = (label.width() as u16).min(area.width);
+        if used + width > area.width {
+            required_rows += 1;
+            used = 0;
+        }
+        used += width + 1;
+    }
+    let overflow = required_rows > area.height;
+    let hint = if overflow && area.height > 1 {
+        Some(Rect::new(area.x, area.bottom() - 1, area.width, 1))
+    } else {
+        None
+    };
+    let area = Rect {
+        height: area.height.saturating_sub(u16::from(hint.is_some())),
+        ..area
+    };
+    let fits = |start: usize, end: usize| {
+        let mut x = 0;
+        let mut rows = 1;
+        for label in &labels[start..end] {
+            let width = (label.width() as u16).min(area.width);
+            if x + width > area.width {
+                rows += 1;
+                x = 0;
+            }
+            x += width + 1;
+        }
+        rows <= area.height.max(1)
+    };
+    let focus = app
+        .interaction
+        .action_focus
+        .unwrap_or(0)
+        .min(buttons.len().saturating_sub(1));
+    let start = if fits(0, buttons.len()) {
+        0
+    } else {
+        let mut start = app.interaction.action_offset.min(focus);
+        while start < focus && !fits(start, focus + 1) {
+            start += 1;
+        }
+        start
+    };
+    app.interaction.action_offset = start;
+    if let Some(hint) = hint {
+        frame.render_widget(
+            Paragraph::new(format!("F8 ←/→ Enter · {}/{}", focus + 1, buttons.len())),
+            hint,
+        );
+    }
     let mut x = area.x;
     let mut y = area.y;
-    for (text, target) in buttons {
-        let label = format!("[{text}]");
+    for (index, ((_, target), label)) in buttons.into_iter().zip(labels).enumerate().skip(start) {
         let width = (label.width() as u16).min(area.width);
         if x.saturating_add(width) > area.right() {
             x = area.x;
@@ -632,14 +770,20 @@ fn button_bar(frame: &mut Frame, area: Rect, app: &mut App, buttons: Vec<(String
             break;
         }
         let rect = Rect::new(x, y, width, 1);
-        frame.render_widget(
-            Paragraph::new(label).style(Style::default().fg(Color::Cyan)),
-            rect,
-        );
+        let style = if app.interaction.action_focus == Some(index) {
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::Cyan)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(Color::Cyan)
+        };
+        frame.render_widget(Paragraph::new(label).style(style), rect);
         app.hits.push(Hit::new(rect, target));
         x = x.saturating_add(width + 1);
     }
 }
+
 fn table_hits(app: &mut App, area: Rect, offset: usize, items: Vec<Target>, pane: Pane) {
     app.hits.push(Hit::new(area, Target::Scroll(pane)));
     for (row, target) in items
@@ -671,6 +815,154 @@ fn table_hits(app: &mut App, area: Rect, offset: usize, items: Vec<Target>, pane
         }
     }
 }
+fn draw_form(frame: &mut Frame, area: Rect, app: &mut App) {
+    use crate::form::FieldType;
+    let Some(Modal::Form(form)) = &app.modal else {
+        return;
+    };
+    let title = form.title.clone();
+    let block = Block::bordered()
+        .title(title)
+        .title_bottom(" Tab/Shift+Tab · ↑↓ · F2 · Esc · F8 ");
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+    if inner.width == 0 || inner.height == 0 {
+        return;
+    }
+    let has_error = !form.error.is_empty() || !form.fields[form.focus].error.is_empty();
+    let parts = Layout::vertical([
+        Constraint::Length(if inner.height >= 8 { 2 } else { 0 }),
+        Constraint::Min(1),
+        Constraint::Length(if has_error && inner.height >= 5 { 2 } else { 0 }),
+    ])
+    .split(inner);
+    let help = app.text("form-help").to_owned();
+    frame.render_widget(Paragraph::new(help).wrap(Wrap { trim: false }), parts[0]);
+    let height = |i: usize| {
+        if matches!(form.fields[i].kind, FieldType::Multiline) {
+            6u16
+        } else {
+            3u16
+        }
+    };
+    let mut start = 0;
+    while start < form.focus && (start..=form.focus).map(height).sum::<u16>() > parts[1].height {
+        start += 1;
+    }
+    let mut y = parts[1].y;
+    for (index, field) in form.fields.iter().enumerate().skip(start) {
+        if y >= parts[1].bottom() {
+            break;
+        }
+        let rect = Rect::new(
+            parts[1].x,
+            y,
+            parts[1].width,
+            height(index).min(parts[1].bottom() - y),
+        );
+        let hint = match &field.kind {
+            FieldType::Toggle => app.text("form-toggle").into(),
+            FieldType::Choice(options) => format!(
+                "{} {}/{}",
+                app.text("form-choice"),
+                options
+                    .iter()
+                    .position(|v| v == &field.value())
+                    .unwrap_or(0)
+                    + 1,
+                options.len()
+            ),
+            FieldType::Secret => format!("F6: {}", app.text("form-reveal")),
+            FieldType::Number { min, max } => format!("{min}–{max}"),
+            FieldType::Tags => app.text("form-tags").into(),
+            FieldType::Multiline => app.text("form-lines").into(),
+            _ => String::new(),
+        };
+        let label = if field.path.first().is_some_and(|p| p == "keys") {
+            format!(
+                "{} ({})",
+                app.text(&field.label),
+                field.path.last().unwrap()
+            )
+        } else {
+            app.text(&field.label).into()
+        };
+        let style = if !field.error.is_empty() {
+            Style::default().fg(Color::Red)
+        } else if index == form.focus {
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default()
+        };
+        let block = Block::bordered()
+            .title(format!(
+                "{} / {} · {}/{}",
+                app.text(field.group),
+                label,
+                index + 1,
+                form.fields.len()
+            ))
+            .title_bottom(hint)
+            .border_style(style);
+        let content = block.inner(rect);
+        frame.render_widget(block, rect);
+        app.hits.push(Hit::new(rect, Target::Field(index)));
+        if content.width > 0 && content.height > 0 {
+            let text = if matches!(field.kind, FieldType::Toggle) {
+                if field.value() == "true" {
+                    "[✓]".into()
+                } else {
+                    "[ ]".into()
+                }
+            } else if matches!(field.kind, FieldType::Choice(_)) && field.value().is_empty() {
+                app.text("automatic").into()
+            } else {
+                field.display()
+            };
+            let prefix: String = if matches!(field.kind, FieldType::Secret) && !field.revealed {
+                "•".repeat(field.input.col)
+            } else {
+                field.input.lines[field.input.row]
+                    .chars()
+                    .take(field.input.col)
+                    .collect()
+            };
+            let cursor_x = prefix.width();
+            let left = cursor_x.saturating_sub(content.width.saturating_sub(1).into());
+            let top = field
+                .input
+                .row
+                .saturating_sub(usize::from(content.height.saturating_sub(1)));
+            frame.render_widget(
+                Paragraph::new(text).scroll((top as u16, left as u16)),
+                content,
+            );
+            app.hits.push(Hit::new(content, Target::Field(index)));
+            if index == form.focus
+                && !matches!(field.kind, FieldType::Choice(_) | FieldType::Toggle)
+            {
+                frame.set_cursor_position((
+                    content.x + (cursor_x - left) as u16,
+                    content.y + (field.input.row - top) as u16,
+                ));
+            }
+        }
+        y = y.saturating_add(rect.height);
+    }
+    let error = if form.error.is_empty() {
+        &form.fields[form.focus].error
+    } else {
+        &form.error
+    };
+    frame.render_widget(
+        Paragraph::new(app.text(error).to_owned())
+            .style(Style::default().fg(Color::Red))
+            .wrap(Wrap { trim: false }),
+        parts[2],
+    );
+}
 fn modal(frame: &mut Frame, app: &mut App) {
     let area = frame.area();
     let popup = Rect {
@@ -691,7 +983,7 @@ fn modal(frame: &mut Frame, app: &mut App) {
         ..popup
     };
     app.hits.push(Hit::new(popup, Target::Scroll(Pane::Modal)));
-    let primary = if matches!(app.modal, Some(Modal::Editor { .. })) {
+    let primary = if matches!(app.modal, Some(Modal::Editor { .. } | Modal::Form(_))) {
         KeyCode::F(2)
     } else {
         KeyCode::Enter
@@ -700,6 +992,13 @@ fn modal(frame: &mut Frame, app: &mut App) {
         (app.text("confirm").into(), Target::Key(primary)),
         (app.text("cancel").into(), Target::Key(KeyCode::Esc)),
     ];
+    if matches!(&app.modal, Some(Modal::Form(f)) if f.advanced) || app.advanced_form.is_some() {
+        buttons.push((app.text("form-advanced").into(), Target::Key(KeyCode::F(7))));
+    }
+    if matches!(&app.modal, Some(Modal::Form(f)) if matches!(f.fields[f.focus].kind, crate::form::FieldType::Secret))
+    {
+        buttons.push((app.text("form-reveal").into(), Target::Key(KeyCode::F(6))));
+    }
     if matches!(app.modal, Some(Modal::ModelChoice { .. })) {
         buttons = vec![
             (app.text("confirm").into(), Target::Key(KeyCode::Enter)),
@@ -797,10 +1096,65 @@ fn modal(frame: &mut Frame, app: &mut App) {
     } else {
         String::new()
     };
+    if let Some(Modal::FieldChoice {
+        form,
+        query,
+        cursor,
+    }) = &app.modal
+    {
+        let options = form.choice_options(query);
+        let parts = Layout::vertical([Constraint::Length(3), Constraint::Min(1)]).split(popup);
+        let field = &form.fields[form.focus];
+        frame.render_widget(
+            Paragraph::new(format!(
+                "{}: {query} · ↑↓ Enter · Esc · F8",
+                app.text("search")
+            ))
+            .block(Block::bordered().title(app.text(&field.label))),
+            parts[0],
+        );
+        let mut state = TableState::default().with_selected(Some(*cursor));
+        frame.render_stateful_widget(
+            Table::new(
+                options.iter().map(|v| {
+                    Row::new([if v.is_empty() {
+                        app.text("automatic").to_owned()
+                    } else {
+                        v.clone()
+                    }])
+                }),
+                [Constraint::Min(1)],
+            )
+            .row_highlight_style(
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            parts[1],
+            &mut state,
+        );
+        for (row, index) in (state.offset()..options.len())
+            .take(parts[1].height.into())
+            .enumerate()
+        {
+            app.hits.push(Hit::new(
+                Rect::new(parts[1].x, parts[1].y + row as u16, parts[1].width, 1),
+                Target::ChoiceRow(index),
+            ));
+        }
+        button_bar(frame, buttons_area, app, buttons);
+        return;
+    }
+    if matches!(app.modal, Some(Modal::Form(_))) {
+        draw_form(frame, popup, app);
+        button_bar(frame, buttons_area, app, buttons);
+        return;
+    }
     let Some(modal) = &mut app.modal else {
         return;
     };
     match modal {
+        Modal::Form(_) | Modal::FieldChoice { .. } => unreachable!(),
         Modal::Languages { cursor } => {
             let mut state = TableState::default().with_selected(Some(*cursor));
             frame.render_stateful_widget(
@@ -808,7 +1162,7 @@ fn modal(frame: &mut Frame, app: &mut App) {
                     languages.iter().map(|s| Row::new([s.clone()])),
                     [Constraint::Min(1)],
                 )
-                .block(Block::bordered().title("🌐"))
+                .block(Block::bordered().title("🌐 ↑↓ Enter · F8"))
                 .row_highlight_style(Style::default().fg(Color::Cyan)),
                 popup,
                 &mut state,
@@ -890,7 +1244,7 @@ fn modal(frame: &mut Frame, app: &mut App) {
             ..
         } => {
             let block = Block::bordered().title(title.clone()).title_bottom(format!(
-                " F2 / Ctrl+Enter: {} | Esc: {} ",
+                " F7: ↩ | F8: actions | F2 / Ctrl+Enter: {} | Esc: {} ",
                 labels["confirm"], labels["cancel"]
             ));
             let inner = block.inner(popup);
@@ -1245,7 +1599,7 @@ mod tests {
         );
         terminal.draw(|f| draw(f, &mut app)).unwrap();
         assert!(click(&mut app, |t| matches!(t,Target::Shortcut(s) if s=="manual")).is_empty());
-        assert!(matches!(app.modal, Some(Modal::Editor { .. })));
+        assert!(matches!(app.modal, Some(Modal::Form(_))));
         terminal.draw(|f| draw(f, &mut app)).unwrap();
         assert!(click(&mut app, |t| matches!(t, Target::Key(KeyCode::F(2)))).is_empty());
         assert!(matches!(app.modal, Some(Modal::Confirm { .. })));
@@ -1257,5 +1611,197 @@ mod tests {
                 crate::runtime::Command::ManualValue(_, _, _)
             )]
         ));
+    }
+    fn buffer_text(terminal: &Terminal<TestBackend>) -> String {
+        terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|c| c.symbol())
+            .collect()
+    }
+    fn key(app: &mut App, code: KeyCode) {
+        app.input(crossterm::event::KeyEvent::new(
+            code,
+            crossterm::event::KeyModifiers::NONE,
+        ));
+    }
+    fn demo() -> App {
+        App::new(
+            Config {
+                servers: bmcforge_ipmi::mock::servers(),
+                ..Default::default()
+            },
+            "unused".into(),
+            bmcforge_profiles::Registry::load(None).unwrap(),
+            true,
+        )
+    }
+    #[test]
+    fn hover_click_expiry_resize_and_modal_changes_are_isolated() {
+        use crossterm::event::{KeyModifiers, MouseEvent, MouseEventKind};
+        use std::time::{Duration, Instant};
+        let mut app = demo();
+        let mut terminal = Terminal::new(TestBackend::new(120, 35)).unwrap();
+        terminal.draw(|f| draw(f, &mut app)).unwrap();
+        let hit = app
+            .hits
+            .iter()
+            .find(|h| matches!(h.target, Target::Page(4)))
+            .unwrap()
+            .clone();
+        let event = MouseEvent {
+            kind: MouseEventKind::Moved,
+            column: hit.area.x,
+            row: hit.area.y,
+            modifiers: KeyModifiers::NONE,
+        };
+        app.mouse(event);
+        assert_eq!(app.page, 0);
+        assert_eq!(app.interaction.hover, Some(Target::Page(4)));
+        terminal.draw(|f| draw(f, &mut app)).unwrap();
+        assert_eq!(
+            terminal.backend().buffer()[(hit.area.x, hit.area.y)].bg,
+            Color::Cyan
+        );
+        app.mouse(MouseEvent {
+            column: 119,
+            row: 34,
+            ..event
+        });
+        assert!(app.interaction.hover.is_none());
+        app.mouse(MouseEvent {
+            kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+            ..event
+        });
+        assert_eq!(app.page, 4);
+        terminal.draw(|f| draw(f, &mut app)).unwrap();
+        assert_eq!(
+            terminal.backend().buffer()[(hit.area.x, hit.area.y)].bg,
+            Color::Yellow
+        );
+        app.interaction.pressed =
+            Some((Target::Page(4), Instant::now() - Duration::from_millis(151)));
+        terminal.draw(|f| draw(f, &mut app)).unwrap();
+        assert_ne!(
+            terminal.backend().buffer()[(hit.area.x, hit.area.y)].bg,
+            Color::Yellow
+        );
+        app.mouse(event);
+        app.modal = Some(Modal::Info("test".into()));
+        terminal.draw(|f| draw(f, &mut app)).unwrap();
+        assert!(app.interaction.hover.is_none());
+        app.mouse(event);
+        assert!(!matches!(app.interaction.hover, Some(Target::Page(_))));
+        app.modal = None;
+        app.page = 0;
+        terminal.draw(|f| draw(f, &mut app)).unwrap();
+        app.mouse(event);
+        let mut small = Terminal::new(TestBackend::new(30, 12)).unwrap();
+        small.draw(|f| draw(f, &mut app)).unwrap();
+        assert!(app.interaction.hover.is_none());
+    }
+    #[test]
+    fn every_overflow_action_is_keyboard_reachable_with_remapped_labels() {
+        let mut app = demo();
+        app.config.settings.keys.insert("quit".into(), "Q".into());
+        let mut terminal = Terminal::new(TestBackend::new(30, 16)).unwrap();
+        terminal.draw(|f| draw(f, &mut app)).unwrap();
+        key(&mut app, KeyCode::F(8));
+        let count = app.interaction.actions.len();
+        for index in 0..count {
+            terminal.draw(|f| draw(f, &mut app)).unwrap();
+            let target = app.interaction.actions[index].clone();
+            assert!(app.hits.iter().any(|h| h.target == target));
+            if matches!(&target, Target::Shortcut(s) if s == "quit") {
+                assert!(buffer_text(&terminal).contains(&format!("Q {}", app.text("quit"))));
+            }
+            key(&mut app, KeyCode::Right);
+        }
+        key(&mut app, KeyCode::Esc);
+        assert_eq!(app.interaction.action_focus, None);
+        // The fixed select-all action remains separate from a legacy conflicting user shortcut.
+        app.page = 2;
+        app.config.settings.keys.insert("quit".into(), "A".into());
+        terminal.draw(|f| draw(f, &mut app)).unwrap();
+        key(&mut app, KeyCode::F(8));
+        let index = app
+            .interaction
+            .actions
+            .iter()
+            .position(|t| matches!(t, Target::Key(KeyCode::Char('A'))))
+            .unwrap();
+        app.interaction.action_focus = Some(index);
+        assert!(
+            app.input(crossterm::event::KeyEvent::new(
+                KeyCode::Enter,
+                crossterm::event::KeyModifiers::NONE
+            ))
+            .is_empty()
+        );
+    }
+    #[test]
+    fn forms_render_masked_and_all_fields_remain_visible_when_focused() {
+        for language in [
+            "en", "zh-CN", "zh-TW", "ja", "ko", "de", "fr", "es", "pt-BR", "it", "ru",
+        ] {
+            for theme in ["dark", "light"] {
+                for (width, height) in [(120, 35), (60, 18), (20, 8)] {
+                    let mut app = demo();
+                    app.config.settings.language = language.into();
+                    app.config.settings.theme = theme.into();
+                    app.config.servers[0].credentials.password = "secret-marker".into();
+                    let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+                    key(&mut app, KeyCode::Char('e'));
+                    let count = if let Some(Modal::Form(f)) = &app.modal {
+                        f.fields.len()
+                    } else {
+                        panic!("form");
+                    };
+                    for index in 0..count {
+                        if let Some(Modal::Form(f)) = &mut app.modal {
+                            f.focus = index;
+                        }
+                        terminal.draw(|f| draw(f, &mut app)).unwrap();
+                        assert!(!buffer_text(&terminal).contains("secret-marker"));
+                        if width >= 20 {
+                            assert!(app.hits.iter().any(|h| h.target == Target::Field(index)));
+                        }
+                    }
+                    if width >= 60 {
+                        let Some(Modal::Form(f)) = &mut app.modal else {
+                            unreachable!()
+                        };
+                        f.focus = f
+                            .fields
+                            .iter()
+                            .position(|f| f.path.last().unwrap() == "password")
+                            .unwrap();
+                        key(&mut app, KeyCode::F(6));
+                        terminal.draw(|f| draw(f, &mut app)).unwrap();
+                        assert!(buffer_text(&terminal).contains("secret-marker"));
+                    }
+                    key(&mut app, KeyCode::Esc);
+                    key(&mut app, KeyCode::Char(','));
+                    terminal.draw(|f| draw(f, &mut app)).unwrap();
+                    let Some(Modal::Form(f)) = &mut app.modal else {
+                        unreachable!()
+                    };
+                    f.focus = f
+                        .fields
+                        .iter()
+                        .position(|f| f.path[0] == "language")
+                        .unwrap();
+                    key(&mut app, KeyCode::Enter);
+                    terminal.draw(|f| draw(f, &mut app)).unwrap();
+                    assert!(matches!(app.modal, Some(Modal::FieldChoice { .. })));
+                    if width >= 60 {
+                        click(&mut app, |t| matches!(t, Target::ChoiceRow(_)));
+                        assert!(matches!(app.modal, Some(Modal::Form(_))));
+                    }
+                }
+            }
+        }
     }
 }

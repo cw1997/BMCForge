@@ -31,7 +31,7 @@ Import shows a preview first; press Enter to proceed with common credentials, th
 - ↑ / ↓ or j / k: Navigate; Enter: View details or apply selected adapter
 - Space: Multi-select; Esc: Close dialog, clear search and multi-selection
 - `i`: Import; `d`: Discover/Cancel discovery; Discovery page `f`: Toggle candidates/all results
-- `e`: Edit current server TOML (separate credentials, adapter, timeouts, polling params)
+- `e`: Edit the current server form (credentials, adapter, timeouts, polling parameters)
 - `m`: Set fixed duty cycle; `a`: Request auto mode; list servers/params before execution, Enter to confirm
 - `p`: Adapter library; Adapter page `u`: Fill public default credentials into current server edit form (still needs saving)
 - `/`: Search servers, addresses, tags; `,`: Edit settings; PgUp/PgDn: Scroll details/logs
@@ -42,7 +42,11 @@ Import shows a preview first; press Enter to proceed with common credentials, th
 - F3 or top language entry: Switch language and save instantly; F4: Toggle mouse instantly. For terminal copy, use Shift+drag or terminal native selection
 - Discovery page A: Select all visible candidates; G: Select current /24 group; `i`: Identify selected; `c`: Cancel identification. Model selection supports search; F5: Keep unknown; F6: Skip
 
-Shortcuts can be customized via `[settings.keys]`. Servers are grouped and sorted by first tag. On startup, only connect and monitor - no replay of previous fan control operations.
+Forms use Tab/Shift+Tab to move between fields, Enter to toggle or open a searchable option picker, and F2/Ctrl+Enter to submit. Multi-line target prompts use Enter for new lines; search accepts Enter to apply. Invalid input keeps the draft and focuses the affected field. Passwords and Kg keys are masked; F6 toggles visibility. Settings, server, credential and duty forms offer F7 for advanced TOML; F7 returns after validation, and Esc cancels the draft. IDs and identity evidence are preserved outside ordinary form fields.
+
+Hover highlights controls without changing selection; clicks and keyboard activation briefly flash. Scanning and identification show animated progress. Buttons display their effective shortcuts. In narrow terminals, use F8 to focus the action area, arrows or Tab/Shift+Tab to reach hidden buttons, Enter to activate, and Esc/F8 to return.
+
+Shortcuts can be customized in the Settings form (or `[settings.keys]`). Servers are grouped and sorted by first tag. On startup, only connect and monitor - no replay of previous fan control operations.
 
 ## Configuration & Adapters
 

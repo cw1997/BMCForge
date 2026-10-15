@@ -7,9 +7,11 @@ use ratatui::layout::Rect;
 use std::time::{Duration, Instant};
 use unicode_width::UnicodeWidthChar;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Target {
     Page(usize),
+    Field(usize),
+    ChoiceRow(usize),
     Key(KeyCode),
     Shortcut(String),
     Language,
@@ -21,7 +23,7 @@ pub enum Target {
     Editor { top: usize, left: usize },
     Scroll(Pane),
 }
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Pane {
     Fleet,
     Discovery,
@@ -59,6 +61,28 @@ impl App {
         if !self.config.settings.mouse {
             return vec![];
         }
+        if event.kind == MouseEventKind::Moved {
+            self.interaction.hover = self
+                .hits
+                .iter()
+                .rev()
+                .find(|h| {
+                    h.area.contains((event.column, event.row).into())
+                        && !matches!(h.target, Target::Scroll(_))
+                        && (self.modal.is_none()
+                            || matches!(
+                                h.target,
+                                Target::Field(_)
+                                    | Target::ChoiceRow(_)
+                                    | Target::Key(_)
+                                    | Target::LanguageRow(_)
+                                    | Target::ModelRow(_)
+                                    | Target::Editor { .. }
+                            ))
+                })
+                .map(|h| h.target.clone());
+            return vec![];
+        }
         let Some(hit) = self
             .hits
             .iter()
@@ -71,7 +95,9 @@ impl App {
         if self.modal.is_some()
             && !matches!(
                 hit.target,
-                Target::Key(_)
+                Target::Field(_)
+                    | Target::ChoiceRow(_)
+                    | Target::Key(_)
                     | Target::LanguageRow(_)
                     | Target::ModelRow(_)
                     | Target::Editor { .. }
@@ -84,13 +110,18 @@ impl App {
             event.kind,
             MouseEventKind::ScrollDown | MouseEventKind::ScrollUp
         ) {
+            self.interaction.hover = None;
             let down = event.kind == MouseEventKind::ScrollDown;
             let pane = match &hit.target {
                 Target::Scroll(p) => *p,
                 Target::Server(..) => Pane::Fleet,
                 Target::Discovery(..) => Pane::Discovery,
                 Target::Profile(_) => Pane::Profiles,
-                Target::Editor { .. } | Target::LanguageRow(_) | Target::ModelRow(_) => Pane::Modal,
+                Target::Field(_)
+                | Target::ChoiceRow(_)
+                | Target::Editor { .. }
+                | Target::LanguageRow(_)
+                | Target::ModelRow(_) => Pane::Modal,
                 _ => return vec![],
             };
             let step = |v: usize| {
@@ -127,11 +158,22 @@ impl App {
                     self.log_scroll = step(self.log_scroll.into()).min(u16::MAX as usize) as u16
                 }
                 Pane::Modal => match &mut self.modal {
-                    Some(Modal::Languages { .. } | Modal::ModelChoice { .. }) => {
+                    Some(
+                        Modal::Languages { .. }
+                        | Modal::ModelChoice { .. }
+                        | Modal::FieldChoice { .. },
+                    ) => {
                         return self.input(KeyEvent::new(
                             if down { KeyCode::Down } else { KeyCode::Up },
                             KeyModifiers::NONE,
                         ));
+                    }
+                    Some(Modal::Form(form)) => {
+                        if down {
+                            form.focus = (form.focus + 1).min(form.fields.len().saturating_sub(1));
+                        } else {
+                            form.focus = form.focus.saturating_sub(1);
+                        }
                     }
                     Some(Modal::Editor { editor, .. }) => {
                         editor.scroll =
@@ -150,36 +192,62 @@ impl App {
         if event.kind != MouseEventKind::Down(MouseButton::Left) {
             return vec![];
         }
+        self.interaction.action_focus = None;
+        self.interaction.press(hit.target.clone());
         let key = match hit.target {
-            Target::Page(page) => {
-                self.page = page;
-                return vec![];
+            Target::ChoiceRow(index) => {
+                if let Some(Modal::FieldChoice { cursor, .. }) = &mut self.modal {
+                    *cursor = index;
+                }
+                KeyCode::Enter
             }
-            Target::Language => {
-                self.modal = Some(Modal::Languages { cursor: 0 });
-                return vec![];
-            }
-            Target::Key(key) if self.modal.is_none() => {
-                return match self.fixed_input(KeyEvent::new(key, KeyModifiers::NONE)) {
-                    Ok(actions) => actions,
-                    Err(e) => {
-                        self.log(format!("{e:#}"));
-                        vec![]
+            Target::Field(index) => {
+                let mut choose = false;
+                if let Some(Modal::Form(form)) = &mut self.modal {
+                    form.focus = index;
+                    let field = &mut form.fields[index];
+                    if matches!(field.kind, crate::form::FieldType::Choice(_)) {
+                        choose = true;
+                    } else if matches!(field.kind, crate::form::FieldType::Toggle) {
+                        field.activate(false);
+                    } else {
+                        let prefix: String = if matches!(field.kind, crate::form::FieldType::Secret)
+                            && !field.revealed
+                        {
+                            "•".repeat(field.input.col)
+                        } else {
+                            field.input.lines[field.input.row]
+                                .chars()
+                                .take(field.input.col)
+                                .collect()
+                        };
+                        let left = unicode_width::UnicodeWidthStr::width(prefix.as_str())
+                            .saturating_sub(usize::from(hit.area.width.saturating_sub(1)));
+                        let top = field
+                            .input
+                            .row
+                            .saturating_sub(usize::from(hit.area.height.saturating_sub(1)));
+                        if matches!(field.kind, crate::form::FieldType::Secret) && !field.revealed {
+                            field.input.col = (left
+                                + usize::from(event.column.saturating_sub(hit.area.x)))
+                            .min(field.input.lines[field.input.row].chars().count());
+                        } else {
+                            place(
+                                &mut field.input,
+                                top + usize::from(event.row.saturating_sub(hit.area.y)),
+                                left + usize::from(event.column.saturating_sub(hit.area.x)),
+                            );
+                        }
                     }
-                };
+                }
+                if choose {
+                    return self.input(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+                }
+                return vec![];
             }
-            Target::Key(key) => key,
-            Target::Shortcut(name) => {
-                let Some(c) = self
-                    .config
-                    .settings
-                    .keys
-                    .get(&name)
-                    .and_then(|s| s.chars().next())
-                else {
-                    return vec![];
-                };
-                KeyCode::Char(c)
+            target
+            @ (Target::Page(_) | Target::Language | Target::Shortcut(_) | Target::Key(_)) => {
+                return self.invoke_target(target);
             }
             Target::Server(id, checkbox) => {
                 if let Some(index) = self

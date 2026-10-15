@@ -1,6 +1,8 @@
 mod app;
 mod editor;
+mod form;
 mod i18n;
+mod interaction;
 mod mouse;
 mod runtime;
 mod ui;

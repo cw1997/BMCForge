@@ -102,3 +102,57 @@ device-count = { $count ->
     [few] { $count } устройства
    *[many] { $count } устройств
 }
+
+# Guided forms and interaction hints
+field-name = Имя
+field-host = Адрес BMC
+field-port = Порт
+field-username = Имя пользователя
+field-password = Пароль
+field-tags = Метки
+field-profile = Адаптер
+field-timeout-ms = Тайм-аут (мс)
+field-retries = Повторы
+field-poll-seconds = Интервал опроса (с)
+field-privilege = Уровень привилегий
+field-kg = Ключ Kg
+field-allow-experimental = Включить экспериментальное управление
+field-language = Язык
+field-theme = Тема
+field-mouse = Мышь
+field-concurrency = Параллельные задачи
+field-scan-concurrency = Параллельное сканирование
+field-scan-port = Порт сканирования
+field-scan-timeout-ms = Тайм-аут сканирования (мс)
+field-scan-retries = Повторы сканирования
+field-scan-confirm-above = Порог подтверждения (узлы)
+field-scan-rate-per-second = Скорость сканирования (узлы/с)
+field-history-capacity = Размер истории
+field-temperature-unit = Единица температуры
+field-sensor-filter = Фильтр датчиков
+field-percent = Скважность (%)
+field-raw = Необработанное значение
+field-zone = Зона
+field-targets = Целевые адреса
+form-basic = Основные сведения
+form-appearance = Оформление
+form-runtime = Подключение и выполнение
+form-shortcuts = Сочетания клавиш
+form-advanced = Расширенный TOML / вернуться к форме
+form-reveal = Показать / скрыть секрет
+form-actions = Действия
+form-toggle = Space/Enter: переключить
+form-choice = ←/→ Enter: выбрать
+form-tags = Метки через запятую
+form-lines = Enter: новая строка · IP / имя / CIDR / диапазон
+form-error-number = Введите целое число (десятичное или 0x шестнадцатеричное).
+form-error-range = Значение вне указанного диапазона.
+form-error-choice = Выберите доступный вариант.
+form-help = Tab/Shift+Tab: поля · Enter: активировать · F2: далее · Esc: отмена · F8: действия
+form-key-help = F8: действия, стрелки/Tab переход, Enter выполнить, Esc выйти · Форма: Tab поля, F2 сохранить, F6 показать секрет, F7 расширенный/назад, Esc отмена · ↑↓ выбор, Enter подтвердить, PgUp/PgDn прокрутка · F3 язык, F4 мышь, Del удалить · A все, G /24, f фильтр, c отмена распознавания, u учётные данные, F5 неизвестно, F6 пропустить · Ctrl+C выход
+form-error-shortcut = Эта клавиша зарезервирована для навигации или действий страницы.
+form-error-key = Используйте один уникальный символ, кроме 1–5.
+form-error-username = Имя пользователя: не более 16 байт UTF-8.
+form-error-secret = Пароль и Kg: не более 20 байт UTF-8.
+form-error-required = Обязательное поле.
+form-error-tags = Закройте кавычки метки.

@@ -38,6 +38,12 @@ pub enum EditKind {
     Manual(Vec<String>),
 }
 pub enum Modal {
+    Form(crate::form::Form),
+    FieldChoice {
+        form: Box<crate::form::Form>,
+        query: String,
+        cursor: usize,
+    },
     Import {
         servers: Vec<Server>,
         authenticate: bool,
@@ -104,6 +110,8 @@ pub struct App {
     pub locales: crate::i18n::Locales,
     pub catalog: bmcforge_profiles::models::Catalog,
     pub hits: Vec<crate::mouse::Hit>,
+    pub interaction: crate::interaction::Interaction,
+    pub advanced_form: Option<crate::form::Form>,
     pub last_click: Option<(String, std::time::Instant)>,
     pub identify_generation: u64,
     pub identifying: bool,
@@ -143,6 +151,8 @@ impl App {
             locales: crate::i18n::Locales::load(None).expect("builtin languages"),
             catalog: bmcforge_profiles::models::Catalog::load(None).expect("builtin models"),
             hits: vec![],
+            interaction: Default::default(),
+            advanced_form: None,
             last_click: None,
             identify_generation: 0,
             identifying: false,
@@ -388,25 +398,221 @@ impl App {
         vec![]
     }
     fn edit(&mut self, title: impl Into<String>, kind: EditKind, text: &str) {
-        self.modal = Some(Modal::Editor {
-            title: title.into(),
-            kind,
-            editor: Editor::new(text),
-            error: String::new(),
-        });
+        match crate::form::Form::new(title.into(), kind, text) {
+            Ok(mut form) => {
+                self.enrich_form(&mut form);
+                self.modal = Some(Modal::Form(form));
+            }
+            Err(e) => self.log(format!("{e:#}")),
+        }
     }
+    fn enrich_form(&self, form: &mut crate::form::Form) {
+        use crate::form::FieldType;
+        for field in &mut form.fields {
+            let key = field.path.last().unwrap().as_str();
+            let options = match key {
+                "language" => Some(self.locales.packs.keys().cloned().collect::<Vec<_>>()),
+                "profile" => Some(
+                    std::iter::once(String::new())
+                        .chain(self.registry.profiles.keys().cloned())
+                        .collect(),
+                ),
+                _ => None,
+            };
+            if let Some(mut options) = options {
+                if !options.contains(&field.value()) {
+                    options.push(field.value());
+                }
+                field.kind = FieldType::Choice(options);
+            }
+            if let EditKind::Manual(ids) = &form.kind
+                && let Some(fan) = ids
+                    .first()
+                    .and_then(|id| self.profile(id).ok())
+                    .and_then(|p| p.fan)
+            {
+                let options = match key {
+                    "raw" => fan
+                        .raw_values
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>(),
+                    "percent" => fan.percent_values.iter().map(ToString::to_string).collect(),
+                    "zone" => fan.zones.iter().map(|z| z.id.to_string()).collect(),
+                    _ => vec![],
+                };
+                if !options.is_empty() {
+                    field.kind = FieldType::Choice(options);
+                } else if key == "percent" {
+                    field.kind = FieldType::Number {
+                        min: fan.min_percent.into(),
+                        max: fan.max_percent.into(),
+                    };
+                }
+            }
+        }
+    }
+    fn validate_draft(&self, kind: &EditKind, text: &str) -> Result<()> {
+        match kind {
+            EditKind::Settings => {
+                let mut cfg = self.config.clone();
+                cfg.settings = toml::from_str(text)?;
+                for (name, key) in &cfg.settings.keys {
+                    if self.config.settings.keys.get(name) != Some(key) {
+                        ensure!(
+                            !"12345jkAGfcu".contains(key.as_str()),
+                            "{name}: {}",
+                            self.text("form-error-shortcut")
+                        );
+                    }
+                }
+                cfg.validate()?;
+            }
+            EditKind::Server(id) => {
+                let server = bmcforge_core::config::parse_server(text)?;
+                ensure!(&server.id == id, "server id is immutable");
+                if let Some(profile) = &server.profile {
+                    ensure!(
+                        self.registry.profiles.contains_key(profile),
+                        "unknown profile ID"
+                    );
+                }
+                let mut cfg = self.config.clone();
+                *cfg.servers
+                    .iter_mut()
+                    .find(|s| &s.id == id)
+                    .context("server missing")? = server;
+                cfg.validate()?;
+            }
+            EditKind::Credentials(..) => {
+                let f: ImportForm = toml::from_str(text)?;
+                if let Some(profile) = &f.profile {
+                    ensure!(
+                        self.registry.profiles.contains_key(profile),
+                        "unknown profile ID"
+                    );
+                }
+                Server {
+                    id: "draft".into(),
+                    host: "draft".into(),
+                    port: f.port,
+                    credentials: Credentials {
+                        username: f.username,
+                        password: f.password,
+                    },
+                    ..Default::default()
+                }
+                .validate()?;
+            }
+            EditKind::Manual(ids) => {
+                let f: ManualForm = toml::from_str(text)?;
+                let value = match (f.percent, f.raw) {
+                    (Some(v), None) => ControlValue::Percent(v),
+                    (None, Some(v)) => ControlValue::Raw(v),
+                    _ => anyhow::bail!("specify exactly one of percent or raw"),
+                };
+                for id in ids {
+                    self.profile(id)?.commands_value(value, f.zone, true)?;
+                }
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
     fn shortcut(&self, key: KeyEvent, action: &str) -> bool {
-        key.modifiers.is_empty()
+        key.modifiers.difference(KeyModifiers::SHIFT).is_empty()
             && matches!(key.code, KeyCode::Char(c) if self.config.settings.keys.get(action).is_some_and(|s| s == &c.to_string()))
     }
     pub fn input(&mut self, key: KeyEvent) -> Vec<Action> {
         if !matches!(key.kind, KeyEventKind::Press | KeyEventKind::Repeat) {
             return vec![];
         }
+        if self
+            .interaction
+            .viewport
+            .as_ref()
+            .is_some_and(|(_, page, modal)| {
+                *page != self.page || *modal != self.modal.as_ref().map(std::mem::discriminant)
+            })
+        {
+            self.interaction.action_focus = None;
+            self.interaction.actions.clear();
+        }
+        if key.code == KeyCode::F(8) && !self.interaction.actions.is_empty() {
+            self.interaction.action_focus = if self.interaction.action_focus.is_some() {
+                None
+            } else {
+                Some(0)
+            };
+            return vec![];
+        }
+        if let Some(index) = self.interaction.action_focus {
+            let count = self.interaction.actions.len().max(1);
+            match key.code {
+                KeyCode::Left | KeyCode::Up | KeyCode::BackTab => {
+                    self.interaction.action_focus = Some((index + count - 1) % count);
+                    return vec![];
+                }
+                KeyCode::Right | KeyCode::Down | KeyCode::Tab => {
+                    self.interaction.action_focus = Some((index + 1) % count);
+                    return vec![];
+                }
+                KeyCode::Esc => {
+                    self.interaction.action_focus = None;
+                    return vec![];
+                }
+                KeyCode::Enter => {
+                    let target = self.interaction.actions.get(index).cloned();
+                    self.interaction.action_focus = None;
+                    if let Some(target) = target {
+                        return self.invoke_target(target);
+                    }
+                    return vec![];
+                }
+                _ => {
+                    self.interaction.action_focus = None;
+                }
+            }
+        }
         if self.modal.is_some() {
-            return self.modal_input(key);
+            let actions = self.modal_input(key);
+            self.keyboard_feedback(key);
+            return actions;
         }
         let result = self.normal_input(key);
+        self.keyboard_feedback(key);
+        match result {
+            Ok(actions) => actions,
+            Err(error) => {
+                self.log(format!("{error:#}"));
+                vec![]
+            }
+        }
+    }
+    pub(crate) fn invoke_target(&mut self, target: crate::mouse::Target) -> Vec<Action> {
+        if self.modal.is_some() && !matches!(target, crate::mouse::Target::Key(_)) {
+            return vec![];
+        }
+        self.interaction.press(target.clone());
+        let result = match target {
+            crate::mouse::Target::Shortcut(name) => self.normal_action(&name),
+            crate::mouse::Target::Page(page) => {
+                self.page = page;
+                Ok(vec![])
+            }
+            crate::mouse::Target::Language => {
+                self.modal = Some(Modal::Languages { cursor: 0 });
+                Ok(vec![])
+            }
+            crate::mouse::Target::Key(code) if self.modal.is_some() => {
+                return self.input(KeyEvent::new(code, KeyModifiers::NONE));
+            }
+            crate::mouse::Target::Key(code) => {
+                self.fixed_input(KeyEvent::new(code, KeyModifiers::NONE))
+            }
+            _ => Ok(vec![]),
+        };
         match result {
             Ok(actions) => actions,
             Err(error) => {
@@ -416,10 +622,18 @@ impl App {
         }
     }
     fn normal_input(&mut self, key: KeyEvent) -> Result<Vec<Action>> {
-        if self.shortcut(key, "quit") {
+        for action in crate::interaction::ACTIONS {
+            if self.shortcut(key, action) {
+                return self.normal_action(action);
+            }
+        }
+        self.fixed_input(key)
+    }
+    fn normal_action(&mut self, action: &str) -> Result<Vec<Action>> {
+        if action == "quit" {
             return Ok(vec![Action::Quit]);
         }
-        if self.shortcut(key, "search") {
+        if action == "search" {
             self.edit(
                 self.text("search-servers-tags-addresses").to_owned(),
                 EditKind::Search,
@@ -427,7 +641,7 @@ impl App {
             );
             return Ok(vec![]);
         }
-        if self.shortcut(key, "import") {
+        if action == "import" {
             ensure!(
                 !self.identifying,
                 "cancel or finish the current identification batch first"
@@ -454,7 +668,7 @@ impl App {
             }
             return Ok(vec![]);
         }
-        if self.shortcut(key, "discover") {
+        if action == "discover" {
             if self.scanning {
                 self.scanning = false;
                 return Ok(vec![Action::CancelScan]);
@@ -471,27 +685,27 @@ impl App {
             );
             return Ok(vec![]);
         }
-        if self.shortcut(key, "settings") {
+        if action == "settings" {
             self.edit(
-                self.text("settings-toml").to_owned(),
+                self.text("settings").to_owned(),
                 EditKind::Settings,
                 &toml::to_string_pretty(&self.config.settings)?,
             );
             return Ok(vec![]);
         }
-        if self.shortcut(key, "profiles") {
+        if action == "profiles" {
             self.page = 3;
             return Ok(vec![]);
         }
-        if self.shortcut(key, "logs") {
+        if action == "logs" {
             self.page = 4;
             return Ok(vec![]);
         }
-        if self.shortcut(key, "export") {
+        if action == "export" {
             self.export()?;
             return Ok(vec![]);
         }
-        if self.shortcut(key, "edit") {
+        if action == "edit" {
             let server = self.current().context("select a server first")?;
             ensure!(
                 !self.snapshots.get(&server.id).is_some_and(|s| s.taken_over),
@@ -505,7 +719,7 @@ impl App {
             );
             return Ok(vec![]);
         }
-        if self.shortcut(key, "manual") {
+        if action == "manual" {
             let ids = self.targets();
             ensure!(!ids.is_empty(), "select a server first");
             let profile = self.profile(&ids[0])?;
@@ -530,11 +744,11 @@ impl App {
             );
             return Ok(vec![]);
         }
-        if self.shortcut(key, "automatic") {
+        if action == "automatic" {
             self.confirm_control(self.targets(), None)?;
             return Ok(vec![]);
         }
-        if self.shortcut(key, "select") {
+        if action == "select" {
             if self.page == 2 {
                 if let Some(index) = self.scan_visible().get(self.scan_cursor) {
                     let host = self.discovery[*index].host.clone();
@@ -550,7 +764,7 @@ impl App {
             }
             return Ok(vec![]);
         }
-        self.fixed_input(key)
+        Ok(vec![])
     }
     /// Shared fixed actions; mouse buttons do not reinterpret user-remapped character shortcuts.
     pub(crate) fn fixed_input(&mut self, key: KeyEvent) -> Result<Vec<Action>> {
@@ -611,8 +825,9 @@ impl App {
             }
             KeyCode::F(1) => {
                 self.modal = Some(Modal::Info(format!(
-                    "{}\n\n{}",
+                    "{}\n\n{}\n\n{}",
                     self.text("help"),
+                    self.text("form-key-help"),
                     self.config
                         .settings
                         .keys
@@ -848,21 +1063,35 @@ impl App {
         Ok(())
     }
     pub fn paste(&mut self, text: &str) {
-        if let Some(Modal::Editor { editor, .. }) = &mut self.modal {
-            editor.paste(text);
+        match &mut self.modal {
+            Some(Modal::Editor { editor, .. }) => editor.paste(text),
+            Some(Modal::Form(form)) => form.paste(text),
+            Some(Modal::FieldChoice { query, cursor, .. }) => {
+                query.push_str(&text.replace(['\r', '\n'], ""));
+                *cursor = 0;
+            }
+            _ => {}
         }
     }
     fn modal_input(&mut self, key: KeyEvent) -> Vec<Action> {
         if key.code == KeyCode::Esc {
+            if matches!(self.modal, Some(Modal::FieldChoice { .. })) {
+                if let Some(Modal::FieldChoice { form, .. }) = self.modal.take() {
+                    self.modal = Some(Modal::Form(*form));
+                }
+                self.modal_scroll = 0;
+                return vec![];
+            }
             if matches!(self.modal, Some(Modal::ModelChoice { .. })) {
                 self.pending.clear();
                 self.resolved.clear();
             }
             self.modal = None;
+            self.advanced_form = None;
             self.modal_scroll = 0;
             return vec![];
         }
-        if !matches!(self.modal, Some(Modal::Editor { .. })) {
+        if !matches!(self.modal, Some(Modal::Editor { .. } | Modal::Form(_))) {
             if key.code == KeyCode::PageDown {
                 self.modal_scroll = self.modal_scroll.saturating_add(8);
                 return vec![];
@@ -879,6 +1108,102 @@ impl App {
             self.modal_scroll = 0;
         }
         match modal {
+            Modal::FieldChoice {
+                mut form,
+                mut query,
+                mut cursor,
+            } => {
+                let options = form.choice_options(&query);
+                match key.code {
+                    KeyCode::Up => cursor = cursor.saturating_sub(1),
+                    KeyCode::Down => cursor = (cursor + 1).min(options.len().saturating_sub(1)),
+                    KeyCode::Char(c)
+                        if !key
+                            .modifiers
+                            .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) =>
+                    {
+                        query.push(c);
+                        cursor = 0;
+                    }
+                    KeyCode::Backspace => {
+                        query.pop();
+                        cursor = 0;
+                    }
+                    KeyCode::Enter => {
+                        if let Some(option) = options.get(cursor) {
+                            form.fields[form.focus].input = Editor::new(option);
+                            form.fields[form.focus].error.clear();
+                            form.error.clear();
+                            self.modal = Some(Modal::Form(*form));
+                            return vec![];
+                        }
+                    }
+                    _ => {}
+                }
+                self.modal = Some(Modal::FieldChoice {
+                    form,
+                    query,
+                    cursor,
+                });
+                vec![]
+            }
+            Modal::Form(mut form) => {
+                if matches!(key.code, KeyCode::Enter | KeyCode::Char(' '))
+                    && matches!(
+                        form.fields[form.focus].kind,
+                        crate::form::FieldType::Choice(_)
+                    )
+                    && key.modifiers.is_empty()
+                {
+                    let cursor = form
+                        .choice_options("")
+                        .iter()
+                        .position(|v| v == &form.fields[form.focus].value())
+                        .unwrap_or(0);
+                    self.modal = Some(Modal::FieldChoice {
+                        form: Box::new(form),
+                        query: String::new(),
+                        cursor,
+                    });
+                    return vec![];
+                }
+                let submit = key.code == KeyCode::F(2)
+                    || (key.code == KeyCode::Enter
+                        && (key.modifiers.contains(KeyModifiers::CONTROL)
+                            || matches!(form.kind, EditKind::Search)));
+                if key.code == KeyCode::F(7) && form.advanced {
+                    match form.text() {
+                        Ok(text) => {
+                            self.modal = Some(Modal::Editor {
+                                title: format!("{} — {}", form.title, self.text("form-advanced")),
+                                kind: form.kind.clone(),
+                                editor: Editor::new(&text),
+                                error: String::new(),
+                            });
+                            self.advanced_form = Some(form);
+                        }
+                        Err(e) => {
+                            form.error = e.to_string();
+                            self.modal = Some(Modal::Form(form));
+                        }
+                    }
+                    return vec![];
+                }
+                if submit {
+                    let result = form.text().and_then(|text| {
+                        self.validate_draft(&form.kind, &text)?;
+                        self.submit(form.kind.clone(), &text)
+                    });
+                    match result {
+                        Ok(actions) => return actions,
+                        Err(e) => form.locate_error(&e.to_string()),
+                    }
+                } else {
+                    form.input(key);
+                }
+                self.modal = Some(Modal::Form(form));
+                vec![]
+            }
             Modal::Languages { mut cursor } => {
                 let ids: Vec<_> = self.locales.packs.keys().cloned().collect();
                 match key.code {
@@ -943,11 +1268,42 @@ impl App {
                 mut editor,
                 ..
             } => {
+                if key.code == KeyCode::F(7) && self.advanced_form.is_some() {
+                    let result = self.validate_draft(&kind, &editor.text()).and_then(|()| {
+                        crate::form::Form::new(
+                            self.advanced_form.as_ref().unwrap().title.clone(),
+                            kind.clone(),
+                            &editor.text(),
+                        )
+                    });
+                    match result {
+                        Ok(mut form) => {
+                            self.enrich_form(&mut form);
+                            self.advanced_form = None;
+                            self.modal = Some(Modal::Form(form));
+                        }
+                        Err(e) => {
+                            self.modal = Some(Modal::Editor {
+                                title,
+                                kind,
+                                editor,
+                                error: e.to_string(),
+                            })
+                        }
+                    }
+                    return vec![];
+                }
                 if key.code == KeyCode::F(2)
                     || (key.code == KeyCode::Enter && key.modifiers.contains(KeyModifiers::CONTROL))
                 {
-                    match self.submit(kind.clone(), &editor.text()) {
-                        Ok(actions) => actions,
+                    match self
+                        .validate_draft(&kind, &editor.text())
+                        .and_then(|()| self.submit(kind.clone(), &editor.text()))
+                    {
+                        Ok(actions) => {
+                            self.advanced_form = None;
+                            actions
+                        }
                         Err(error) => {
                             self.modal = Some(Modal::Editor {
                                 title,
@@ -1436,7 +1792,7 @@ mod tests {
     fn control_requires_preview_and_explicit_experimental_enablement() {
         let mut a = app();
         a.input(key('m'));
-        assert!(matches!(a.modal, Some(Modal::Editor { .. })));
+        assert!(matches!(a.modal, Some(Modal::Form(_))));
         let actions = a.input(KeyEvent::new(KeyCode::Enter, KeyModifiers::CONTROL));
         assert!(actions.is_empty());
         assert!(matches!(a.modal, Some(Modal::Confirm { .. })));
@@ -1518,5 +1874,186 @@ mod tests {
         assert!(matches!(a.modal, Some(Modal::ModelChoice { .. })));
         a.input(KeyEvent::new(KeyCode::F(6), KeyModifiers::NONE));
         assert!(matches!(a.modal,Some(Modal::Import{ref servers,..}) if servers.is_empty()));
+    }
+    fn press(app: &mut App, code: KeyCode) -> Vec<Action> {
+        app.input(KeyEvent::new(code, KeyModifiers::NONE))
+    }
+    fn set_field(app: &mut App, path: &[&str], value: &str) {
+        let Some(Modal::Form(form)) = &mut app.modal else {
+            panic!("expected form");
+        };
+        let index = form
+            .fields
+            .iter()
+            .position(|f| f.path.iter().map(String::as_str).eq(path.iter().copied()))
+            .unwrap();
+        form.fields[index].input = Editor::new(value);
+        form.focus = index;
+    }
+    #[test]
+    fn prompt_import_credentials_and_confirmation_need_no_toml() {
+        let mut a = app();
+        let before = a.config.servers.len();
+        press(&mut a, KeyCode::Char('i'));
+        a.paste("192.0.2.240\n192.0.2.241");
+        assert!(press(&mut a, KeyCode::F(2)).is_empty());
+        assert!(matches!(a.modal, Some(Modal::Preview { .. })));
+        press(&mut a, KeyCode::Enter);
+        set_field(&mut a, &["username"], "operator");
+        set_field(&mut a, &["password"], "密钥");
+        set_field(&mut a, &["port"], "624");
+        press(&mut a, KeyCode::F(2));
+        assert!(matches!(a.modal, Some(Modal::Import { .. })));
+        assert_eq!(a.config.servers.len(), before);
+        let actions = press(&mut a, KeyCode::Enter);
+        assert!(
+            matches!(actions.as_slice(), [Action::Add(s)] if s.len() == 2 && s.iter().all(|s| s.port == 624 && s.credentials.password == "密钥"))
+        );
+        assert_eq!(a.config.servers.len(), before + 2);
+    }
+    #[test]
+    fn settings_errors_cancel_and_advanced_roundtrip_preserve_drafts() {
+        let mut a = app();
+        let before = toml::to_string(&a.config).unwrap();
+        press(&mut a, KeyCode::Char(','));
+        set_field(&mut a, &["scan_port"], "0");
+        assert!(press(&mut a, KeyCode::F(2)).is_empty());
+        assert!(
+            matches!(&a.modal, Some(Modal::Form(f)) if !f.error.is_empty() && f.fields[f.focus].path[0] == "scan_port")
+        );
+        assert_eq!(toml::to_string(&a.config).unwrap(), before);
+        set_field(&mut a, &["scan_port"], "624");
+        press(&mut a, KeyCode::F(7));
+        let Some(Modal::Editor { editor, .. }) = &mut a.modal else {
+            panic!("advanced editor");
+        };
+        *editor = Editor::new("scan_port = 0");
+        press(&mut a, KeyCode::F(7));
+        assert!(
+            matches!(&a.modal, Some(Modal::Editor { error, editor, .. }) if !error.is_empty() && editor.text() == "scan_port = 0")
+        );
+        let Some(Modal::Editor { editor, .. }) = &mut a.modal else {
+            unreachable!()
+        };
+        let mut settings = a.config.settings.clone();
+        settings.scan_port = 624;
+        *editor = Editor::new(&toml::to_string(&settings).unwrap());
+        press(&mut a, KeyCode::F(7));
+        assert!(
+            matches!(&a.modal, Some(Modal::Form(f)) if f.fields.iter().any(|f| f.path[0] == "scan_port" && f.value() == "624"))
+        );
+        assert_eq!(a.config.settings.scan_port, 623);
+        press(&mut a, KeyCode::Esc);
+        assert_eq!(toml::to_string(&a.config).unwrap(), before);
+        press(&mut a, KeyCode::Char(','));
+        set_field(&mut a, &["keys", "quit"], "Q");
+        press(&mut a, KeyCode::F(2));
+        assert!(a.modal.is_none());
+        assert!(matches!(
+            a.input(KeyEvent::new(KeyCode::Char('Q'), KeyModifiers::SHIFT))
+                .as_slice(),
+            [Action::Quit]
+        ));
+    }
+    #[test]
+    fn searchable_choice_and_server_form_wait_for_worker_ack() {
+        let mut a = app();
+        let id = a.current().unwrap().id.clone();
+        let old = a.current().unwrap().name.clone();
+        press(&mut a, KeyCode::Char('e'));
+        set_field(&mut a, &["name"], "新名称");
+        let Some(Modal::Form(form)) = &mut a.modal else {
+            unreachable!()
+        };
+        form.focus = form
+            .fields
+            .iter()
+            .position(|f| f.path[0] == "profile")
+            .unwrap();
+        press(&mut a, KeyCode::Enter);
+        assert!(matches!(a.modal, Some(Modal::FieldChoice { .. })));
+        a.paste("supermicro");
+        if let Some(Modal::FieldChoice { form, query, .. }) = &a.modal {
+            assert!(!form.choice_options(query).is_empty());
+        }
+        press(&mut a, KeyCode::Esc);
+        assert!(
+            matches!(&a.modal, Some(Modal::Form(f)) if f.fields.iter().any(|f| f.path[0] == "name" && f.value() == "新名称"))
+        );
+        let actions = press(&mut a, KeyCode::F(2));
+        assert!(
+            matches!(actions.as_slice(), [Action::Configure(s)] if s.id == id && s.name == "新名称")
+        );
+        assert_eq!(a.current().unwrap().name, old);
+    }
+    #[test]
+    fn minimal_advanced_settings_expand_and_unbound_actions_still_work() {
+        let mut a = app();
+        a.config.settings.keys.remove("import");
+        press(&mut a, KeyCode::Char(','));
+        let Some(Modal::Form(f)) = &a.modal else {
+            unreachable!()
+        };
+        assert!(
+            f.fields
+                .iter()
+                .any(|f| f.path == ["keys", "import"] && f.value().is_empty())
+        );
+        press(&mut a, KeyCode::F(7));
+        let Some(Modal::Editor { editor, .. }) = &mut a.modal else {
+            unreachable!()
+        };
+        *editor = Editor::new("");
+        press(&mut a, KeyCode::F(7));
+        let Some(Modal::Form(f)) = &a.modal else {
+            unreachable!()
+        };
+        assert!(f.fields.iter().any(|f| f.path[0] == "theme"));
+        // Stale background actions cannot bypass a modal.
+        assert!(
+            a.invoke_target(crate::mouse::Target::Shortcut("quit".into()))
+                .is_empty()
+        );
+        press(&mut a, KeyCode::Esc);
+        assert!(
+            a.invoke_target(crate::mouse::Target::Shortcut("import".into()))
+                .is_empty()
+        );
+        assert!(matches!(a.modal, Some(Modal::Form(_))));
+    }
+    #[test]
+    fn manual_forms_support_percentage_raw_and_mixed_batch_validation() {
+        let mut a = app();
+        for id in ["demo-dell", "demo-smc", "demo-lenovo"] {
+            a.selected = BTreeSet::from([id.into()]);
+            press(&mut a, KeyCode::Char('m'));
+            assert!(matches!(a.modal, Some(Modal::Form(_))));
+            assert!(press(&mut a, KeyCode::F(2)).is_empty());
+            assert!(matches!(a.modal, Some(Modal::Confirm { .. })));
+            let actions = press(&mut a, KeyCode::Enter);
+            assert!(matches!(
+                actions.as_slice(),
+                [Action::Send(_, Command::ManualValue(_, _, _))]
+            ));
+        }
+        a.selected = BTreeSet::from(["demo-dell".into(), "demo-lenovo".into()]);
+        press(&mut a, KeyCode::Char('m'));
+        assert!(press(&mut a, KeyCode::F(2)).is_empty());
+        assert!(matches!(&a.modal, Some(Modal::Form(f)) if !f.error.is_empty()));
+        press(&mut a, KeyCode::Esc);
+        a.page = 3;
+        let (index, note) = a
+            .registry
+            .profiles
+            .values()
+            .enumerate()
+            .find_map(|(i, p)| p.default_credentials.first().map(|c| (i, c.note.clone())))
+            .unwrap();
+        a.profile_cursor = index;
+        let before = a.current().unwrap().credentials.clone();
+        press(&mut a, KeyCode::Char('u'));
+        assert!(matches!(&a.modal, Some(Modal::Form(f)) if f.title.contains(&note)));
+        press(&mut a, KeyCode::Esc);
+        assert_eq!(a.current().unwrap().credentials, before);
     }
 }

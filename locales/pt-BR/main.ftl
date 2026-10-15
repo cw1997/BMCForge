@@ -101,3 +101,57 @@ device-count = { $count ->
     [one] { $count } dispositivo
    *[other] { $count } dispositivos
 }
+
+# Guided forms and interaction hints
+field-name = Nome
+field-host = Endereço BMC
+field-port = Porta
+field-username = Usuário
+field-password = Senha
+field-tags = Etiquetas
+field-profile = Adaptador
+field-timeout-ms = Tempo limite (ms)
+field-retries = Tentativas
+field-poll-seconds = Intervalo de consulta (s)
+field-privilege = Nível de privilégio
+field-kg = Chave Kg
+field-allow-experimental = Ativar controle experimental
+field-language = Idioma
+field-theme = Tema
+field-mouse = Mouse
+field-concurrency = Concorrência de tarefas
+field-scan-concurrency = Concorrência da busca
+field-scan-port = Porta da busca
+field-scan-timeout-ms = Tempo da busca (ms)
+field-scan-retries = Tentativas da busca
+field-scan-confirm-above = Limite de confirmação (hosts)
+field-scan-rate-per-second = Taxa da busca (hosts/s)
+field-history-capacity = Capacidade do histórico
+field-temperature-unit = Unidade de temperatura
+field-sensor-filter = Filtro de sensores
+field-percent = Ciclo de trabalho (%)
+field-raw = Valor bruto
+field-zone = Zona
+field-targets = Endereços de destino
+form-basic = Informações básicas
+form-appearance = Aparência
+form-runtime = Conexão e execução
+form-shortcuts = Atalhos
+form-advanced = TOML avançado / voltar ao formulário
+form-reveal = Mostrar / ocultar segredo
+form-actions = Ações
+form-toggle = Space/Enter: alternar
+form-choice = ←/→ Enter: escolher
+form-tags = Etiquetas separadas por vírgulas
+form-lines = Enter: nova linha · IP / nome / CIDR / intervalo
+form-error-number = Digite um inteiro (decimal ou 0x hexadecimal).
+form-error-range = Valor fora do intervalo exibido.
+form-error-choice = Escolha uma opção disponível.
+form-help = Tab/Shift+Tab: campos · Enter: ativar · F2: continuar · Esc: cancelar · F8: ações
+form-key-help = F8: ações, setas/Tab navegar, Enter ativar, Esc sair · Formulário: Tab campos, F2 salvar, F6 mostrar segredo, F7 avançado/voltar, Esc cancelar · ↑↓ escolher, Enter confirmar, PgUp/PgDn rolar · F3 idioma, F4 mouse, Del remover · A todos, G /24, f filtro, c cancelar identificação, u credenciais, F5 desconhecido, F6 pular · Ctrl+C sair
+form-error-shortcut = Este atalho está reservado para navegação ou ações da página.
+form-error-key = Use um caractere único diferente de 1–5.
+form-error-username = Usuário: no máximo 16 bytes UTF-8.
+form-error-secret = Senha e Kg: no máximo 20 bytes UTF-8.
+form-error-required = Este campo é obrigatório.
+form-error-tags = Feche as aspas da etiqueta.

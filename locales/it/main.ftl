@@ -101,3 +101,57 @@ device-count = { $count ->
     [one] { $count } dispositivo
    *[other] { $count } dispositivi
 }
+
+# Guided forms and interaction hints
+field-name = Nome
+field-host = Indirizzo BMC
+field-port = Porta
+field-username = Utente
+field-password = Password
+field-tags = Etichette
+field-profile = Adattatore
+field-timeout-ms = Timeout (ms)
+field-retries = Tentativi
+field-poll-seconds = Intervallo di lettura (s)
+field-privilege = Livello di privilegio
+field-kg = Chiave Kg
+field-allow-experimental = Abilita controllo sperimentale
+field-language = Lingua
+field-theme = Tema
+field-mouse = Mouse
+field-concurrency = Concorrenza attività
+field-scan-concurrency = Concorrenza scansione
+field-scan-port = Porta scansione
+field-scan-timeout-ms = Timeout scansione (ms)
+field-scan-retries = Tentativi scansione
+field-scan-confirm-above = Soglia di conferma (host)
+field-scan-rate-per-second = Velocità scansione (host/s)
+field-history-capacity = Capacità cronologia
+field-temperature-unit = Unità temperatura
+field-sensor-filter = Filtro sensori
+field-percent = Ciclo di lavoro (%)
+field-raw = Valore grezzo
+field-zone = Zona
+field-targets = Indirizzi di destinazione
+form-basic = Informazioni di base
+form-appearance = Aspetto
+form-runtime = Connessione ed esecuzione
+form-shortcuts = Scorciatoie
+form-advanced = TOML avanzato / torna al modulo
+form-reveal = Mostra / nascondi segreto
+form-actions = Azioni
+form-toggle = Space/Enter: alterna
+form-choice = ←/→ Enter: scegli
+form-tags = Etichette separate da virgole
+form-lines = Enter: nuova riga · IP / nome / CIDR / intervallo
+form-error-number = Inserire un intero (decimale o 0x esadecimale).
+form-error-range = Valore fuori dall’intervallo visualizzato.
+form-error-choice = Scegliere un’opzione disponibile.
+form-help = Tab/Shift+Tab: campi · Enter: attiva · F2: continua · Esc: annulla · F8: azioni
+form-key-help = F8: azioni, frecce/Tab naviga, Enter attiva, Esc esci · Modulo: Tab campi, F2 salva, F6 mostra segreto, F7 avanzato/ritorna, Esc annulla · ↑↓ scegli, Enter conferma, PgUp/PgDn scorri · F3 lingua, F4 mouse, Del rimuovi · A tutti, G /24, f filtro, c annulla identificazione, u credenziali, F5 sconosciuto, F6 salta · Ctrl+C esci
+form-error-shortcut = Questa scorciatoia è riservata alla navigazione o alle azioni della pagina.
+form-error-key = Usare un carattere univoco diverso da 1–5.
+form-error-username = Utente: massimo 16 byte UTF-8.
+form-error-secret = Password e Kg: massimo 20 byte UTF-8.
+form-error-required = Questo campo è obbligatorio.
+form-error-tags = Chiudere le virgolette dell’etichetta.
