@@ -1,4 +1,4 @@
-name: Eight-platform builds
+name: Multi-platform builds
 on:
   pull_request:
   push:
@@ -24,14 +24,14 @@ jobs:
           - { os: ubuntu-24.04, target: armv7-unknown-linux-musleabihf, tool: cross, mode: qemu }
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - name: Install cross
@@ -39,7 +39,7 @@ jobs:
         run: cargo install cross --version 0.2.5 --locked
       - name: Enable ARM emulation
         if: matrix.mode == 'qemu'
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: arm,arm64
       - name: Build release executable
@@ -52,7 +52,7 @@ jobs:
         run: ${{ matrix.tool }} run --release --locked --target ${{ matrix.target }} -p bmcforge -- demo-check
       - name: Package and inspect executable architecture
         run: python scripts/package_release.py --target ${{ matrix.target }} --test-mode ${{ matrix.mode }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: bmcforge-${{ matrix.target }}
           path: dist/*
