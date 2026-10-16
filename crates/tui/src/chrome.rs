@@ -378,7 +378,7 @@ mod tests {
         }
     }
     #[test]
-    fn reversed_status_is_full_width_and_opens_only_redacted_text() {
+    fn status_details_are_not_rendered_in_the_footer() {
         for name in ["dark", "light"] {
             let mut app = app();
             app.config.settings.theme = name.into();
@@ -388,76 +388,13 @@ mod tests {
                 format!("服务器 secret-needle {}", "very long message ".repeat(100)),
             );
             let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
-            terminal
-                .draw(|f| {
-                    crate::ui::draw(f, &mut app);
-                    let row = app
-                        .hits
-                        .iter()
-                        .find(|h| h.target == Target::Status)
-                        .unwrap()
-                        .area
-                        .y;
-                    for x in 0..80 {
-                        assert_eq!(f.buffer_mut()[(x, row)].bg, Theme::named(name).foreground);
-                    }
-                })
-                .unwrap();
-            let hit = app
-                .hits
-                .iter()
-                .find(|h| h.target == Target::Status)
-                .unwrap()
-                .clone();
-            let theme = Theme::named(name);
-            let mut skip = 0;
-            for x in 0..80 {
-                if skip > 0 {
-                    skip -= 1;
-                    continue;
-                }
-                skip = terminal.backend().buffer()[(x, hit.area.y)]
-                    .symbol()
-                    .width()
-                    .saturating_sub(1);
-                assert_eq!(
-                    terminal.backend().buffer()[(x, hit.area.y)].bg,
-                    theme.foreground
-                );
-            }
-            assert_eq!(
-                terminal.backend().buffer()[(79, hit.area.y)].fg,
-                theme.background
-            );
+            terminal.draw(|f| crate::ui::draw(f, &mut app)).unwrap();
+            assert!(!app.hits.iter().any(|h| h.target == Target::Status));
             assert!(!text(&terminal).contains("secret-needle"));
-            assert!(text(&terminal).contains('…'));
-            app.mouse(MouseEvent {
-                kind: MouseEventKind::Moved,
-                column: hit.area.x,
-                row: hit.area.y,
-                modifiers: KeyModifiers::NONE,
-            });
-            terminal.draw(|f| crate::ui::draw(f, &mut app)).unwrap();
-            assert_eq!(
-                terminal.backend().buffer()[(79, hit.area.y)].bg,
-                theme.foreground
-            );
-            click(&mut app, &hit);
-            assert!(
-                matches!(&app.modal,Some(Modal::Info(message)) if message.contains("[REDACTED]") && !message.contains("secret-needle"))
-            );
-            terminal.draw(|f| crate::ui::draw(f, &mut app)).unwrap();
-            assert!(app.hits.iter().any(|h| matches!(
-                h.target,
-                Target::ScrollTo {
-                    pane: Pane::Modal,
-                    ..
-                }
-            )));
         }
     }
     #[test]
-    fn short_status_paints_trailing_blanks_and_progress_does_not_replace_navigation() {
+    fn footer_omits_status_and_navigation_hint_rows() {
         let mut app = app();
         app.status = "Ready".into();
         app.scanning = true;
@@ -465,16 +402,8 @@ mod tests {
         app.interaction.leader = Some(std::time::Instant::now());
         let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
         terminal.draw(|f| crate::ui::draw(f, &mut app)).unwrap();
-        let hit = app
-            .hits
-            .iter()
-            .find(|h| h.target == Target::Status)
-            .unwrap();
-        let cell = &terminal.backend().buffer()[(79, hit.area.y)];
-        assert_eq!(cell.symbol(), " ");
-        assert_eq!(cell.bg, Theme::named("dark").foreground);
-        assert!(text(&terminal).contains("/100"));
-        assert!(text(&terminal).contains("Ctrl+X →"));
+        assert!(!app.hits.iter().any(|h| h.target == Target::Status));
+        assert!(!text(&terminal).contains("Ctrl+X →"));
     }
     #[test]
     fn shadows_are_clipped_do_not_own_input_and_disappear_on_close() {

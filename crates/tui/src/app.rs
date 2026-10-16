@@ -156,6 +156,7 @@ pub struct App {
     pub logs: VecDeque<crate::i18n::Message>,
     pub modal: Option<Modal>,
     pub modal_scroll: u16,
+    pub form_narrow: bool,
     pub status: crate::i18n::Message,
     pub demo: bool,
     pub detail_scroll: u16,
@@ -199,6 +200,7 @@ impl App {
             logs: VecDeque::new(),
             modal: None,
             modal_scroll: 0,
+            form_narrow: false,
             status: "Ready".into(),
             demo,
             detail_scroll: 0,
@@ -1579,6 +1581,27 @@ impl App {
                 vec![]
             }
             Modal::Form(mut form) => {
+                if key.code == KeyCode::F(1) {
+                    if self.form_narrow {
+                        form.show_descriptions = !form.show_descriptions;
+                        self.modal_scroll = 0;
+                    }
+                    self.modal = Some(Modal::Form(form));
+                    return vec![];
+                }
+                if self.form_narrow && form.show_descriptions {
+                    match key.code {
+                        KeyCode::Down | KeyCode::PageDown => {
+                            self.modal_scroll = self.modal_scroll.saturating_add(3);
+                        }
+                        KeyCode::Up | KeyCode::PageUp => {
+                            self.modal_scroll = self.modal_scroll.saturating_sub(3);
+                        }
+                        _ => {}
+                    }
+                    self.modal = Some(Modal::Form(form));
+                    return vec![];
+                }
                 if matches!(form.kind, EditKind::Settings)
                     && matches!(key.code, KeyCode::F(4) | KeyCode::F(5))
                 {

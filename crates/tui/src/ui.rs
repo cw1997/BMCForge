@@ -6,7 +6,7 @@ use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
-    text::{Line, Span},
+    text::Line,
     widgets::{
         Block, Borders, Cell, List, ListItem, ListState, Paragraph, Row, Sparkline, Table,
         TableState, Wrap,
@@ -54,7 +54,7 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         .constraints([
             Constraint::Length(3),
             Constraint::Min(4),
-            Constraint::Length(3),
+            Constraint::Length(1),
         ])
         .split(frame.area());
     let title = format!(
@@ -202,12 +202,6 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         "search",
         "export",
     ];
-    let footer_lines = Layout::vertical([
-        Constraint::Length(1),
-        Constraint::Length(1),
-        Constraint::Length(1),
-    ])
-    .split(layout[2]);
     let mut buttons = actions
         .iter()
         .map(|name| (app.action_text(name), Target::Shortcut((*name).into())))
@@ -249,13 +243,8 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
     if app.page == 1 {
         buttons.rotate_left(3);
     }
-    let palette_width = 12.min(footer_lines[0].width);
-    let palette_area = Rect::new(
-        footer_lines[0].x,
-        footer_lines[0].y,
-        palette_width,
-        footer_lines[0].height,
-    );
+    let palette_width = 12.min(layout[2].width);
+    let palette_area = Rect::new(layout[2].x, layout[2].y, palette_width, layout[2].height);
     frame.render_widget(
         Paragraph::new(" Ctrl+P ▾ ").style(theme.focus()),
         palette_area,
@@ -263,73 +252,11 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
     app.hits.push(Hit::new(palette_area, Target::Palette));
     let action_area = Rect::new(
         palette_area.right(),
-        footer_lines[0].y,
-        footer_lines[0].width.saturating_sub(palette_width),
-        footer_lines[0].height,
+        layout[2].y,
+        layout[2].width.saturating_sub(palette_width),
+        layout[2].height,
     );
     button_bar(frame, action_area, app, buttons);
-    let status = app.status_text();
-    let status_tone = crate::chrome::tone(&app.status.id);
-    let marker = if app.identifying || app.scanning {
-        format!(" {} ", spinner())
-    } else {
-        match status_tone {
-            crate::chrome::Tone::Error => " [!] ".into(),
-            crate::chrome::Tone::Warning => " [?] ".into(),
-            _ => " ".into(),
-        }
-    };
-    let inverse_theme = crate::theme::Theme::named(if app.config.settings.theme == "light" {
-        "dark"
-    } else {
-        "light"
-    });
-    let marker_color = match status_tone {
-        crate::chrome::Tone::Error => inverse_theme.danger,
-        crate::chrome::Tone::Warning => inverse_theme.warning,
-        _ => theme.background,
-    };
-    let available = footer_lines[1].width.saturating_sub(marker.width() as u16);
-    frame.render_widget(
-        Paragraph::new(Line::from(vec![
-            Span::styled(
-                marker,
-                Style::default()
-                    .fg(marker_color)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(crate::chrome::truncate(&status, available)),
-        ]))
-        .style(theme.status()),
-        footer_lines[1],
-    );
-    // Wide-character continuation cells can be reset by the text renderer.
-    // Paint the whole strip after text so even those cells keep reverse video.
-    for x in footer_lines[1].x..footer_lines[1].right() {
-        let cell = &mut frame.buffer_mut()[(x, footer_lines[1].y)];
-        cell.set_bg(theme.foreground);
-        if cell.symbol() == " " {
-            cell.set_fg(theme.background);
-        }
-    }
-    app.hits.push(Hit::new(footer_lines[1], Target::Status));
-    let navigation = if app
-        .interaction
-        .leader
-        .is_some_and(|time| time.elapsed() < std::time::Duration::from_secs(2))
-    {
-        "Ctrl+X → p · 1–5 · t · h · q · Esc".into()
-    } else {
-        format!(
-            "Ctrl+P · F8: {} · ↑↓ j/k · Enter · Tab: 1–5",
-            app.text("form-actions")
-        )
-    };
-    frame.render_widget(
-        Paragraph::new(crate::chrome::truncate(&navigation, footer_lines[2].width))
-            .style(Style::default().fg(theme.muted)),
-        footer_lines[2],
-    );
     if app.modal.is_some() {
         app.hits.clear(); // A modal owns all input, including clicks outside its content.
         modal(frame, app);
@@ -350,12 +277,6 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
             }
         }
     }
-}
-fn spinner() -> char {
-    use std::{sync::OnceLock, time::Instant};
-    static START: OnceLock<Instant> = OnceLock::new();
-    ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
-        [(START.get_or_init(Instant::now).elapsed().as_millis() / 100 % 10) as usize]
 }
 fn header(theme: crate::theme::Theme, cells: &[&str]) -> Row<'static> {
     Row::new(cells.iter().map(|s| Cell::from(s.to_string()))).style(
@@ -1329,21 +1250,39 @@ fn draw_form(frame: &mut Frame, area: Rect, app: &mut App) {
         crate::app::EditKind::Search => "",
         crate::app::EditKind::Profile(_) => "adapter-edit-help",
     };
+    let bottom_hint = if area.width >= 112 {
+        ""
+    } else {
+        app.text("form-description-toggle")
+    };
     let block = crate::chrome::panel(theme)
         .title(title)
-        .title_bottom(" Tab/Shift+Tab · ↑↓ · F2 · Esc · F8 ");
+        .title_bottom(bottom_hint);
     let inner = block.inner(area);
     frame.render_widget(block, area);
     if inner.width == 0 || inner.height == 0 {
         return;
     }
+    let side_by_side = inner.width >= 96;
+    app.form_narrow = !side_by_side;
+    let (field_area, descriptions_area) = if side_by_side {
+        let columns = Layout::horizontal([Constraint::Percentage(58), Constraint::Percentage(42)])
+            .split(inner);
+        (columns[0], Some(columns[1]))
+    } else if form.show_descriptions {
+        let hits = render_field_descriptions(frame, inner, form, app, true);
+        app.hits.extend(hits);
+        return;
+    } else {
+        (inner, None)
+    };
     let has_error = !form.error.is_empty() || !form.fields[form.focus].error.is_empty();
     let parts = Layout::vertical([
         Constraint::Length(if inner.height >= 8 { 3 } else { 0 }),
         Constraint::Min(1),
         Constraint::Length(if has_error && inner.height >= 5 { 2 } else { 0 }),
     ])
-    .split(inner);
+    .split(field_area);
     let help = if context_help.is_empty() {
         app.text("form-help").to_owned()
     } else {
@@ -1510,6 +1449,113 @@ fn draw_form(frame: &mut Frame, area: Rect, app: &mut App) {
             .wrap(Wrap { trim: false }),
         parts[2],
     );
+    if let Some(descriptions_area) = descriptions_area {
+        let hits = render_field_descriptions(frame, descriptions_area, form, app, false);
+        app.hits.extend(hits);
+    }
+}
+
+fn render_field_descriptions(
+    frame: &mut Frame,
+    area: Rect,
+    form: &crate::form::Form,
+    app: &App,
+    narrow: bool,
+) -> Vec<Hit> {
+    let theme = crate::theme::Theme::named(&app.config.settings.theme);
+    let lines = form
+        .fields
+        .iter()
+        .enumerate()
+        .map(|(index, field)| {
+            let path = field.path.join(".");
+            let key = field_description_key(form, field);
+            let label = if field.path.first().is_some_and(|p| p == "keys") {
+                format!("{} ({})", app.text(&field.label), path)
+            } else {
+                format!("{} ({path})", app.text(&field.label))
+            };
+            let marker = if index == form.focus { "› " } else { "  " };
+            format!("{marker}{label}\n{}", app.text(&key))
+        })
+        .collect::<Vec<_>>()
+        .join("\n\n");
+    let block = crate::chrome::panel(theme)
+        .title(app.text("form-field-descriptions"))
+        .title_bottom(if narrow {
+            app.text("form-description-toggle")
+        } else {
+            ""
+        });
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+    if inner.width == 0 || inner.height == 0 {
+        return vec![];
+    }
+    let paragraph = Paragraph::new(lines).wrap(Wrap { trim: false });
+    let maximum = paragraph
+        .line_count(inner.width)
+        .saturating_sub(usize::from(inner.height));
+    let scroll = if narrow {
+        usize::from(app.modal_scroll).min(maximum)
+    } else {
+        let before_focus = form
+            .fields
+            .iter()
+            .take(form.focus)
+            .map(|field| {
+                let path = field.path.join(".");
+                let label = format!("{} ({path})", app.text(&field.label));
+                let key = field_description_key(form, field);
+                let content = format!("  {label}\n{}\n\n", app.text(&key));
+                Paragraph::new(content)
+                    .wrap(Wrap { trim: false })
+                    .line_count(inner.width)
+            })
+            .sum::<usize>();
+        before_focus.min(maximum)
+    };
+    frame.render_widget(paragraph.scroll((scroll as u16, 0)), inner);
+    crate::chrome::scrollbar(
+        frame,
+        Rect::new(
+            area.right().saturating_sub(1),
+            inner.y,
+            1.min(area.width),
+            inner.height,
+        ),
+        scroll,
+        maximum,
+        Pane::Modal,
+        theme,
+    )
+}
+
+fn field_description_key(form: &crate::form::Form, field: &crate::form::Field) -> String {
+    if matches!(form.kind, crate::app::EditKind::Profile(_)) {
+        return format!(
+            "field-description-{}",
+            match field.group {
+                "adapter-matching" => "adapter-matching",
+                "adapter-control" => "adapter-control",
+                "adapter-examples" => "adapter-examples",
+                "credentials" => "adapter-credentials",
+                "form-basic" => "adapter-metadata",
+                _ => "generic",
+            }
+        );
+    }
+    if field.path.first().is_some_and(|part| part == "keys") {
+        return "field-description-shortcut".into();
+    }
+    let leaf = field
+        .path
+        .iter()
+        .rev()
+        .find(|part| part.parse::<usize>().is_err())
+        .map(String::as_str)
+        .unwrap_or("generic");
+    format!("field-description-{}", leaf.replace('_', "-"))
 }
 fn modal(frame: &mut Frame, app: &mut App) {
     let theme = crate::theme::Theme::named(&app.config.settings.theme);
@@ -2346,7 +2392,7 @@ mod tests {
         }
     }
     #[test]
-    fn operation_status_stays_visible_when_shortcuts_are_wider_than_terminal() {
+    fn operation_status_is_removed_but_activity_tab_remains() {
         let mut app = App::new(
             Config::default(),
             "unused".into(),
@@ -2363,7 +2409,9 @@ mod tests {
             .iter()
             .map(|c| c.symbol())
             .collect();
-        assert!(text.contains("RESTORE FAILED: check device"));
+        assert!(!text.contains("RESTORE FAILED: check device"));
+        assert!(app.hits.iter().any(|hit| hit.target == Target::Page(3)));
+        assert!(!app.hits.iter().any(|hit| hit.target == Target::Status));
     }
     #[test]
     fn top_exit_button_invokes_the_normal_quit_action() {
@@ -2798,7 +2846,7 @@ mod tests {
             crate::theme::Theme::named("dark").accent
         );
         app.mouse(MouseEvent {
-            column: 119,
+            column: 120,
             row: 34,
             ..event
         });
@@ -2940,5 +2988,39 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn form_explanations_are_side_by_side_wide_and_toggle_on_narrow() {
+        let mut wide = demo();
+        wide.config.servers[0].credentials.password = "secret-marker".into();
+        key(&mut wide, KeyCode::Char('e'));
+        let mut wide_terminal = Terminal::new(TestBackend::new(120, 35)).unwrap();
+        wide_terminal.draw(|f| draw(f, &mut wide)).unwrap();
+        let wide_text = buffer_text(&wide_terminal);
+        assert!(wide_text.contains(wide.text("form-field-descriptions")));
+        assert!(wide_text.contains(wide.text("field-description-host")));
+        assert!(!wide_text.contains("secret-marker"));
+
+        let mut narrow = demo();
+        key(&mut narrow, KeyCode::Char('e'));
+        let mut narrow_terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+        narrow_terminal.draw(|f| draw(f, &mut narrow)).unwrap();
+        assert!(!buffer_text(&narrow_terminal).contains(narrow.text("field-description-host")));
+        let focused = match &narrow.modal {
+            Some(Modal::Form(form)) => form.focus,
+            _ => panic!("form"),
+        };
+        key(&mut narrow, KeyCode::F(1));
+        narrow_terminal.draw(|f| draw(f, &mut narrow)).unwrap();
+        assert!(buffer_text(&narrow_terminal).contains(narrow.text("field-description-host")));
+        key(&mut narrow, KeyCode::Down);
+        assert!(matches!(
+            &narrow.modal,
+            Some(Modal::Form(form)) if form.focus == focused
+        ));
+        key(&mut narrow, KeyCode::F(1));
+        narrow_terminal.draw(|f| draw(f, &mut narrow)).unwrap();
+        assert!(buffer_text(&narrow_terminal).contains(narrow.text("field-name")));
     }
 }

@@ -69,6 +69,7 @@ pub struct Form {
     pub error: String,
     pub base: toml::Table,
     pub advanced: bool,
+    pub show_descriptions: bool,
 }
 
 fn field(path: Vec<String>, value: &toml::Value) -> Field {
@@ -304,6 +305,7 @@ impl Form {
             error: String::new(),
             base,
             advanced,
+            show_descriptions: false,
         })
     }
     pub fn input(&mut self, key: KeyEvent) {

@@ -51,9 +51,6 @@ impl Theme {
     pub fn surface(self) -> Style {
         Style::default().fg(self.foreground).bg(self.surface)
     }
-    pub fn status(self) -> Style {
-        Style::default().fg(self.background).bg(self.foreground)
-    }
     pub fn focus(self) -> Style {
         Style::default()
             .fg(self.background)
