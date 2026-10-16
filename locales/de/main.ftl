@@ -11,7 +11,7 @@ import = Importieren
 discover = Scannen
 edit = Bearbeiten
 manual = Manuelle Steuerung
-automatic = Automatisch
+automatic = Automatische Steuerung wiederherstellen
 select = Auswählen
 search = Suchen
 settings = Einstellungen
@@ -68,6 +68,7 @@ unsupported = Nicht unterstützt
 settings-saved = Einstellungen gespeichert
 group = Gruppe
 server = Server
+models = Modelle
 bmc-endpoint = BMC-Adresse
 status = Status
 server-details = Serverdetails
@@ -96,7 +97,7 @@ operation-ok = Vorgang erfolgreich: { $server }
 scan-failed = Scan fehlgeschlagen
 scan-finished = Erkennung beendet. Keine Antwort bedeutet unbekannt, nicht abwesend.
 safety = Beim Beenden werden übernommene Lüfter zurückgesetzt. Bei erzwungenem Abbruch, Strom- oder Netzwerkausfall ist dies nicht garantiert.
-help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab: Seiten; Pfeile: Navigation; Leertaste: Auswahl; F2: Speichern; F3: Sprache; F4: Maus; F5: unbekannt; F6: überspringen; A: alle; G: /24-Gruppe; c: Identifizierung abbrechen. Umschalt+Ziehen oder Terminalauswahl kopiert Text. Tasten sind einstellbar.
+help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab: Seiten; Pfeile: Navigation; Leertaste: Auswahl; F2: Speichern; F3: Sprache; F5: unbekannt; F6: überspringen; A: alle; G: /24-Gruppe; c: Identifizierung abbrechen. Umschalt+Ziehen oder Terminalauswahl kopiert Text. Tasten sind einstellbar.
 device-count = { $count ->
     [one] { $count } Gerät
    *[other] { $count } Geräte
@@ -147,8 +148,8 @@ form-lines = Enter: neue Zeile · IP / Hostname / CIDR / Bereich
 form-error-number = Ganze Zahl eingeben (dezimal oder 0x hexadezimal).
 form-error-range = Wert außerhalb des angezeigten Bereichs.
 form-error-choice = Verfügbare Option wählen.
-form-help = Tab/Shift+Tab: Felder · Enter: aktivieren · F2: weiter · Esc: abbrechen · F8: Aktionen
-form-key-help = F8: Aktionen, Pfeile/Tab navigieren, Enter ausführen, Esc verlassen · Formular: Tab Felder, F2 speichern, F6 Geheimnis anzeigen, F7 erweitert/zurück, Esc abbrechen · ↑↓ wählen, Enter bestätigen, PgUp/PgDn scrollen · F3 Sprache, F4 Maus, Del entfernen · A alle, G /24, f Filter, c Erkennung abbrechen, u Zugangsdaten, F5 unbekannt, F6 überspringen · Ctrl+C beenden
+form-help = Tab/Shift+Tab: Felder · Enter: aktivieren · F2: übernehmen · Esc: abbrechen · F8: Aktionen
+form-key-help = F8: Aktionen, Pfeile/Tab navigieren, Enter ausführen, Esc verlassen · Formular: Tab Felder, F2 speichern, F6 Geheimnis anzeigen, F7 erweitert/zurück, Esc abbrechen · ↑↓ wählen, Enter bestätigen, PgUp/PgDn scrollen · F3 Sprache, Del entfernen · A alle, G /24, f Filter, c Erkennung abbrechen, u Zugangsdaten, F5 unbekannt, F6 überspringen · Ctrl+C beenden
 form-error-shortcut = Dieses Kürzel ist für Navigation oder Seitenaktionen reserviert.
 form-error-key = Ein eindeutiges Zeichen außer 1–5 verwenden.
 form-error-username = Benutzername: maximal 16 UTF-8-Bytes.
@@ -167,3 +168,60 @@ command-empty = Keine Einträge vorhanden
 
 ui-more = Weitere Aktionen
 ui-copy-hint = Mit Shift+Ziehen oder der Terminalauswahl kopieren. Mit Bild↑/Bild↓ oder der Bildlaufleiste scrollen.
+help-tab = Hilfe
+help-page = Fügen Sie zuerst Server über Import hinzu; jeder Server kann eigene Zugangsdaten haben. Seiten: 1 Server, 2 Sensoren, 3 Adapterbibliothek, 4 Aktionsprotokoll, 5 Hilfe. Mit d scannen Sie einen IPv4-Bereich; die Ergebnisse erscheinen in einem Dialog. Im Ergebnisdialog: Leertaste wählt aus, A wählt alle Kandidaten, G die aktuelle /24-Gruppe, f filtert, die Import-Taste identifiziert ausgewählte Geräte, Esc schließt. Ctrl+P öffnet die Befehlssuche, F1 diese Seite, F3 die Sprache und q beendet sicher. Eine manuelle Lüftersteuerung erfordert eine ausdrückliche Aktion; beim normalen Beenden wird die Rückkehr zum Automatikmodus versucht.
+
+help-scan-input = IPv4-Adressen oder Bereiche für die IPMI-Prüfung eingeben; registrierte Hosts werden übersprungen.
+help-import-input = Pro Zeile eine Serveradresse, CIDR oder einen Bereich eingeben; registrierte Hosts werden übersprungen.
+help-identify-credentials = Diese Zugangsdaten werden nur für die ausgewählten Scan-Ergebnisse verwendet. Geräte lassen sich vor dem Hinzufügen prüfen.
+help-import-credentials = Diese Zugangsdaten und Einstellungen werden für jeden neuen Server dieses Stapels gespeichert.
+help-server-form = Änderungen gelten für diesen Server, sobald sein Worker die neue Konfiguration annimmt.
+help-manual-form = Lüfterzielwert und Zone wählen; betroffene Server vor dem Senden des Steuerbefehls prüfen.
+help-settings-form = Anwendungseinstellungen; einige Laufzeitänderungen gelten erst nach einem Neustart.
+help-discovery = Nicht registrierte Kandidaten auswählen; registrierte Hosts können nicht erneut hinzugefügt werden.
+help-existing-host = Bereits registriert; kann nicht erneut hinzugefügt werden
+help-import-preview = Server und Duplikate vor dem Fortfahren prüfen. Bestätigen speichert neue Servereinstellungen.
+help-identify-preview = Ausgewählte Server prüfen. Bestätigen startet die Identifizierung; erkannte Geräte können vor dem Hinzufügen geprüft werden.
+help-scan-preview = IPv4-Ziele und übersprungene Hosts prüfen. Bestätigen startet den Netzwerkscan.
+help-editor = Erweiterter TOML-Editor; mit F7 prüfen und zum Formular zurückkehren, dann im Formular speichern.
+help-manual-confirm = Sendet die angeforderte Lüftereinstellung an die aufgeführten Server.
+help-automatic-confirm = Fordert die aufgeführten Server auf, die automatische Lüftersteuerung wiederherzustellen.
+help-remove = Dieser Servereintrag wird nach der Wiederherstellung des Automatikmodus entfernt.
+
+view = Anzeigen
+save = Speichern
+close = Schließen
+edit-adapter = Adapter bearbeiten
+edit-server = Server bearbeiten
+reset-adapter = Originaladapter wiederherstellen
+reset-group = Gruppe zurücksetzen
+reset-all = Alle Einstellungen zurücksetzen
+local-adapter = Lokaler Adapter; Original
+adapter-matching = Abgleichregeln
+adapter-control = Lüftersteuerung und Protokollschritte
+adapter-examples = Befehlsbeispiele
+not-set = Nicht festgelegt
+add-item = Eintrag hinzufügen / aktivieren
+remove-item = Eintrag entfernen / leeren
+prefill-server-credentials = Server-Zugangsdaten vorbefüllen
+adapter-edit-help = F4 hinzufügen/aktivieren · F5 entfernen/leeren · Ctrl+↑/↓ verschieben · F7 TOML. Bearbeiten ersetzt keine Hardwareprüfung.
+adapter-list-help = F4 hinzufügen · F5 entfernen · Ctrl+↑/↓ verschieben
+adapter-structured-help = TOML-Wert; leer entfernt optionale Werte
+reset-adapter-warning = Lokalen Adapter löschen und die aufgeführten Server sowie automatische Zuordnungen zum Original zurückführen.
+
+choose = Auswählen
+remove-server-action = Server entfernen
+
+adapter-origin = Originalquelle
+builtin-adapter = In der Anwendung enthalten
+adapter-multiline = Enter: neue Zeile
+
+move-up = Eintrag nach oben
+move-down = Eintrag nach unten
+
+selected-servers = ausgewählte Server
+cancel-discovery = Erkennung abbrechen
+search-servers = Server suchen
+export-diagnostics = Diagnose exportieren
+
+read-only = Schreibgeschützt

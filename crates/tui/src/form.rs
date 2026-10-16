@@ -11,6 +11,9 @@ pub enum FieldType {
     Toggle,
     Choice(Vec<String>),
     Tags,
+    Structured,
+    Collection,
+    ReadOnly,
 }
 
 #[derive(Clone, Debug)]
@@ -119,6 +122,7 @@ fn field(path: Vec<String>, value: &toml::Value) -> Field {
             | "privilege"
             | "concurrency"
             | "history_capacity"
+            | "sensor_filter"
     ) {
         "form-runtime"
     } else {
@@ -173,6 +177,12 @@ impl Form {
                 .as_table()
                 .unwrap()
                 .clone();
+            }
+            EditKind::Profile(_) => {
+                base = toml::Value::try_from(toml::from_str::<bmcforge_profiles::Profile>(text)?)?
+                    .as_table()
+                    .unwrap()
+                    .clone();
             }
             EditKind::Server(_) => {
                 base =
@@ -237,6 +247,45 @@ impl Form {
                 }
             }
             visit(&base, vec![], &mut fields);
+            if matches!(kind, EditKind::Profile(_)) {
+                fields.clear();
+                profile_fields(&toml::Value::Table(base.clone()), vec![], &mut fields);
+                for path in [
+                    vec!["matcher", "manufacturer_id"],
+                    vec!["matcher", "firmware_min"],
+                    vec!["matcher", "firmware_max"],
+                    vec!["fan"],
+                ] {
+                    let path: Vec<String> = path.into_iter().map(str::to_owned).collect();
+                    let mut node = &toml::Value::Table(base.clone());
+                    let found = path.iter().all(|p| {
+                        if let Some(next) = node.get(p) {
+                            node = next;
+                            true
+                        } else {
+                            false
+                        }
+                    });
+                    if !found {
+                        let mut f = field(path.clone(), &toml::Value::String(String::new()));
+                        f.label = path.join(".");
+                        f.kind = if path.last().is_some_and(|p| p == "manufacturer_id") {
+                            FieldType::Structured
+                        } else if path == ["fan"] {
+                            FieldType::Structured
+                        } else {
+                            FieldType::Text
+                        };
+                        f.optional = true;
+                        f.group = if path.first().is_some_and(|p| p == "matcher") {
+                            "adapter-matching"
+                        } else {
+                            "adapter-control"
+                        };
+                        fields.push(f);
+                    }
+                }
+            }
             fields.sort_by_key(|f| match f.group {
                 "form-basic" => 0,
                 "form-appearance" => 1,
@@ -258,17 +307,35 @@ impl Form {
         })
     }
     pub fn input(&mut self, key: KeyEvent) {
+        if matches!(self.kind, EditKind::Profile(_))
+            && (matches!(
+                key.code,
+                KeyCode::F(4) | KeyCode::F(5) | KeyCode::F(9) | KeyCode::F(10)
+            ) || (key
+                .modifiers
+                .contains(crossterm::event::KeyModifiers::CONTROL)
+                && matches!(key.code, KeyCode::Up | KeyCode::Down)))
+        {
+            if let Err(error) = self.edit_collection(key) {
+                self.locate_error(&error.to_string());
+            }
+            return;
+        }
         self.error.clear();
         match key.code {
             KeyCode::Tab | KeyCode::Down
-                if !matches!(self.fields[self.focus].kind, FieldType::Multiline)
-                    || key.code == KeyCode::Tab =>
+                if !matches!(
+                    self.fields[self.focus].kind,
+                    FieldType::Multiline | FieldType::Structured
+                ) || key.code == KeyCode::Tab =>
             {
                 self.focus = (self.focus + 1) % self.fields.len()
             }
             KeyCode::BackTab | KeyCode::Up
-                if !matches!(self.fields[self.focus].kind, FieldType::Multiline)
-                    || key.code == KeyCode::BackTab =>
+                if !matches!(
+                    self.fields[self.focus].kind,
+                    FieldType::Multiline | FieldType::Structured
+                ) || key.code == KeyCode::BackTab =>
             {
                 self.focus = (self.focus + self.fields.len() - 1) % self.fields.len()
             }
@@ -276,6 +343,7 @@ impl Form {
             _ => {
                 let f = &mut self.fields[self.focus];
                 match &f.kind {
+                    FieldType::Collection | FieldType::ReadOnly => {}
                     FieldType::Toggle | FieldType::Choice(_) => {
                         if matches!(
                             key.code,
@@ -285,7 +353,9 @@ impl Form {
                         }
                     }
                     _ => {
-                        if key.code != KeyCode::Enter || matches!(f.kind, FieldType::Multiline) {
+                        if key.code != KeyCode::Enter
+                            || matches!(f.kind, FieldType::Multiline | FieldType::Structured)
+                        {
                             f.input.input(key);
                             f.error.clear();
                         }
@@ -297,10 +367,13 @@ impl Form {
     pub fn paste(&mut self, text: &str) {
         self.error.clear();
         let f = &mut self.fields[self.focus];
-        if matches!(f.kind, FieldType::Toggle | FieldType::Choice(_)) {
+        if matches!(
+            f.kind,
+            FieldType::Toggle | FieldType::Choice(_) | FieldType::Collection | FieldType::ReadOnly
+        ) {
             return;
         }
-        if matches!(f.kind, FieldType::Multiline) {
+        if matches!(f.kind, FieldType::Multiline | FieldType::Structured) {
             f.input.paste(text);
         } else {
             f.input.paste(&text.replace(['\r', '\n'], ""));
@@ -314,7 +387,16 @@ impl Form {
         let mut table = self.base.clone();
         let mut shortcuts = std::collections::BTreeSet::new();
         for (i, f) in self.fields.iter_mut().enumerate() {
+            if matches!(f.kind, FieldType::Collection | FieldType::ReadOnly) {
+                continue;
+            }
             let text = f.value();
+            if f.optional && text.is_empty() {
+                let mut root = toml::Value::Table(table);
+                set_path(&mut root, &f.path, None)?;
+                table = root.as_table().unwrap().clone();
+                continue;
+            }
             let result: Result<toml::Value> = (|| {
                 if f.path.first().is_some_and(|p| p == "keys") && !text.is_empty() {
                     ensure!(
@@ -342,6 +424,14 @@ impl Form {
                         toml::Value::Integer(n)
                     }
                     FieldType::Toggle => toml::Value::Boolean(text == "true"),
+                    FieldType::Structured => {
+                        if text.trim().is_empty() && f.optional {
+                            toml::Value::String(String::new())
+                        } else {
+                            let wrapper: toml::Table = toml::from_str(&format!("value = {text}"))?;
+                            wrapper["value"].clone()
+                        }
+                    }
                     FieldType::Tags => toml::Value::Array(
                         parse_tags(&text)?
                             .into_iter()
@@ -369,18 +459,152 @@ impl Form {
                     bail!("{}", f.error);
                 }
             };
-            let mut parent = &mut table;
-            for p in &f.path[..f.path.len() - 1] {
-                parent = parent.get_mut(p).unwrap().as_table_mut().unwrap();
-            }
-            let key = f.path.last().unwrap();
-            if f.optional && text.is_empty() {
-                parent.remove(key);
-            } else {
-                parent.insert(key.clone(), value);
-            }
+            let mut root = toml::Value::Table(table);
+            set_path(
+                &mut root,
+                &f.path,
+                if f.optional && text.is_empty() {
+                    None
+                } else {
+                    Some(value)
+                },
+            )?;
+            table = root.as_table().unwrap().clone();
         }
         Ok(toml::to_string_pretty(&table)?)
+    }
+    fn edit_collection(&mut self, key: KeyEvent) -> Result<()> {
+        let field_path = self.fields[self.focus].path.clone();
+        let focus = self.focus;
+        let mut root: toml::Value = toml::Value::Table(toml::from_str(&self.text()?)?);
+        if self.fields[focus].optional && key.code == KeyCode::F(5) {
+            set_path(&mut root, &field_path, None)?;
+            *self = Self::new(
+                self.title.clone(),
+                self.kind.clone(),
+                &toml::to_string_pretty(&root)?,
+            )?;
+            self.focus = focus.min(self.fields.len() - 1);
+            return Ok(());
+        }
+        if self.fields[focus].optional
+            && self.fields[focus].value().is_empty()
+            && key.code == KeyCode::F(4)
+            && field_path != ["fan"]
+        {
+            let value = match field_path.last().map(String::as_str) {
+                Some("expect" | "expect_data") => toml::Value::Array(vec![]),
+                Some("manufacturer_id" | "raw") => toml::Value::Integer(0),
+                _ => toml::Value::String(String::new()),
+            };
+            set_path(&mut root, &field_path, Some(value))?;
+            *self = Self::new(
+                self.title.clone(),
+                self.kind.clone(),
+                &toml::to_string_pretty(&root)?,
+            )?;
+            self.focus = focus.min(self.fields.len() - 1);
+            return Ok(());
+        }
+        let mut next_path = field_path.clone();
+        let mut array_path = None;
+        for len in (1..=field_path.len()).rev() {
+            if node_mut(&mut root, &field_path[..len]).is_ok_and(|v| v.is_array()) {
+                array_path = Some(field_path[..len].to_vec());
+                break;
+            }
+        }
+        if let Some(path) = array_path {
+            let array = node_mut(&mut root, &path)?.as_array_mut().unwrap();
+            let index = field_path
+                .get(path.len())
+                .and_then(|p| p.parse::<usize>().ok())
+                .unwrap_or_else(|| array.len().saturating_sub(1));
+            match key.code {
+                KeyCode::F(4) => {
+                    let value = item_template(&path)?;
+                    let insert = if array.is_empty() {
+                        0
+                    } else {
+                        (index + 1).min(array.len())
+                    };
+                    array.insert(insert, value);
+                    next_path = path.clone();
+                    next_path.push(insert.to_string());
+                }
+                KeyCode::F(5) if !array.is_empty() => {
+                    array.remove(index);
+                }
+                KeyCode::Up | KeyCode::F(9) if index > 0 => {
+                    array.swap(index, index - 1);
+                    if next_path.len() > path.len() {
+                        next_path[path.len()] = (index - 1).to_string();
+                    }
+                }
+                KeyCode::Down | KeyCode::F(10) if index + 1 < array.len() => {
+                    array.swap(index, index + 1);
+                    if next_path.len() > path.len() {
+                        next_path[path.len()] = (index + 1).to_string();
+                    }
+                }
+                _ => {}
+            }
+        } else if self.fields[focus].optional {
+            if key.code == KeyCode::F(5) {
+                set_path(&mut root, &field_path, None)?;
+            } else if field_path == ["fan"] && root.get("fan").is_none() {
+                let fan: toml::Table = toml::from_str(
+                    "min_percent=0\nmax_percent=100\nscale=100\nzones=[]\nmanual=[]\nset=[]\nautomatic=[]",
+                )?;
+                set_path(&mut root, &field_path, Some(toml::Value::Table(fan)))?;
+            }
+        } else {
+            bail!("select a list or optional field");
+        }
+        *self = Self::new(
+            self.title.clone(),
+            self.kind.clone(),
+            &toml::to_string_pretty(&root)?,
+        )?;
+        self.focus = self
+            .fields
+            .iter()
+            .position(|f| f.path.starts_with(&next_path))
+            .unwrap_or_else(|| focus.min(self.fields.len() - 1));
+        Ok(())
+    }
+    pub fn reset_settings(&mut self, all: bool) -> Result<()> {
+        let defaults = Self::new(
+            self.title.clone(),
+            self.kind.clone(),
+            &toml::to_string_pretty(&bmcforge_core::config::Settings::default())?,
+        )?;
+        let path = self.fields[self.focus].path.clone();
+        if all {
+            *self = defaults;
+        } else {
+            let group = self.fields[self.focus].group;
+            self.fields.retain(|f| f.group != group);
+            for field in defaults.fields.into_iter().filter(|f| f.group == group) {
+                self.fields.push(field);
+            }
+            for (key, value) in defaults.base {
+                if field(vec![key.clone()], &value).group == group {
+                    self.base.insert(key, value);
+                }
+            }
+            self.fields.sort_by_key(|f| match f.group {
+                "form-basic" => 0,
+                "form-appearance" => 1,
+                "credentials" => 2,
+                "discovery" => 3,
+                "form-runtime" => 4,
+                _ => 5,
+            });
+            self.error.clear();
+        }
+        self.focus = self.fields.iter().position(|f| f.path == path).unwrap_or(0);
+        Ok(())
     }
     pub fn choice_options(&self, query: &str) -> Vec<String> {
         if let FieldType::Choice(options) = &self.fields[self.focus].kind {
@@ -404,6 +628,180 @@ impl Form {
         self.error = error.into();
         self.fields[self.focus].error = error.into();
     }
+}
+
+// Profiles use indexed paths so each nested list item has independently typed fields.
+fn profile_fields(value: &toml::Value, path: Vec<String>, fields: &mut Vec<Field>) {
+    let group = match path.first().map(String::as_str) {
+        Some("matcher") => "adapter-matching",
+        Some("fan") => "adapter-control",
+        Some("examples") => "adapter-examples",
+        Some("default_credentials") => "credentials",
+        _ => "form-basic",
+    };
+    match value {
+        toml::Value::Table(table) => {
+            if path == ["fan"] {
+                let mut f = field(path.clone(), value);
+                f.label = "fan".into();
+                f.group = group;
+                f.optional = true;
+                f.kind = FieldType::Collection;
+                f.input = Editor::new("…");
+                fields.push(f);
+            }
+            for (key, value) in table {
+                let mut next = path.clone();
+                next.push(key.clone());
+                profile_fields(value, next, fields);
+            }
+            let optional: &[&str] = if path.first().is_some_and(|p| p == "default_credentials") {
+                &["password"]
+            } else if path.last().is_some_and(|p| p.parse::<usize>().is_ok())
+                && path.first().is_some_and(|p| p == "fan")
+                && path.len() == 3
+                && path[1] != "zones"
+            {
+                &["expect", "expect_data"]
+            } else if path.first().is_some_and(|p| p == "examples") {
+                &["raw"]
+            } else {
+                &[]
+            };
+            for key in optional {
+                if !table.contains_key(*key) {
+                    let mut next = path.clone();
+                    next.push((*key).into());
+                    let mut f = field(next.clone(), &toml::Value::String(String::new()));
+                    f.label = next.join(".");
+                    f.group = group;
+                    f.optional = true;
+                    f.kind = if *key == "password" {
+                        FieldType::Secret
+                    } else {
+                        FieldType::Structured
+                    };
+                    fields.push(f);
+                }
+            }
+        }
+        toml::Value::Array(items) => {
+            let mut f = field(path.clone(), value);
+            f.label = path.join(".");
+            f.group = group;
+            f.kind = FieldType::Collection;
+            f.optional = path
+                .last()
+                .is_some_and(|p| matches!(p.as_str(), "expect" | "expect_data"));
+            f.input = Editor::new(&format!("[{}]", items.len()));
+            fields.push(f);
+            for (index, item) in items.iter().enumerate() {
+                let mut next = path.clone();
+                next.push(index.to_string());
+                profile_fields(item, next, fields);
+            }
+        }
+        _ => {
+            let mut f = field(path.clone(), value);
+            f.label = path.join(".");
+            f.group = group;
+            if path.last().is_some_and(|p| {
+                matches!(
+                    p.as_str(),
+                    "manufacturer_id" | "firmware_min" | "firmware_max" | "raw" | "password"
+                )
+            }) {
+                f.optional = true;
+            }
+            if path
+                .last()
+                .is_some_and(|p| matches!(p.as_str(), "description" | "notes" | "note"))
+            {
+                f.kind = FieldType::Multiline;
+            }
+            if path.last().is_some_and(|p| p == "verification") {
+                f.kind = FieldType::Choice(
+                    [
+                        "hardware_verified",
+                        "documented",
+                        "experimental",
+                        "unsupported",
+                    ]
+                    .into_iter()
+                    .map(str::to_owned)
+                    .collect(),
+                );
+            }
+            if path.len() == 1
+                && matches!(
+                    path[0].as_str(),
+                    "id" | "schema_version" | "override_builtin"
+                )
+            {
+                f.kind = FieldType::ReadOnly;
+            }
+            fields.push(f);
+        }
+    }
+}
+fn set_path(root: &mut toml::Value, path: &[String], value: Option<toml::Value>) -> Result<()> {
+    let (key, rest) = path.split_first().context("empty field path")?;
+    if let toml::Value::Array(array) = root {
+        let index: usize = key.parse()?;
+        if rest.is_empty() {
+            if let Some(value) = value {
+                array[index] = value;
+            }
+        } else {
+            set_path(&mut array[index], rest, value)?;
+        }
+    } else {
+        let table = root.as_table_mut().context("invalid field parent")?;
+        if rest.is_empty() {
+            if let Some(value) = value {
+                table.insert(key.clone(), value);
+            } else {
+                table.remove(key);
+            }
+        } else {
+            set_path(
+                table.get_mut(key).context("missing field parent")?,
+                rest,
+                value,
+            )?;
+        }
+    }
+    Ok(())
+}
+fn node_mut<'a>(mut root: &'a mut toml::Value, path: &[String]) -> Result<&'a mut toml::Value> {
+    for key in path {
+        root = if let toml::Value::Array(array) = root {
+            array
+                .get_mut(key.parse::<usize>()?)
+                .context("missing list item")?
+        } else {
+            root.get_mut(key).context("missing field")?
+        };
+    }
+    Ok(root)
+}
+fn item_template(path: &[String]) -> Result<toml::Value> {
+    let key = path.last().map(String::as_str).unwrap_or("");
+    let text = match key {
+        "zones" => "id = 0\nname = \"\"",
+        "default_credentials" => "username = \"\"\nsource = \"https://\"\nnote = \"\"",
+        "probe" | "manual" | "set" | "automatic" => {
+            "netfn = 0\ncommand = 0\ndata = []\ndelay_ms = 0"
+        }
+        "examples" => "percent = 0\nzone = 0\nexpected = []",
+        "expected" => return Ok(toml::Value::Array(vec![])),
+        "manufacturer_ids" | "product_ids" | "percent_values" | "raw_values" | "expect" => {
+            return Ok(toml::Value::Integer(0));
+        }
+        _ if path.iter().any(|p| p == "expected") => return Ok(toml::Value::Integer(0)),
+        _ => return Ok(toml::Value::String(String::new())),
+    };
+    Ok(toml::Value::Table(toml::from_str(text)?))
 }
 
 // Quoted comma-separated tags preserve existing labels containing punctuation or spaces.
@@ -459,6 +857,108 @@ mod tests {
     use bmcforge_core::config::{Server, Settings};
     use crossterm::event::KeyModifiers;
 
+    #[test]
+    fn all_adapters_roundtrip_without_losing_nested_data() -> Result<()> {
+        let registry = bmcforge_profiles::Registry::load(None)?;
+        for p in registry.profiles.values() {
+            let before = toml::Value::try_from(p)?;
+            let mut f = Form::new(
+                p.id.clone(),
+                EditKind::Profile(p.id.clone()),
+                &toml::to_string_pretty(p)?,
+            )?;
+            let after = bmcforge_profiles::Profile::parse(&f.text()?)?;
+            assert_eq!(before, toml::Value::try_from(after)?, "{}", p.id);
+            for field in &f.fields {
+                if field.path.last().is_some_and(|p| p == "password") {
+                    assert!(matches!(field.kind, FieldType::Secret));
+                }
+            }
+        }
+        Ok(())
+    }
+    #[test]
+    fn adapter_lists_can_add_edit_reorder_remove_and_enable_optional_control() -> Result<()> {
+        let p = bmcforge_profiles::Registry::load(None)?.profiles["generic"].clone();
+        let mut f = Form::new(
+            p.id.clone(),
+            EditKind::Profile(p.id.clone()),
+            &toml::to_string_pretty(&p)?,
+        )?;
+        f.focus = f.fields.iter().position(|f| f.path == ["sources"]).unwrap();
+        f.input(KeyEvent::new(KeyCode::F(4), KeyModifiers::NONE));
+        assert!(f.error.is_empty(), "{}", f.error);
+        let index = f
+            .fields
+            .iter()
+            .position(|f| f.path == ["sources", "1"])
+            .unwrap();
+        f.focus = index;
+        f.fields[index].input = Editor::new("https://example.com/new");
+        f.input(KeyEvent::new(KeyCode::Up, KeyModifiers::CONTROL));
+        let value: toml::Value = toml::from_str(&f.text()?)?;
+        assert_eq!(
+            value["sources"][0].as_str(),
+            Some("https://example.com/new")
+        );
+        f.focus = f
+            .fields
+            .iter()
+            .position(|f| f.path == ["sources", "0"])
+            .unwrap();
+        f.input(KeyEvent::new(KeyCode::F(5), KeyModifiers::NONE));
+        assert_eq!(
+            toml::from_str::<toml::Value>(&f.text()?)?["sources"]
+                .as_array()
+                .unwrap()
+                .len(),
+            1
+        );
+        f.focus = f.fields.iter().position(|f| f.path == ["fan"]).unwrap();
+        f.input(KeyEvent::new(KeyCode::F(4), KeyModifiers::NONE));
+        assert!(f.error.is_empty(), "{}", f.error);
+        assert!(f.fields.iter().any(|f| f.path == ["fan", "zones"]));
+        f.focus = f.fields.iter().position(|f| f.path == ["fan"]).unwrap();
+        f.input(KeyEvent::new(KeyCode::F(5), KeyModifiers::NONE));
+        assert!(
+            toml::from_str::<toml::Value>(&f.text()?)?
+                .get("fan")
+                .is_none()
+        );
+        Ok(())
+    }
+    #[test]
+    fn settings_group_reset_only_changes_its_group_and_all_reset_covers_every_field() -> Result<()>
+    {
+        let mut settings = Settings {
+            language: "zh-CN".into(),
+            theme: "light".into(),
+            concurrency: 17,
+            scan_port: 624,
+            sensor_filter: "fan".into(),
+            ..Settings::default()
+        };
+        settings.keys.insert("edit".into(), "z".into());
+        let mut f = Form::new(
+            "Settings".into(),
+            EditKind::Settings,
+            &toml::to_string_pretty(&settings)?,
+        )?;
+        f.focus = f.fields.iter().position(|f| f.path == ["theme"]).unwrap();
+        f.reset_settings(false)?;
+        let reset: Settings = toml::from_str(&f.text()?)?;
+        assert_eq!(reset.language, "en");
+        assert_eq!(reset.theme, "dark");
+        assert_eq!(reset.scan_port, 624);
+        assert_eq!(reset.concurrency, 17);
+        assert_eq!(reset.keys["edit"], "z");
+        f.reset_settings(true)?;
+        assert_eq!(
+            toml::from_str::<toml::Value>(&f.text()?)?,
+            toml::Value::try_from(Settings::default())?
+        );
+        Ok(())
+    }
     #[test]
     fn server_roundtrip_preserves_identity_secrets_and_quoted_tags() {
         let server = Server {

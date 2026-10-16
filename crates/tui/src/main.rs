@@ -5,6 +5,7 @@ mod editor;
 mod form;
 mod i18n;
 mod interaction;
+mod local_profiles;
 mod mouse;
 mod runtime;
 mod theme;
@@ -78,7 +79,11 @@ async fn main() -> Result<()> {
         Some(path) => path,
         None => default_path()?,
     };
-    let registry = Registry::load(args.profiles_dir.as_deref())?;
+    let mut registry = Registry::load(args.profiles_dir.as_deref())?;
+    if !args.demo {
+        local_profiles::recover(&path)?;
+        local_profiles::load(&path, &mut registry)?;
+    }
     let locales = i18n::Locales::load(args.locales_dir.as_deref())?;
     let catalog = bmcforge_profiles::models::Catalog::load(args.profiles_dir.as_deref())?;
     for warning in &locales.diagnostics {
@@ -186,7 +191,11 @@ async fn main() -> Result<()> {
     if !io::stdin().is_terminal() || !io::stdout().is_terminal() {
         bail!("TUI requires an interactive terminal; use demo-check for headless smoke testing");
     }
+    let first_open = mark_help_seen(&mut config, &path, args.demo)?;
     let mut app = App::new(config, path, registry, args.demo);
+    if first_open {
+        app.page = 4;
+    }
     app.locales = locales;
     app.catalog = catalog;
     app.log(i18n::Message::new("safety"));
@@ -227,6 +236,39 @@ async fn main() -> Result<()> {
         );
     }
     Ok(())
+}
+
+fn mark_help_seen(config: &mut Config, path: &std::path::Path, demo: bool) -> Result<bool> {
+    if config.help_seen {
+        return Ok(false);
+    }
+    config.help_seen = true;
+    if !demo {
+        config.save(path)?;
+    }
+    Ok(true)
+}
+
+#[cfg(test)]
+mod startup_tests {
+    use super::*;
+
+    #[test]
+    fn first_open_help_is_saved_once_and_demo_does_not_write() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        let path = dir.path().join("config.toml");
+        let mut config = Config::default();
+
+        assert!(mark_help_seen(&mut config, &path, false)?);
+        assert!(Config::load(&path)?.help_seen);
+        assert!(!mark_help_seen(&mut config, &path, false)?);
+
+        let demo_path = dir.path().join("demo.toml");
+        let mut demo_config = Config::default();
+        assert!(mark_help_seen(&mut demo_config, &demo_path, true)?);
+        assert!(!demo_path.exists());
+        Ok(())
+    }
 }
 
 async fn event_loop(

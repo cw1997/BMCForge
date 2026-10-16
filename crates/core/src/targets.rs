@@ -4,11 +4,20 @@ use std::{
     net::{IpAddr, Ipv4Addr},
 };
 
-pub fn canonical_endpoint(host: &str, port: u16) -> String {
+pub fn canonical_host(host: &str) -> String {
     let host = host.trim().trim_end_matches('.').to_ascii_lowercase();
     match host.parse::<IpAddr>() {
-        Ok(ip) => format!("[{ip}]:{port}"),
-        Err(_) => format!("{host}:{port}"),
+        Ok(ip) => ip.to_string(),
+        Err(_) => host,
+    }
+}
+
+pub fn canonical_endpoint(host: &str, port: u16) -> String {
+    let host = canonical_host(host);
+    if host.parse::<IpAddr>().is_ok_and(|ip| ip.is_ipv6()) {
+        format!("[{host}]:{port}")
+    } else {
+        format!("{host}:{port}")
     }
 }
 
@@ -74,11 +83,11 @@ pub fn expand_line(line: &str, discovery: bool) -> Result<Vec<String>> {
 pub fn preview(
     input: &str,
     existing: impl IntoIterator<Item = String>,
-    port: u16,
+    _port: u16,
     discovery: bool,
 ) -> Preview {
     let mut out = Preview::default();
-    let mut seen: HashSet<String> = existing.into_iter().collect();
+    let mut seen: HashSet<String> = existing.into_iter().map(|h| canonical_host(&h)).collect();
     for (index, line) in input.lines().enumerate() {
         if line.trim().is_empty() || line.trim_start().starts_with('#') {
             continue;
@@ -93,7 +102,7 @@ pub fn preview(
                     continue;
                 }
                 for host in hosts {
-                    if seen.insert(canonical_endpoint(&host, port)) {
+                    if seen.insert(canonical_host(&host)) {
                         out.hosts.push(host);
                     } else {
                         out.duplicates += 1;
@@ -109,6 +118,13 @@ pub fn preview(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn host_canonicalization_ignores_case_trailing_dot_and_ip_spelling() {
+        assert_eq!(canonical_host(" BMC.Example. "), "bmc.example");
+        assert_eq!(canonical_host("2001:0db8:0:0::1"), "2001:db8::1");
+        assert_eq!(canonical_endpoint("2001:0db8::1", 623), "[2001:db8::1]:623");
+    }
+
     #[test]
     fn ranges_dedup_and_errors() {
         let p = preview(
@@ -127,5 +143,17 @@ mod tests {
         assert!(expand_line("host.local", true).is_err());
         assert_eq!(expand_line("192.0.2.1/32", true).unwrap().len(), 1);
         assert_eq!(expand_line("192.0.2.0/31", true).unwrap().len(), 2);
+    }
+
+    #[test]
+    fn preview_skips_registered_hosts_regardless_of_port() {
+        let p = preview(
+            "BMC.EXAMPLE.\nnew.example",
+            ["bmc.example".into()],
+            624,
+            false,
+        );
+        assert_eq!(p.hosts, ["new.example"]);
+        assert_eq!(p.duplicates, 1);
     }
 }

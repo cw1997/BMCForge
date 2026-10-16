@@ -11,7 +11,7 @@ import = Importar
 discover = Verificar
 edit = Editar
 manual = Controle manual
-automatic = Automático
+automatic = Restaurar controle automático
 select = Selecionar
 search = Pesquisar
 settings = Configurações
@@ -68,6 +68,7 @@ unsupported = Não compatível
 settings-saved = Configurações salvas
 group = Grupo
 server = Servidor
+models = Modelos
 bmc-endpoint = Endereço BMC
 status = Estado
 server-details = Detalhes do servidor
@@ -96,7 +97,7 @@ operation-ok = Operação concluída: { $server }
 scan-failed = Falha na verificação
 scan-finished = Descoberta concluída. Sem resposta significa desconhecido, não ausente.
 safety = Ao sair, tenta restaurar as ventoinhas controladas aqui. Encerramento forçado, falta de energia ou rede podem impedir a restauração.
-help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab: páginas; setas: navegar; Espaço: selecionar; F2: salvar; F3: idioma; F4: mouse; F5: desconhecido; F6: ignorar; A: todos; G: grupo /24; c: cancelar identificação. Shift+arrastar ou seleção do terminal para copiar. Teclas configuráveis.
+help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab: páginas; setas: navegar; Espaço: selecionar; F2: salvar; F3: idioma; F5: desconhecido; F6: ignorar; A: todos; G: grupo /24; c: cancelar identificação. Shift+arrastar ou seleção do terminal para copiar. Teclas configuráveis.
 device-count = { $count ->
     [one] { $count } dispositivo
    *[other] { $count } dispositivos
@@ -147,8 +148,8 @@ form-lines = Enter: nova linha · IP / nome / CIDR / intervalo
 form-error-number = Digite um inteiro (decimal ou 0x hexadecimal).
 form-error-range = Valor fora do intervalo exibido.
 form-error-choice = Escolha uma opção disponível.
-form-help = Tab/Shift+Tab: campos · Enter: ativar · F2: continuar · Esc: cancelar · F8: ações
-form-key-help = F8: ações, setas/Tab navegar, Enter ativar, Esc sair · Formulário: Tab campos, F2 salvar, F6 mostrar segredo, F7 avançado/voltar, Esc cancelar · ↑↓ escolher, Enter confirmar, PgUp/PgDn rolar · F3 idioma, F4 mouse, Del remover · A todos, G /24, f filtro, c cancelar identificação, u credenciais, F5 desconhecido, F6 pular · Ctrl+C sair
+form-help = Tab/Shift+Tab: campos · Enter: ativar · F2: enviar · Esc: cancelar · F8: ações
+form-key-help = F8: ações, setas/Tab navegar, Enter ativar, Esc sair · Formulário: Tab campos, F2 salvar, F6 mostrar segredo, F7 avançado/voltar, Esc cancelar · ↑↓ escolher, Enter confirmar, PgUp/PgDn rolar · F3 idioma, Del remover · A todos, G /24, f filtro, c cancelar identificação, u credenciais, F5 desconhecido, F6 pular · Ctrl+C sair
 form-error-shortcut = Este atalho está reservado para navegação ou ações da página.
 form-error-key = Use um caractere único diferente de 1–5.
 form-error-username = Usuário: no máximo 16 bytes UTF-8.
@@ -167,3 +168,60 @@ command-empty = Nenhum item para exibir
 
 ui-more = Mais ações
 ui-copy-hint = Copie com Shift+arrastar ou a seleção do terminal. Role com PgUp/PgDn ou a barra de rolagem.
+help-tab = Ajuda
+help-page = Comece importando servidores; cada um pode ter credenciais próprias. Páginas: 1 Servidores, 2 Sensores, 3 Biblioteca de adaptadores, 4 Registro de operações, 5 Ajuda. Pressione d para buscar em uma faixa IPv4; os resultados aparecem em uma janela. Nos resultados: Espaço seleciona, A seleciona todos os candidatos, G o grupo /24 atual, f filtra, o atalho Importar identifica os dispositivos selecionados e Esc fecha. Ctrl+P pesquisa comandos, F1 abre esta página, F3 altera o idioma e q encerra com segurança. O controle manual das ventoinhas exige ação explícita; a saída normal tenta restaurar o modo automático.
+
+help-scan-input = Informe endereços ou intervalos IPv4 para procurar IPMI; hosts já cadastrados serão ignorados.
+help-import-input = Informe um endereço, CIDR ou intervalo de servidor por linha; hosts cadastrados serão ignorados.
+help-identify-credentials = Estas credenciais serão testadas apenas nos resultados selecionados. Você poderá revisar os dispositivos antes de adicioná-los.
+help-import-credentials = Estas credenciais e configurações serão salvas para cada novo servidor do lote.
+help-server-form = As alterações são aplicadas quando o processo do servidor aceita a nova configuração.
+help-manual-form = Escolha o duty e a zona da ventoinha; confira os servidores afetados antes de enviar o comando.
+help-settings-form = Configurações do aplicativo; algumas alterações entram em vigor após reiniciar.
+help-discovery = Selecione novos candidatos; hosts cadastrados não podem ser adicionados novamente.
+help-existing-host = Já cadastrado; não pode ser adicionado novamente
+help-import-preview = Revise servidores e duplicatas antes de continuar. Confirmar salva as novas configurações.
+help-identify-preview = Revise os servidores selecionados. Confirmar inicia a identificação; revise os dispositivos antes de adicioná-los.
+help-scan-preview = Revise os alvos IPv4 e os hosts existentes ignorados. Confirmar inicia a busca na rede.
+help-editor = Editor TOML avançado; valide com F7 para voltar ao formulário e salve por ele.
+help-manual-confirm = Envia a configuração solicitada da ventoinha aos servidores listados.
+help-automatic-confirm = Solicita aos servidores listados que restaurem o controle automático das ventoinhas.
+help-remove = O cadastro do servidor será removido após restaurar o modo automático.
+
+view = Ver
+save = Salvar
+close = Fechar
+edit-adapter = Editar adaptador
+edit-server = Editar servidor
+reset-adapter = Restaurar adaptador original
+reset-group = Redefinir grupo
+reset-all = Redefinir todas as configurações
+local-adapter = Adaptador local; original
+adapter-matching = Regras de correspondência
+adapter-control = Controle de ventoinhas e etapas do protocolo
+adapter-examples = Exemplos de comandos
+not-set = Não definido
+add-item = Adicionar / ativar
+remove-item = Remover / limpar
+prefill-server-credentials = Preencher credenciais do servidor
+adapter-edit-help = F4 adicionar/ativar · F5 remover/limpar · Ctrl+↑/↓ ordenar · F7 TOML. Editar não verifica o hardware.
+adapter-list-help = F4 adicionar · F5 remover · Ctrl+↑/↓ ordenar
+adapter-structured-help = Valor TOML; vazio remove o valor opcional
+reset-adapter-warning = Excluir este adaptador local e restaurar o original para os servidores listados e as correspondências automáticas.
+
+choose = Escolher
+remove-server-action = Remover servidor
+
+adapter-origin = Origem
+builtin-adapter = Integrado ao aplicativo
+adapter-multiline = Enter: nova linha
+
+move-up = Mover item para cima
+move-down = Mover item para baixo
+
+selected-servers = servidores selecionados
+cancel-discovery = Cancelar descoberta
+search-servers = Buscar servidores
+export-diagnostics = Exportar diagnóstico
+
+read-only = Somente leitura

@@ -11,7 +11,7 @@ import = Importer
 discover = Scanner
 edit = Modifier
 manual = Contrôle manuel
-automatic = Automatique
+automatic = Rétablir le contrôle automatique
 select = Sélectionner
 search = Rechercher
 settings = Paramètres
@@ -68,6 +68,7 @@ unsupported = Non pris en charge
 settings-saved = Paramètres enregistrés
 group = Groupe
 server = Serveur
+models = Modèles
 bmc-endpoint = Adresse BMC
 status = État
 server-details = Détails du serveur
@@ -96,7 +97,7 @@ operation-ok = Opération réussie : { $server }
 scan-failed = Échec du scan
 scan-finished = Découverte terminée. Sans réponse signifie inconnu, pas absent.
 safety = La sortie tente de rétablir les ventilateurs contrôlés ici. Arrêt forcé, panne électrique ou réseau peuvent empêcher la restauration.
-help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab : pages ; flèches : navigation ; Espace : sélection ; F2 : enregistrer ; F3 : langue ; F4 : souris ; F5 : inconnu ; F6 : ignorer ; A : tout ; G : groupe /24 ; c : annuler identification. Maj+glisser ou sélection native pour copier. Touches configurables.
+help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab : pages ; flèches : navigation ; Espace : sélection ; F2 : enregistrer ; F3 : langue ; F5 : inconnu ; F6 : ignorer ; A : tout ; G : groupe /24 ; c : annuler identification. Maj+glisser ou sélection native pour copier. Touches configurables.
 device-count = { $count ->
     [one] { $count } appareil
    *[other] { $count } appareils
@@ -147,8 +148,8 @@ form-lines = Enter : nouvelle ligne · IP / nom / CIDR / plage
 form-error-number = Saisir un entier (décimal ou 0x hexadécimal).
 form-error-range = Valeur hors de la plage affichée.
 form-error-choice = Choisir une option disponible.
-form-help = Tab/Shift+Tab : champs · Enter : activer · F2 : continuer · Esc : annuler · F8 : actions
-form-key-help = F8 : actions, flèches/Tab naviguer, Enter activer, Esc quitter · Formulaire : Tab champs, F2 enregistrer, F6 afficher le secret, F7 avancé/retour, Esc annuler · ↑↓ choisir, Enter confirmer, PgUp/PgDn défiler · F3 langue, F4 souris, Del retirer · A tout, G /24, f filtre, c annuler identification, u identifiants, F5 inconnu, F6 ignorer · Ctrl+C quitter
+form-help = Tab/Shift+Tab : champs · Enter : activer · F2 : valider · Esc : annuler · F8 : actions
+form-key-help = F8 : actions, flèches/Tab naviguer, Enter activer, Esc quitter · Formulaire : Tab champs, F2 enregistrer, F6 afficher le secret, F7 avancé/retour, Esc annuler · ↑↓ choisir, Enter confirmer, PgUp/PgDn défiler · F3 langue, Del retirer · A tout, G /24, f filtre, c annuler identification, u identifiants, F5 inconnu, F6 ignorer · Ctrl+C quitter
 form-error-shortcut = Ce raccourci est réservé à la navigation ou aux actions de page.
 form-error-key = Utiliser un caractère unique autre que 1–5.
 form-error-username = Utilisateur : 16 octets UTF-8 maximum.
@@ -167,3 +168,60 @@ command-empty = Aucun élément à afficher
 
 ui-more = Autres actions
 ui-copy-hint = Copiez avec Maj+glisser ou la sélection du terminal. Défilez avec PgUp/PgDn ou la barre.
+help-tab = Aide
+help-page = Commencez par importer des serveurs ; chacun peut avoir ses propres identifiants. Pages : 1 Serveurs, 2 Capteurs, 3 Bibliothèque d’adaptateurs, 4 Journal, 5 Aide. Appuyez sur d pour scanner une plage IPv4 ; les résultats s’affichent dans une fenêtre. Résultats : Espace sélectionne, A sélectionne tous les candidats, G le groupe /24 courant, f filtre, le raccourci Importer identifie les appareils sélectionnés, Échap ferme. Ctrl+P ouvre la recherche de commandes, F1 cette page, F3 la langue et q quitte en sécurité. Le contrôle manuel des ventilateurs exige une action explicite ; la sortie normale tente de rétablir le mode automatique.
+
+help-scan-input = Saisissez des adresses ou plages IPv4 à sonder pour IPMI ; les hôtes déjà enregistrés seront ignorés.
+help-import-input = Saisissez une adresse, un CIDR ou une plage par ligne ; les hôtes enregistrés seront ignorés.
+help-identify-credentials = Ces identifiants ne seront testés que sur les résultats sélectionnés. Vous pourrez vérifier les appareils avant leur ajout.
+help-import-credentials = Ces identifiants et paramètres seront enregistrés pour chaque nouveau serveur du lot.
+help-server-form = Les modifications s’appliquent lorsque le processus du serveur accepte la nouvelle configuration.
+help-manual-form = Choisissez la consigne et la zone du ventilateur ; vérifiez les serveurs concernés avant l’envoi.
+help-settings-form = Paramètres de l’application ; certaines modifications prennent effet après redémarrage.
+help-discovery = Sélectionnez de nouveaux candidats ; les hôtes enregistrés ne peuvent pas être ajoutés à nouveau.
+help-existing-host = Déjà enregistré ; ajout impossible
+help-import-preview = Vérifiez les serveurs et doublons avant de continuer. La confirmation enregistre les nouveaux paramètres.
+help-identify-preview = Vérifiez les serveurs sélectionnés. La confirmation lance l’identification ; vous pourrez vérifier les appareils avant leur ajout.
+help-scan-preview = Vérifiez les cibles IPv4 et les hôtes existants ignorés. La confirmation lance l’analyse réseau.
+help-editor = Éditeur TOML avancé ; validez avec F7 pour revenir au formulaire, puis enregistrez depuis celui-ci.
+help-manual-confirm = Envoie la consigne de ventilation demandée aux serveurs listés.
+help-automatic-confirm = Demande aux serveurs listés de rétablir le contrôle automatique des ventilateurs.
+help-remove = L’entrée du serveur est supprimée après le rétablissement du mode automatique.
+
+view = Afficher
+save = Enregistrer
+close = Fermer
+edit-adapter = Modifier l’adaptateur
+edit-server = Modifier le serveur
+reset-adapter = Restaurer l’adaptateur d’origine
+reset-group = Réinitialiser le groupe
+reset-all = Réinitialiser tous les paramètres
+local-adapter = Adaptateur local ; original
+adapter-matching = Règles de correspondance
+adapter-control = Ventilation et étapes du protocole
+adapter-examples = Exemples de commandes
+not-set = Non défini
+add-item = Ajouter / activer
+remove-item = Supprimer / effacer
+prefill-server-credentials = Préremplir les identifiants du serveur
+adapter-edit-help = F4 ajouter/activer · F5 supprimer/effacer · Ctrl+↑/↓ déplacer · F7 TOML. Modifier ne valide pas le matériel.
+adapter-list-help = F4 ajouter · F5 supprimer · Ctrl+↑/↓ déplacer
+adapter-structured-help = Valeur TOML ; vide pour retirer une valeur facultative
+reset-adapter-warning = Supprimer cet adaptateur local et rétablir l’original pour les serveurs ci-dessous et les correspondances automatiques.
+
+choose = Choisir
+remove-server-action = Supprimer le serveur
+
+adapter-origin = Source d’origine
+builtin-adapter = Intégré à l’application
+adapter-multiline = Enter : nouvelle ligne
+
+move-up = Monter l’élément
+move-down = Descendre l’élément
+
+selected-servers = serveurs sélectionnés
+cancel-discovery = Annuler la découverte
+search-servers = Rechercher des serveurs
+export-diagnostics = Exporter le diagnostic
+
+read-only = Lecture seule

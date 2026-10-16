@@ -14,8 +14,9 @@ impl App {
         match target {
             Target::Shortcut(name) => {
                 if matches!(name.as_str(), "edit" | "manual" | "automatic" | "select")
+                    && !(name == "edit" && self.page == 2)
                     && self.current().is_none()
-                    && !(name == "select" && self.page == 2)
+                    && !(name == "select" && matches!(self.modal, Some(Modal::DiscoveryResults)))
                 {
                     self.text("command-needs-server").into()
                 } else {
@@ -30,7 +31,7 @@ impl App {
     }
     pub fn commands(&self, query: &str) -> Vec<Command> {
         let mut entries = Vec::new();
-        for (page, name) in ["fleet", "sensors", "discovery", "profiles", "activity"]
+        for (page, name) in ["fleet", "sensors", "profiles", "activity", "help-tab"]
             .iter()
             .enumerate()
         {
@@ -42,16 +43,11 @@ impl App {
         }
         for name in crate::interaction::ACTIONS {
             let unavailable = matches!(*name, "edit" | "manual" | "automatic" | "select")
+                && !(*name == "edit" && self.page == 2)
                 && self.current().is_none()
-                && !(*name == "select" && self.page == 2);
+                && !(*name == "select" && matches!(self.modal, Some(Modal::DiscoveryResults)));
             entries.push(Command {
-                label: self
-                    .text(if *name == "import" && self.page == 2 {
-                        "identify"
-                    } else {
-                        name
-                    })
-                    .into(),
+                label: self.action_text(name),
                 target: Target::Shortcut((*name).into()),
                 reason: if unavailable {
                     self.text("command-needs-server").into()
@@ -62,9 +58,8 @@ impl App {
         }
         for (name, key) in [
             ("language", KeyCode::F(3)),
-            ("mouse", KeyCode::F(4)),
-            ("help", KeyCode::F(1)),
-            ("remove", KeyCode::Delete),
+            ("help-tab", KeyCode::F(1)),
+            ("remove-server-action", KeyCode::Delete),
         ] {
             entries.push(Command {
                 label: self.text(name).into(),
@@ -77,7 +72,7 @@ impl App {
             });
         }
         let mut contextual = Vec::new();
-        if self.page == 2 {
+        if matches!(self.modal, Some(Modal::DiscoveryResults)) {
             contextual.extend([
                 ("select-all", KeyCode::Char('A')),
                 ("filter", KeyCode::Char('f')),
@@ -87,11 +82,25 @@ impl App {
         if self.identifying {
             contextual.push(("cancel", KeyCode::Char('c')));
         }
-        if self.page == 3 {
+        if self.page == 2 {
             contextual.extend([
-                ("confirm", KeyCode::Enter),
-                ("credentials", KeyCode::Char('u')),
+                ("view", KeyCode::Enter),
+                ("prefill-server-credentials", KeyCode::Char('u')),
             ]);
+        }
+        if self.page == 2
+            && self
+                .registry
+                .profiles
+                .keys()
+                .nth(self.profile_cursor)
+                .is_some_and(|id| self.registry.local.contains_key(id))
+        {
+            entries.push(Command {
+                label: self.text("reset-adapter").into(),
+                target: Target::Shortcut("reset-adapter".into()),
+                reason: String::new(),
+            });
         }
         for (name, code) in contextual {
             entries.push(Command {
@@ -149,12 +158,9 @@ impl App {
                         if let Target::Shortcut(name) = &command.target
                             && let Some(theme) = name.strip_prefix("theme:")
                         {
-                            let previous = self.config.settings.theme.clone();
-                            self.config.settings.theme = theme.into();
-                            if !self.demo
-                                && let Err(error) = self.config.save(&self.path)
-                            {
-                                self.config.settings.theme = previous;
+                            let mut config = self.config.clone();
+                            config.settings.theme = theme.into();
+                            if let Err(error) = self.persist(config) {
                                 self.modal = Some(Modal::Info(error.to_string()));
                             }
                             return Some(vec![]);
@@ -254,6 +260,21 @@ mod tests {
         assert!(matches!(app.modal, Some(Modal::Info(_))));
     }
     #[test]
+    fn palette_keeps_language_shortcut_without_mouse_toggle() {
+        let app = app();
+        let commands = app.commands("");
+        assert!(
+            commands
+                .iter()
+                .any(|command| { command.target == Target::Key(KeyCode::F(3)) })
+        );
+        assert!(
+            !commands
+                .iter()
+                .any(|command| { command.target == Target::Key(KeyCode::F(4)) })
+        );
+    }
+    #[test]
     fn leader_navigation_timeout_cancel_and_theme() {
         let mut app = app();
         key(&mut app, KeyCode::Char('x'), KeyModifiers::CONTROL);
@@ -313,6 +334,37 @@ mod tests {
     }
 
     #[test]
+    fn navigation_ends_with_help_and_no_longer_exposes_discovery_as_a_page() {
+        let mut app = app();
+        let pages: Vec<_> = app
+            .commands("")
+            .into_iter()
+            .filter_map(|command| match command.target {
+                Target::Page(page) => Some((page, command.label)),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            pages,
+            vec![
+                (0, app.text("fleet").to_owned()),
+                (1, app.text("sensors").to_owned()),
+                (2, app.text("profiles").to_owned()),
+                (3, app.text("activity").to_owned()),
+                (4, app.text("help-tab").to_owned()),
+            ]
+        );
+        app.page = 0;
+        key(&mut app, KeyCode::Tab, KeyModifiers::NONE);
+        assert_eq!(app.page, 1);
+        app.page = 4;
+        key(&mut app, KeyCode::Tab, KeyModifiers::NONE);
+        assert_eq!(app.page, 0);
+        key(&mut app, KeyCode::BackTab, KeyModifiers::SHIFT);
+        assert_eq!(app.page, 4);
+    }
+
+    #[test]
     fn palette_renders_scrolls_and_mouse_activates_in_both_themes() {
         use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
         for theme in ["dark", "light"] {
@@ -345,7 +397,7 @@ mod tests {
                         row: hit.area.y,
                         modifiers: KeyModifiers::NONE,
                     });
-                    assert_eq!(app.page, 3);
+                    assert_eq!(app.page, 2);
                     assert!(app.modal.is_none());
                 }
             }

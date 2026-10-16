@@ -35,6 +35,7 @@ pub enum Pane {
     Discovery,
     Profiles,
     Detail,
+    Models,
     Sensors,
     Logs,
     Modal,
@@ -83,6 +84,10 @@ impl App {
                                         pane: Pane::Modal,
                                         ..
                                     }
+                                    | Target::ScrollTo {
+                                        pane: Pane::Discovery,
+                                        ..
+                                    }
                                     | Target::Overflow
                                     | Target::CommandRow(_)
                                     | Target::Field(_)
@@ -91,6 +96,8 @@ impl App {
                                     | Target::LanguageRow(_)
                                     | Target::ModelRow(_)
                                     | Target::Editor { .. }
+                                    | Target::Discovery(..)
+                                    | Target::Shortcut(_)
                             ))
                 })
                 .map(|h| h.target.clone());
@@ -113,6 +120,10 @@ impl App {
                         pane: Pane::Modal,
                         ..
                     }
+                    | Target::ScrollTo {
+                        pane: Pane::Discovery,
+                        ..
+                    }
                     | Target::Overflow
                     | Target::CommandRow(_)
                     | Target::Field(_)
@@ -121,6 +132,8 @@ impl App {
                     | Target::LanguageRow(_)
                     | Target::ModelRow(_)
                     | Target::Editor { .. }
+                    | Target::Discovery(..)
+                    | Target::Shortcut(_)
                     | Target::Scroll(Pane::Modal)
             )
         {
@@ -164,11 +177,16 @@ impl App {
                 }
                 Pane::Profiles => {
                     self.profile_cursor = step(self.profile_cursor)
-                        .min(self.registry.profiles.len().saturating_sub(1))
+                        .min(self.registry.profiles.len().saturating_sub(1));
+                    self.model_scroll = 0;
                 }
                 Pane::Detail => {
                     self.detail_scroll =
                         step(self.detail_scroll.into()).min(u16::MAX as usize) as u16
+                }
+                Pane::Models => {
+                    self.model_scroll =
+                        step(self.model_scroll).min(self.catalog.models.len().saturating_sub(1))
                 }
                 Pane::Sensors => {
                     self.sensor_scroll = step(self.sensor_scroll).min(
@@ -320,14 +338,15 @@ impl App {
                 {
                     self.scan_cursor = index;
                 }
-                if checkbox && !self.discovery_selected.remove(&host) {
-                    self.discovery_selected.insert(host);
+                if checkbox {
+                    self.toggle_discovery_selection();
                 }
                 return vec![];
             }
             Target::Profile(id) => {
                 if let Some(index) = self.registry.profiles.keys().position(|p| p == &id) {
                     self.profile_cursor = index;
+                    self.model_scroll = 0;
                 }
                 return vec![];
             }

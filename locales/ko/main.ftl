@@ -11,7 +11,7 @@ import = 가져오기
 discover = 스캔
 edit = 편집
 manual = 수동 제어
-automatic = 자동
+automatic = 자동 제어 복원
 select = 선택
 search = 검색어
 settings = 설정
@@ -68,6 +68,7 @@ unsupported = 지원 안 함
 settings-saved = 설정 저장됨
 group = 그룹
 server = 서버
+models = 모델
 bmc-endpoint = BMC 주소
 status = 상태
 server-details = 서버 정보
@@ -96,7 +97,7 @@ operation-ok = 작업 성공: { $server }
 scan-failed = 스캔 실패
 scan-finished = 검색 완료. 무응답은 미확인이며 장치 부재를 뜻하지 않습니다.
 safety = 종료 시 이 프로세스가 제어한 팬의 자동 모드를 복원합니다. 강제 종료, 정전, 네트워크 손실 시 복원은 보장되지 않습니다.
-help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab: 페이지, 화살표: 이동, Space: 선택, F2: 저장, F3: 언어, F4: 마우스, F5: 미확인 유지, F6: 건너뛰기, A: 모두 선택, G: /24 그룹, c: 식별 취소. Shift+드래그 또는 터미널 선택으로 복사. 설정에서 단축키 변경.
+help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab: 페이지, 화살표: 이동, Space: 선택, F2: 저장, F3: 언어, F5: 미확인 유지, F6: 건너뛰기, A: 모두 선택, G: /24 그룹, c: 식별 취소. Shift+드래그 또는 터미널 선택으로 복사. 설정에서 단축키 변경.
 device-count = 장치 { $count }개
 
 # Guided forms and interaction hints
@@ -144,8 +145,8 @@ form-lines = Enter: 줄 바꿈 · IP / 호스트명 / CIDR / 범위
 form-error-number = 정수를 입력하세요 (10진수 또는 0x 16진수).
 form-error-range = 표시된 범위를 벗어난 값입니다.
 form-error-choice = 사용 가능한 항목을 선택하세요.
-form-help = Tab/Shift+Tab: 필드 · Enter: 활성화 · F2: 계속 · Esc: 취소 · F8: 작업
-form-key-help = F8: 작업 초점, 방향키/Tab 이동, Enter 실행, Esc 나가기 · 양식: Tab 필드, F2 저장, F6 비밀 표시, F7 고급/복귀, Esc 취소 · ↑↓ 선택, Enter 확인, PgUp/PgDn 스크롤 · F3 언어, F4 마우스, Del 제거 · A 모두 선택, G /24, f 필터, c 식별 취소, u 자격 증명, F5 알 수 없음, F6 건너뛰기 · Ctrl+C 종료
+form-help = Tab/Shift+Tab: 필드 · Enter: 활성화 · F2: 제출 · Esc: 취소 · F8: 작업
+form-key-help = F8: 작업 초점, 방향키/Tab 이동, Enter 실행, Esc 나가기 · 양식: Tab 필드, F2 저장, F6 비밀 표시, F7 고급/복귀, Esc 취소 · ↑↓ 선택, Enter 확인, PgUp/PgDn 스크롤 · F3 언어, Del 제거 · A 모두 선택, G /24, f 필터, c 식별 취소, u 자격 증명, F5 알 수 없음, F6 건너뛰기 · Ctrl+C 종료
 form-error-shortcut = 이 키는 탐색 또는 페이지 작업에 사용됩니다。
 form-error-key = 1–5를 제외한 고유한 한 문자를 입력하세요.
 form-error-username = 사용자 이름은 UTF-8 16바이트 이내여야 합니다.
@@ -164,3 +165,60 @@ command-empty = 표시할 항목이 없습니다
 
 ui-more = 추가 작업
 ui-copy-hint = Shift를 누른 채 드래그하거나 터미널 선택 기능으로 복사하세요. PgUp/PgDn 또는 스크롤 막대로 이동하세요.
+help-tab = 도움말
+help-page = 먼저 가져오기로 서버를 추가하세요. 서버마다 별도의 자격 증명을 사용할 수 있습니다. 페이지: 1 서버, 2 센서, 3 프로필 라이브러리, 4 작업 로그, 5 도움말. d를 눌러 IPv4 범위를 검색하면 결과가 대화상자에 표시됩니다. 결과 창: Space 선택, A 후보 전체 선택, G 현재 /24 선택, f 필터, 가져오기 단축키로 선택한 장치 식별, Esc 닫기. Ctrl+P 명령 검색, F1 이 페이지, F3 언어 변경, q 안전 종료. 팬 수동 제어는 명시적으로 실행해야 하며 정상 종료 시 자동 모드 복원을 시도합니다.
+
+help-scan-input = IPMI를 확인할 IPv4 주소 또는 범위를 입력하세요. 이미 등록된 호스트는 건너뜁니다.
+help-import-input = 서버 주소, CIDR 또는 범위를 한 줄에 하나씩 입력하세요. 등록된 호스트는 건너뜁니다.
+help-identify-credentials = 선택한 검색 결과를 식별할 때만 이 자격 증명을 시도합니다. 추가 전에 장치를 검토할 수 있습니다.
+help-import-credentials = 이 배치에서 새로 추가할 각 서버에 자격 증명과 설정을 저장합니다.
+help-server-form = 작업자가 새 구성을 승인하면 이 서버에 변경 사항이 적용됩니다.
+help-manual-form = 팬 목표 듀티와 영역을 선택하세요. 명령을 보내기 전에 대상 서버를 확인하세요.
+help-settings-form = 앱 설정입니다. 일부 런타임 변경은 다시 시작한 뒤 적용됩니다.
+help-discovery = 미등록 후보를 선택해 식별하세요. 기존 호스트는 다시 추가할 수 없습니다.
+help-existing-host = 이미 등록되어 있어 다시 추가할 수 없습니다
+help-import-preview = 계속하기 전에 서버와 중복 항목을 확인하세요. 확인하면 새 서버 설정을 저장합니다.
+help-identify-preview = 선택한 서버를 확인하세요. 확인 후 식별을 시작하며 추가 전에 결과를 검토할 수 있습니다.
+help-scan-preview = IPv4 대상과 건너뛴 기존 호스트를 확인하세요. 확인하면 네트워크 검색을 시작합니다.
+help-editor = 고급 TOML 편집기입니다. F7로 검증하고 양식으로 돌아온 뒤 양식에서 저장하세요.
+help-manual-confirm = 요청한 팬 설정을 나열된 서버로 전송합니다.
+help-automatic-confirm = 나열된 서버에 자동 팬 제어 복귀를 요청합니다.
+help-remove = 자동 모드 복구 후 이 서버 항목을 제거합니다.
+
+view = 보기
+save = 저장
+close = 닫기
+edit-adapter = 어댑터 편집
+edit-server = 서버 편집
+reset-adapter = 원본 어댑터 복원
+reset-group = 그룹 초기화
+reset-all = 모든 설정 초기화
+local-adapter = 로컬 어댑터 · 원본
+adapter-matching = 일치 조건
+adapter-control = 팬 제어 및 프로토콜 단계
+adapter-examples = 명령 예제
+not-set = 설정되지 않음
+add-item = 항목 추가 / 활성화
+remove-item = 항목 삭제 / 해제
+prefill-server-credentials = 서버 자격 증명 미리 입력
+adapter-edit-help = F4 추가/활성화 · F5 삭제/해제 · Ctrl+↑/↓ 순서 변경 · F7 TOML. 편집은 하드웨어 검증을 수행하지 않습니다.
+adapter-list-help = F4 추가 · F5 삭제 · Ctrl+↑/↓ 순서 변경
+adapter-structured-help = TOML 값. 비우면 선택 값 해제
+reset-adapter-warning = 로컬 항목을 삭제하고 아래 서버와 자동 일치를 원본 어댑터로 되돌립니다.
+
+choose = 선택
+remove-server-action = 서버 삭제
+
+adapter-origin = 원본 출처
+builtin-adapter = 앱 내장
+adapter-multiline = Enter: 줄 바꿈
+
+move-up = 항목 위로
+move-down = 항목 아래로
+
+selected-servers = 선택한 서버
+cancel-discovery = 검색 취소
+search-servers = 서버 검색
+export-diagnostics = 진단 내보내기
+
+read-only = 읽기 전용

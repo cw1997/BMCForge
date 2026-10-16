@@ -45,3 +45,9 @@ The UI does not persist a running manual-control request. Every application star
 The `dark` and `light` values of `settings.theme` apply to all terminal surfaces, including dialogs, selection and pointer feedback. Use Ctrl+X then t to select a theme; the selection is saved immediately outside demo mode. Ctrl+P lists actions with their effective configured shortcuts. No configuration migration is required.
 
 Mouse capture defaults to enabled for new configurations; existing `settings.mouse = false` remains respected. Shadows, focus styles and the full-width reversed status strip follow `settings.theme` without additional configuration. The status strip is clickable and redacts configured secrets before displaying either truncated or full message text.
+
+## Resetting settings in the TUI
+
+In the settings form, F4 resets the focused field's entire group and F5 resets all settings. Both operate on the draft: F2 saves, while Esc cancels. Invalid values in the group being reset do not prevent resetting it. Server entries, local adapters, and other configuration metadata are preserved.
+
+Groups cover every settings field: appearance contains language, theme, mouse, and temperature unit; discovery contains all `scan_*` settings; runtime contains concurrency, history capacity, and sensor filter; keyboard shortcuts contains the complete key map. Reset uses the application's `Settings::default()` values, including English for the default language. F7 returns from advanced TOML editing to the structured form where reset controls are available.

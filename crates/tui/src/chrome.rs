@@ -221,9 +221,13 @@ impl App {
                 self.scan_cursor = position.min(self.scan_visible().len().saturating_sub(1))
             }
             Pane::Profiles => {
-                self.profile_cursor = position.min(self.registry.profiles.len().saturating_sub(1))
+                self.profile_cursor = position.min(self.registry.profiles.len().saturating_sub(1));
+                self.model_scroll = 0;
             }
             Pane::Detail => self.detail_scroll = position.min(u16::MAX as usize) as u16,
+            Pane::Models => {
+                self.model_scroll = position.min(self.catalog.models.len().saturating_sub(1))
+            }
             Pane::Sensors => self.sensor_scroll = position,
             Pane::Logs => self.log_scroll = position.min(u16::MAX as usize) as u16,
             Pane::Modal => match &mut self.modal {
@@ -514,7 +518,7 @@ mod tests {
         }
     }
     #[test]
-    fn mouse_preferences_palette_and_action_menu_restore_draft() {
+    fn mouse_preferences_persist_and_action_menu_restores_draft() {
         let mut app = app();
         assert!(app.config.settings.mouse);
         let mut terminal = Terminal::new(TestBackend::new(30, 16)).unwrap();
@@ -529,7 +533,8 @@ mod tests {
         click(&mut app, &palette);
         assert!(app.modal.is_none());
         key(&mut app, KeyCode::F(4));
-        assert!(app.config.settings.mouse);
+        assert!(!app.config.settings.mouse);
+        app.config.settings.mouse = true;
         click(&mut app, &palette);
         assert!(matches!(app.modal, Some(Modal::Commands { .. })));
         key(&mut app, KeyCode::Esc);
@@ -564,7 +569,7 @@ mod tests {
     #[test]
     fn clicked_scrollbars_move_to_end_and_follow_the_pointer() {
         let mut app = app();
-        app.page = 3;
+        app.page = 2;
         let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
         terminal.draw(|f| crate::ui::draw(f, &mut app)).unwrap();
         let last = app

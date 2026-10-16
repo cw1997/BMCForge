@@ -11,7 +11,7 @@ import = インポート
 discover = スキャン
 edit = 編集
 manual = 手動制御
-automatic = 自動制御
+automatic = 自動制御に戻す
 select = 選択
 search = 検索
 settings = 設定
@@ -68,6 +68,7 @@ unsupported = 非対応
 settings-saved = 設定を保存しました
 group = グループ
 server = サーバー
+models = モデル
 bmc-endpoint = BMC アドレス
 status = 状態
 server-details = サーバー詳細
@@ -96,7 +97,7 @@ operation-ok = 操作成功：{ $server }
 scan-failed = スキャン失敗
 scan-finished = 検出完了。無応答は不明であり、不在とは限りません。
 safety = 終了時に本プロセスが制御したファンを自動制御に戻します。強制終了・停電・通信断では復帰を保証できません。
-help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab：ページ、矢印：移動、Space：選択、F2：保存、F3：言語、F4：マウス、F5：不明のまま保持、F6：スキップ、A：全選択、G：/24 グループ、c：識別取消。Shift+ドラッグまたは端末の選択でコピー。設定でキー変更可。
+help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab：ページ、矢印：移動、Space：選択、F2：保存、F3：言語、F5：不明のまま保持、F6：スキップ、A：全選択、G：/24 グループ、c：識別取消。Shift+ドラッグまたは端末の選択でコピー。設定でキー変更可。
 device-count = { $count } 台
 
 # Guided forms and interaction hints
@@ -144,8 +145,8 @@ form-lines = Enter: 改行 · IP / ホスト名 / CIDR / 範囲
 form-error-number = 整数を入力してください（10進数または 0x 16進数）。
 form-error-range = 表示範囲外の値です。
 form-error-choice = 有効な選択肢を選んでください。
-form-help = Tab/Shift+Tab: 項目 · Enter: 操作 · F2: 次へ · Esc: 取消 · F8: 操作
-form-key-help = F8: 操作にフォーカス、矢印/Tab で移動、Enter で実行、Esc で戻る · フォーム: Tab 項目、F2 保存、F6 秘密表示、F7 詳細/戻る、Esc 取消 · ↑↓ 選択、Enter 決定、PgUp/PgDn スクロール · F3 言語、F4 マウス、Del 削除 · A 全選択、G /24、f フィルター、c 識別取消、u 認証情報、F5 不明、F6 スキップ · Ctrl+C 終了
+form-help = Tab/Shift+Tab: 項目 · Enter: 操作 · F2: 送信 · Esc: キャンセル · F8: 操作一覧
+form-key-help = F8: 操作にフォーカス、矢印/Tab で移動、Enter で実行、Esc で戻る · フォーム: Tab 項目、F2 保存、F6 秘密表示、F7 詳細/戻る、Esc 取消 · ↑↓ 選択、Enter 決定、PgUp/PgDn スクロール · F3 言語、Del 削除 · A 全選択、G /24、f フィルター、c 識別取消、u 認証情報、F5 不明、F6 スキップ · Ctrl+C 終了
 form-error-shortcut = このキーは移動またはページ操作で使用されています。
 form-error-key = 1–5 以外の重複しない1文字を入力してください。
 form-error-username = ユーザー名は UTF-8 で16バイト以内です。
@@ -164,3 +165,60 @@ command-empty = 表示する項目がありません
 
 ui-more = その他の操作
 ui-copy-hint = Shiftを押してドラッグするか端末の選択機能でコピーします。PgUp/PgDnまたはスクロールバーで移動します。
+help-tab = ヘルプ
+help-page = まず「インポート」でサーバーを追加します。各サーバーに個別の認証情報を設定できます。ページ：1 サーバー、2 センサー、3 プロファイル、4 操作履歴、5 ヘルプ。d で IPv4 範囲をスキャンすると、結果がダイアログに表示されます。結果画面：Space で選択、A で候補をすべて選択、G で現在の /24 を選択、f で絞り込み、インポートのショートカットで選択した機器を識別、Esc で閉じます。Ctrl+P でコマンド検索、F1 でこのページ、F3 で言語を切り替え、q で安全に終了します。手動ファン制御は明示的な操作が必要です。通常終了時に自動モードへの復帰を試みます。
+
+help-scan-input = IPMI を調べる IPv4 アドレスまたは範囲を入力します。登録済みのホストは除外されます。
+help-import-input = サーバーのアドレス、CIDR、範囲を1行ずつ入力します。登録済みのホストは除外されます。
+help-identify-credentials = 選択したスキャン結果の識別にのみ資格情報を試します。追加前にデバイスを確認できます。
+help-import-credentials = このバッチで追加する各サーバーに資格情報と設定を保存します。
+help-server-form = ワーカーが新しい設定を受け入れると、このサーバーに変更が適用されます。
+help-manual-form = ファンの目標デューティとゾーンを選びます。送信前に対象サーバーを確認してください。
+help-settings-form = アプリの設定です。一部の変更は再起動後に有効になります。
+help-discovery = 未登録の候補を選んで識別します。登録済みホストは再追加できません。
+help-existing-host = 登録済みのため再追加できません
+help-import-preview = 続行前にサーバーと重複を確認します。確定すると新しい設定を保存します。
+help-identify-preview = 選択したサーバーを確認します。確定後に識別し、追加前に結果を確認できます。
+help-scan-preview = IPv4 の対象と除外された登録済みホストを確認します。確定するとスキャンします。
+help-editor = 高度な TOML エディターです。F7 で検証してフォームに戻り、フォームから保存します。
+help-manual-confirm = 指定したファン設定を一覧のサーバーに送信します。
+help-automatic-confirm = 一覧のサーバーにファン自動制御への復帰を要求します。
+help-remove = 自動モードに戻した後、このサーバー設定を削除します。
+
+view = 表示
+save = 保存
+close = 閉じる
+edit-adapter = アダプターを編集
+edit-server = サーバーを編集
+reset-adapter = 元のアダプターに戻す
+reset-group = グループをリセット
+reset-all = 全設定をリセット
+local-adapter = ローカルアダプター・元の項目
+adapter-matching = 照合条件
+adapter-control = ファン制御とプロトコル手順
+adapter-examples = コマンド例
+not-set = 未設定
+add-item = 項目追加／有効化
+remove-item = 項目削除／解除
+prefill-server-credentials = サーバー認証情報を入力
+adapter-edit-help = F4 追加・有効化、F5 削除・解除、Ctrl+↑/↓ 並べ替え、F7 TOML。編集はハードウェア検証ではありません。
+adapter-list-help = F4 追加 · F5 削除 · Ctrl+↑/↓ 並べ替え
+adapter-structured-help = TOML 値。空欄で省略可能な値を解除
+reset-adapter-warning = ローカル項目を削除し、以下のサーバーと自動照合を元のアダプターに戻します。
+
+choose = 選択
+remove-server-action = サーバーを削除
+
+adapter-origin = 元のソース
+builtin-adapter = アプリ内蔵
+adapter-multiline = Enter: 改行
+
+move-up = 項目を上へ
+move-down = 項目を下へ
+
+selected-servers = 選択したサーバー
+cancel-discovery = 検出を中止
+search-servers = サーバーを検索
+export-diagnostics = 診断情報を出力
+
+read-only = 読み取り専用

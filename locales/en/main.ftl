@@ -11,7 +11,7 @@ import = Import
 discover = Scan
 edit = Edit
 manual = Manual control
-automatic = Automatic
+automatic = Restore automatic control
 select = Select
 search = Search
 settings = Settings
@@ -68,6 +68,7 @@ unsupported = Unsupported
 settings-saved = Settings saved
 group = Group
 server = Server
+models = Models
 bmc-endpoint = BMC endpoint
 status = Status
 server-details = Server details
@@ -96,7 +97,7 @@ operation-ok = Operation succeeded: { $server }
 scan-failed = Scan failed
 scan-finished = Discovery finished. No response means unknown, not absent.
 safety = Exit attempts automatic restore only for fans taken over here. Forced termination, power or network loss cannot guarantee recovery.
-help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab: pages; arrows: navigate; Space: select; F2: save; F3: language; F4: mouse; F5: unknown model; F6: skip; A: select all discovery; G: select /24 group; c: cancel identification. Shift+drag or terminal native selection copies text. Shortcuts are configurable in Settings.
+help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab: pages; arrows: navigate; Space: select; F2: save; F3: language; F5: unknown model; F6: skip; A: select all discovery; G: select /24 group; c: cancel identification. Shift+drag or terminal native selection copies text. Shortcuts are configurable in Settings.
 device-count = { $count ->
     [one] { $count } device
    *[other] { $count } devices
@@ -147,8 +148,8 @@ form-lines = Enter: new line · IP / hostname / CIDR / range
 form-error-number = Enter a whole number (decimal or 0x hexadecimal).
 form-error-range = Value is outside the displayed range.
 form-error-choice = Choose an available option.
-form-help = Tab/Shift+Tab: fields · Enter: activate · F2: continue · Esc: cancel · F8: actions
-form-key-help = 1–5 Tab/Shift+Tab: pages · ↑↓ j/k: rows · Enter: details/apply (double-click server) · Space: select · PgUp/PgDn: scroll · F1: help · F3: language · F4: mouse · Del: remove · F8: action focus, arrows/Tab to navigate, Enter to activate, Esc to leave · Discovery: f filter, A select all, G /24, c cancel identification · Profiles: u credentials · Model review: F5 unknown, F6 skip · Forms: Tab/Shift+Tab fields, ←→ options, F2/Ctrl+Enter submit, F6 show/hide secret, F7 advanced/return, Esc cancel · Ctrl+C: exit
+form-help = Tab/Shift+Tab: fields · Enter: activate · F2: submit · Esc: cancel · F8: actions
+form-key-help = 1–5 Tab/Shift+Tab: pages · ↑↓ j/k: rows · Enter: details/apply (double-click server) · Space: select · PgUp/PgDn: scroll · F1: help · F3: language· Del: remove · F8: action focus, arrows/Tab to navigate, Enter to activate, Esc to leave · Discovery: f filter, A select all, G /24, c cancel identification · Profiles: u credentials · Model review: F5 unknown, F6 skip · Forms: Tab/Shift+Tab fields, ←→ options, F2/Ctrl+Enter submit, F6 show/hide secret, F7 advanced/return, Esc cancel · Ctrl+C: exit
 form-error-shortcut = This shortcut is reserved for navigation or a page action.
 form-error-key = Use one unique character other than 1–5.
 form-error-username = Username must fit within 16 UTF-8 bytes.
@@ -167,3 +168,60 @@ command-empty = No items to display
 
 ui-more = More actions
 ui-copy-hint = Shift+drag or use terminal selection to copy. PgUp/PgDn or the scrollbar scrolls this message.
+help-tab = Help
+help-page = Start with Import to add servers with their own credentials. Pages: 1 Servers, 2 Sensors, 3 Adapter Library, 4 Operation Log, 5 Help. Use d to scan an IPv4 range; scan results open in a dialog. In results: Space selects, A selects all candidates, G selects the current /24, f filters, the Import shortcut identifies selected devices, and Esc closes. Use Ctrl+P for searchable commands, F1 for this page, F3 for language, and q to exit safely. Manual fan control is explicit; normal exit attempts to restore automatic mode.
+
+help-scan-input = Enter IPv4 addresses or ranges to probe for IPMI; existing hosts will be skipped.
+help-import-input = Enter one server address, CIDR, or range per line; registered hosts are skipped.
+help-identify-credentials = These credentials will be tried only for the selected scan results before you review devices to add.
+help-import-credentials = These credentials and settings will be saved for each new server in this batch.
+help-server-form = Changes apply to this server after its worker accepts the updated configuration.
+help-manual-form = Choose the requested fan duty and zone; review the affected servers before sending the control command.
+help-settings-form = Settings affect this application; some runtime changes take effect after restart.
+help-discovery = Select new candidates to identify; registered hosts cannot be added again.
+help-existing-host = Already registered; cannot add again
+help-import-preview = Review the servers and duplicates before continuing. Confirm saves the new server settings.
+help-identify-preview = Review the selected servers. Confirm starts identification; you can review recognized devices before adding.
+help-scan-preview = Review the IPv4 targets and skipped existing hosts. Confirm starts the network scan.
+help-editor = Advanced TOML editor; validate and return with F7, then save from the form.
+help-manual-confirm = This sends the requested fan setting to the listed servers.
+help-automatic-confirm = This asks the listed servers to restore automatic fan control.
+help-remove = The server entry is removed after automatic mode is restored.
+
+view = View
+save = Save
+close = Close
+edit-adapter = Edit adapter
+edit-server = Edit server
+reset-adapter = Restore original adapter
+reset-group = Reset group
+reset-all = Reset all settings
+local-adapter = Local adapter; original
+adapter-matching = Matching rules
+adapter-control = Fan control and protocol steps
+adapter-examples = Command examples
+not-set = Not set
+add-item = Add item / enable
+remove-item = Remove item / clear
+prefill-server-credentials = Prefill server credentials
+adapter-edit-help = F4: add/enable; F5: remove/clear; Ctrl+↑/↓: reorder. F7: full TOML. Verification describes evidence; editing does not verify hardware.
+adapter-list-help = F4 add · F5 remove · Ctrl+↑/↓ reorder
+adapter-structured-help = TOML value; empty clears optional value
+reset-adapter-warning = Delete this local adapter and return the listed servers to the original adapter. Automatic matches will also use the original.
+
+choose = Choose
+remove-server-action = Remove server
+
+adapter-origin = Original source
+builtin-adapter = Built into application
+adapter-multiline = Enter: new line
+
+move-up = Move item up
+move-down = Move item down
+
+selected-servers = selected servers
+cancel-discovery = Cancel discovery
+search-servers = Search servers
+export-diagnostics = Export diagnostics
+
+read-only = Read only

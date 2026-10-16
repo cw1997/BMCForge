@@ -11,7 +11,7 @@ import = 匯入
 discover = 掃描
 edit = 編輯
 manual = 手動控制
-automatic = 自動模式
+automatic = 還原自動控制
 select = 選取
 search = 搜尋
 settings = 設定
@@ -68,6 +68,7 @@ unsupported = 不支援
 settings-saved = 設定已儲存
 group = 群組
 server = 伺服器
+models = 型號列表
 bmc-endpoint = BMC 位址
 status = 狀態
 server-details = 伺服器詳細資料
@@ -96,7 +97,7 @@ operation-ok = 操作成功：{ $server }
 scan-failed = 掃描失敗
 scan-finished = 探索完成。無回應表示未知，不能證明不存在。
 safety = 離開時嘗試恢復本程序接管的風扇。強制結束、斷電或斷網時無法保證恢復。
-help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab 切頁；方向鍵導覽；空白鍵選取；F2 儲存；F3 語言；F4 滑鼠；F5 保留未知；F6 略過；A 全選探索；G 選取 /24 群組；c 取消識別。Shift+拖曳或終端原生選取可複製文字。快捷鍵可在設定中修改。
+help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab 切頁；方向鍵導覽；空白鍵選取；F2 儲存；F3 語言；F5 保留未知；F6 略過；A 全選探索；G 選取 /24 群組；c 取消識別。Shift+拖曳或終端原生選取可複製文字。快捷鍵可在設定中修改。
 device-count = { $count } 台裝置
 
 # Guided forms and interaction hints
@@ -144,8 +145,8 @@ form-lines = Enter：換行 · IP / 主機名 / CIDR / 範圍
 form-error-number = 請輸入整數（十進位或 0x 十六進位）。
 form-error-range = 數值超出顯示範圍。
 form-error-choice = 請選擇可用選項。
-form-help = Tab/Shift+Tab：欄位 · Enter：啟用 · F2：繼續 · Esc：取消 · F8：操作區
-form-key-help = 1–5 Tab/Shift+Tab：切頁 · ↑↓ j/k：移動 · Enter：詳情/套用（雙擊伺服器查看詳情）· Space：選取 · PgUp/PgDn：捲動 · F1：說明 · F3：語言 · F4：滑鼠 · Del：移除 · F8：操作區，方向鍵/Tab 移動，Enter 啟用，Esc 離開 · 探索頁：f 篩選、A 全選、G /24、c 取消辨識 · 配接器頁：u 憑證 · 型號選擇：F5 未知、F6 跳過 · 表單：Tab/Shift+Tab 欄位、←→ 選項、F2/Ctrl+Enter 提交、F6 金鑰顯隱、F7 進階/返回、Esc 取消 · Ctrl+C：結束
+form-help = Tab/Shift+Tab：欄位 · Enter：啟用 · F2：送出 · Esc：取消 · F8：操作區
+form-key-help = 1–5 Tab/Shift+Tab：切頁 · ↑↓ j/k：移動 · Enter：詳情/套用（雙擊伺服器查看詳情）· Space：選取 · PgUp/PgDn：捲動 · F1：說明 · F3：語言· Del：移除 · F8：操作區，方向鍵/Tab 移動，Enter 啟用，Esc 離開 · 探索頁：f 篩選、A 全選、G /24、c 取消辨識 · 配接器頁：u 憑證 · 型號選擇：F5 未知、F6 跳過 · 表單：Tab/Shift+Tab 欄位、←→ 選項、F2/Ctrl+Enter 提交、F6 金鑰顯隱、F7 進階/返回、Esc 取消 · Ctrl+C：結束
 form-error-shortcut = 此快捷鍵已用於導覽或頁面操作。
 form-error-key = 請輸入不重複的單一字元，不可使用 1–5。
 form-error-username = 使用者名稱不可超過 16 個 UTF-8 位元組。
@@ -164,3 +165,60 @@ command-empty = 目前沒有可顯示的項目
 
 ui-more = 更多操作
 ui-copy-hint = 按住 Shift 拖曳或使用終端原生選取複製文字。使用 PgUp/PgDn 或捲動條查看完整訊息。
+help-tab = 說明
+help-page = 先用「匯入」新增伺服器；每台伺服器可使用獨立認證。頁籤：1 伺服器、2 感測器、3 配接器庫、4 操作記錄、5 說明。按 d 輸入 IPv4 網段開始探索，結果會在對話框中顯示。結果對話框：空白鍵選取、A 全選候選項、G 選取目前 /24、f 篩選、按匯入快捷鍵識別所選裝置、Esc 關閉。Ctrl+P 搜尋命令，F1 開啟本頁，F3 切換語言，q 安全結束。風扇手動控制需明確操作；正常結束時會嘗試恢復自動模式。
+
+help-scan-input = 輸入要探測 IPMI 的 IPv4 位址或網段；已登錄的主機會略過。
+help-import-input = 每行輸入一個伺服器位址、CIDR 或範圍；已登錄的主機會略過。
+help-identify-credentials = 這些憑證只會用於嘗試識別所選掃描結果；檢查設備後才會新增。
+help-import-credentials = 這些憑證與設定會儲存至本批次新增的伺服器。
+help-server-form = 工作執行緒接受新設定後，變更才會套用至此伺服器。
+help-manual-form = 設定目標風扇占空比與區域；傳送控制命令前請檢查受影響的伺服器。
+help-settings-form = 設定會影響本應用程式；部分執行期變更需重新啟動才生效。
+help-discovery = 選取未登錄候選設備進行識別；已登錄主機無法重複新增。
+help-existing-host = 已登錄，無法重複新增
+help-import-preview = 確認前請檢查伺服器清單與重複項目；確認後會儲存新伺服器設定。
+help-identify-preview = 檢查所選伺服器；確認後開始識別，完成後可檢查設備再新增。
+help-scan-preview = 檢查 IPv4 目標與略過的已登錄主機；確認後開始網路掃描。
+help-editor = 進階 TOML 編輯器；按 F7 驗證並返回表單，再從表單儲存。
+help-manual-confirm = 這會向所列伺服器傳送要求的風扇設定。
+help-automatic-confirm = 這會要求所列伺服器還原風扇自動控制。
+help-remove = 還原自動模式後會移除此伺服器設定。
+
+view = 檢視
+save = 儲存
+close = 關閉
+edit-adapter = 編輯適配項
+edit-server = 編輯伺服器
+reset-adapter = 還原原始適配項
+reset-group = 重設目前分組
+reset-all = 重設全部設定
+local-adapter = 本機適配項；原始項
+adapter-matching = 比對條件
+adapter-control = 風扇控制與協定步驟
+adapter-examples = 命令範例
+not-set = 未設定
+add-item = 新增項目／啟用
+remove-item = 刪除項目／清除
+prefill-server-credentials = 預填伺服器憑證
+adapter-edit-help = F4 新增／啟用；F5 刪除／清除；Ctrl+↑/↓ 調整順序；F7 完整 TOML。驗證等級表示證據，編輯不會自動完成硬體驗證。
+adapter-list-help = F4 新增 · F5 刪除 · Ctrl+↑/↓ 調整順序
+adapter-structured-help = TOML 值；留空清除選用值
+reset-adapter-warning = 刪除此本機適配項，並將以下伺服器還原為原始適配項；自動比對也還原使用原始項。
+
+choose = 選擇
+remove-server-action = 刪除伺服器
+
+adapter-origin = 原始來源
+builtin-adapter = 程式內建
+adapter-multiline = Enter：換行
+
+move-up = 上移此項
+move-down = 下移此項
+
+selected-servers = 選取的伺服器
+cancel-discovery = 取消掃描
+search-servers = 搜尋伺服器
+export-diagnostics = 匯出診斷
+
+read-only = 唯讀

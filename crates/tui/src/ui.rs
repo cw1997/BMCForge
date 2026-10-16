@@ -7,7 +7,10 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Cell, Paragraph, Row, Sparkline, Table, TableState, Wrap},
+    widgets::{
+        Block, Borders, Cell, List, ListItem, ListState, Paragraph, Row, Sparkline, Table,
+        TableState, Wrap,
+    },
 };
 use unicode_width::UnicodeWidthStr;
 
@@ -65,22 +68,46 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         .style(Style::default().bg(theme.surface));
     let inner = nav.inner(layout[0]);
     frame.render_widget(nav, layout[0]);
-    let language_width = 18.min(inner.width / 3);
-    let left = Rect {
-        width: inner.width.saturating_sub(language_width),
+    let settings_target = Target::Shortcut("settings".into());
+    let settings_label = format!(
+        "[{} {}]",
+        app.target_label(&settings_target),
+        app.text("settings")
+    );
+    let exit_target = Target::Shortcut("quit".into());
+    let exit_label = format!("[{} {}]", app.target_label(&exit_target), app.text("quit"));
+    let exit_width = (exit_label.width() as u16)
+        .min(inner.width / 3)
+        .max(3.min(inner.width));
+    let exit = Rect {
+        x: inner.right().saturating_sub(exit_width),
+        width: exit_width,
         ..inner
     };
-    let lang = Rect {
-        x: left.right(),
+    let middle_width = inner.width.saturating_sub(exit_width);
+    let language_width = 18.min(middle_width / 2);
+    let settings_width =
+        (settings_label.width() as u16).min(middle_width.saturating_sub(language_width));
+    let language = Rect {
+        x: exit.x.saturating_sub(language_width),
         width: language_width,
         ..inner
     };
+    let settings = Rect {
+        x: language.x.saturating_sub(settings_width),
+        width: settings_width,
+        ..inner
+    };
+    let left = Rect {
+        width: settings.x.saturating_sub(inner.x),
+        ..inner
+    };
     let mut x = left.x;
-    for (page, id) in ["fleet", "sensors", "discovery", "profiles", "activity"]
+    for (page, id) in ["fleet", "sensors", "profiles", "activity", "help-tab"]
         .iter()
         .enumerate()
     {
-        let label = if left.width < 60 {
+        let label = if left.width < 60 && page < 4 {
             format!("{}", page + 1)
         } else {
             format!("{} {}", page + 1, app.text(id))
@@ -109,32 +136,49 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         app.hits.push(Hit::new(r, Target::Page(page)));
         x = x.saturating_add(width);
     }
+    let language_name = app
+        .locales
+        .packs
+        .get(&app.config.settings.language)
+        .map(|p| p.name.as_str())
+        .unwrap_or("English");
+    let language_label = format!("[F3 {language_name} ▾]");
     frame.render_widget(
-        Paragraph::new(format!(
-            "[F3 {} ▾]",
-            app.locales
-                .packs
-                .get(&app.config.settings.language)
-                .map(|p| p.name.as_str())
-                .unwrap_or("English")
-        ))
-        .style(app.interaction.style(&Target::Language)),
-        lang,
+        Paragraph::new(crate::chrome::truncate(&language_label, language.width))
+            .style(app.interaction.style(&Target::Language)),
+        language,
     );
-    app.hits.push(Hit::new(lang, Target::Language));
+    app.hits.push(Hit::new(language, Target::Language));
+    let settings_display = if settings.width >= settings_label.width() as u16 {
+        settings_label
+    } else {
+        format!("[{}]", app.target_label(&settings_target))
+    };
+    frame.render_widget(
+        Paragraph::new(crate::chrome::truncate(&settings_display, settings.width))
+            .style(app.interaction.style(&settings_target)),
+        settings,
+    );
+    app.hits.push(Hit::new(settings, settings_target));
+    frame.render_widget(
+        Paragraph::new(crate::chrome::truncate(&exit_label, exit.width))
+            .style(app.interaction.style(&exit_target)),
+        exit,
+    );
+    app.hits.push(Hit::new(exit, exit_target));
     match app.page {
         0 => fleet(frame, layout[1], app),
         1 => sensors(frame, layout[1], app),
-        2 => discovery(frame, layout[1], app),
-        3 => profiles(frame, layout[1], app),
-        _ => logs(frame, layout[1], app),
+        2 => profiles(frame, layout[1], app),
+        3 => logs(frame, layout[1], app),
+        _ => help_page(frame, layout[1], app),
     }
     let empty = match app.page {
         0 => app.visible().is_empty(),
         1 => app.current().is_none(),
-        2 => app.discovery.is_empty() && !app.scanning,
-        3 => app.registry.profiles.is_empty(),
-        _ => app.logs.is_empty(),
+        2 => app.registry.profiles.is_empty(),
+        3 => app.logs.is_empty(),
+        _ => false,
     };
     if empty && layout[1].height > 3 {
         frame.render_widget(
@@ -156,9 +200,7 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         "automatic",
         "select",
         "search",
-        "settings",
         "export",
-        "quit",
     ];
     let footer_lines = Layout::vertical([
         Constraint::Length(1),
@@ -168,38 +210,37 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
     .split(layout[2]);
     let mut buttons = actions
         .iter()
-        .map(|name| (app.text(name).to_owned(), Target::Shortcut((*name).into())))
+        .map(|name| (app.action_text(name), Target::Shortcut((*name).into())))
         .collect::<Vec<_>>();
-    buttons.push((app.text("language").into(), Target::Language));
-    buttons.push((app.text("mouse").into(), Target::Key(KeyCode::F(4))));
     buttons.push(("?".into(), Target::Key(KeyCode::F(1))));
-    buttons.push((app.text("remove").into(), Target::Key(KeyCode::Delete)));
+    buttons.push((
+        app.text("remove-server-action").into(),
+        Target::Key(KeyCode::Delete),
+    ));
     if app.page == 2 {
+        buttons.push((app.text("view").into(), Target::Key(KeyCode::Enter)));
         buttons.push((
-            app.text("select-all").into(),
-            Target::Key(KeyCode::Char('A')),
-        ));
-        buttons.push(("/24".into(), Target::Key(KeyCode::Char('G'))));
-        buttons.push((app.text("filter").into(), Target::Key(KeyCode::Char('f'))));
-        buttons.push((
-            app.text("identify").into(),
-            Target::Shortcut("import".into()),
+            app.text("prefill-server-credentials").into(),
+            Target::Key(KeyCode::Char('u')),
         ));
     }
-    if app.page == 3 {
-        buttons.push((app.text("confirm").into(), Target::Key(KeyCode::Enter)));
+    if app.page == 2
+        && app
+            .registry
+            .profiles
+            .keys()
+            .nth(app.profile_cursor)
+            .is_some_and(|id| app.registry.local.contains_key(id))
+    {
         buttons.push((
-            app.text("credentials").into(),
-            Target::Key(KeyCode::Char('u')),
+            app.text("reset-adapter").into(),
+            Target::Shortcut("reset-adapter".into()),
         ));
     }
     if app.identifying {
         buttons.push((app.text("cancel").into(), Target::Key(KeyCode::Char('c'))));
     }
     if app.page == 2 {
-        buttons.rotate_right(if app.identifying { 5 } else { 4 });
-    }
-    if app.page == 3 {
         buttons.rotate_right(if app.identifying { 3 } else { 2 });
     }
     if app.page == 0 {
@@ -280,14 +321,8 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         "Ctrl+X → p · 1–5 · t · h · q · Esc".into()
     } else {
         format!(
-            "Ctrl+P · F8: {} · ↑↓ j/k · Enter · Tab: 1–5 · F4: {} {}",
-            app.text("form-actions"),
-            app.text("mouse"),
-            if app.config.settings.mouse {
-                "●"
-            } else {
-                "○"
-            }
+            "Ctrl+P · F8: {} · ↑↓ j/k · Enter · Tab: 1–5",
+            app.text("form-actions")
         )
     };
     frame.render_widget(
@@ -666,8 +701,9 @@ fn discovery(frame: &mut Frame, area: Rect, app: &mut App) {
         .iter()
         .map(|i| {
             let r = &app.discovery[*i];
+            let exists = app.host_exists(&r.host);
             Row::new(vec![
-                if app.discovery_selected.contains(&r.host) {
+                if !exists && app.discovery_selected.contains(&r.host) {
                     "[x]"
                 } else {
                     "[ ]"
@@ -679,12 +715,19 @@ fn discovery(frame: &mut Frame, area: Rect, app: &mut App) {
                     _ => "unknown",
                 })
                 .into(),
-                if r.status == bmcforge_ipmi::discovery::ProbeStatus::IpmiCandidate {
+                if exists {
+                    app.text("help-existing-host").into()
+                } else if r.status == bmcforge_ipmi::discovery::ProbeStatus::IpmiCandidate {
                     app.text("unauthenticated").into()
                 } else {
                     app.text("scan-finished").into()
                 },
             ])
+            .style(if exists {
+                Style::default().fg(theme.muted)
+            } else {
+                Style::default()
+            })
         })
         .collect();
     let mut state = TableState::default().with_selected(if visible.is_empty() {
@@ -706,15 +749,18 @@ fn discovery(frame: &mut Frame, area: Rect, app: &mut App) {
             crate::theme::Theme::named(&app.config.settings.theme),
             &["", "BMC IPv4", app.text("probe-status"), app.text("note")],
         ))
-        .block(crate::chrome::panel(theme).title(format!(
-            " {}/{} {} | {}: {} | i: {} ",
-            app.discovery.len(),
-            app.scan_total,
-            app.text(if app.scanning { "scanning" } else { "idle" }),
-            app.text("selected"),
-            app.discovery_selected.len(),
-            app.text("identify")
-        )))
+        .block(
+            crate::chrome::panel(theme)
+                .title(format!(
+                    " {}/{} {} | {}: {} ",
+                    app.discovery.len(),
+                    app.scan_total,
+                    app.text(if app.scanning { "scanning" } else { "idle" }),
+                    app.text("selected"),
+                    app.discovery_selected.len()
+                ))
+                .title_bottom(app.text("help-discovery")),
+        )
         .row_highlight_style(Style::default().bg(theme.selection).fg(theme.foreground)),
         area,
         &mut state,
@@ -726,10 +772,51 @@ fn discovery(frame: &mut Frame, area: Rect, app: &mut App) {
         state.offset(),
         visible
             .iter()
-            .map(|i| Target::Discovery(app.discovery[*i].host.clone(), false))
+            .map(|i| Target::Discovery(app.discovery[*i].host.clone(), true))
             .collect(),
         Pane::Discovery,
     );
+}
+
+fn help_page(frame: &mut Frame, area: Rect, app: &mut App) {
+    let theme = crate::theme::Theme::named(&app.config.settings.theme);
+    let block = crate::chrome::panel(theme).title(app.text("help-tab"));
+    let inner = block.inner(area);
+    let text = format!(
+        "{}\n\n{}: Enter {} · e {} · F6 {} · r {}\n{}\n\n{}: F4 {} · F5 {} · F2 {} · Esc {}",
+        app.text("help-page"),
+        app.text("profiles"),
+        app.text("view"),
+        app.text("edit-adapter"),
+        app.text("form-reveal"),
+        app.text("reset-adapter"),
+        app.text("adapter-edit-help"),
+        app.text("settings"),
+        app.text("reset-group"),
+        app.text("reset-all"),
+        app.text("save"),
+        app.text("cancel")
+    );
+    let paragraph = Paragraph::new(text).wrap(Wrap { trim: false }).block(block);
+    let maximum = paragraph
+        .line_count(inner.width)
+        .saturating_sub(usize::from(inner.height))
+        .min(u16::MAX as usize);
+    let scroll = app.detail_scroll.min(maximum as u16);
+    frame.render_widget(paragraph.scroll((scroll, 0)), area);
+    app.hits.extend(crate::chrome::scrollbar(
+        frame,
+        Rect::new(
+            area.right().saturating_sub(1),
+            inner.y,
+            1.min(area.width),
+            inner.height,
+        ),
+        usize::from(scroll),
+        maximum,
+        Pane::Detail,
+        theme,
+    ));
 }
 fn verification<'a>(app: &'a App, v: &bmcforge_profiles::Verification) -> &'a str {
     use bmcforge_profiles::Verification::*;
@@ -753,7 +840,11 @@ fn profiles(frame: &mut Frame, area: Rect, app: &mut App) {
         .values()
         .map(|p| {
             Row::new(vec![
-                p.id.clone(),
+                if app.registry.local.contains_key(&p.id) {
+                    format!("★ {}", p.id)
+                } else {
+                    p.id.clone()
+                },
                 verification(app, &p.verification).into(),
             ])
         })
@@ -782,88 +873,253 @@ fn profiles(frame: &mut Frame, area: Rect, app: &mut App) {
             .collect(),
         Pane::Profiles,
     );
+    let right =
+        Layout::vertical([Constraint::Percentage(55), Constraint::Percentage(45)]).split(parts[1]);
     app.hits
-        .push(Hit::new(parts[1], Target::Scroll(Pane::Detail)));
-    let text = app
-        .registry
-        .profiles
-        .values()
-        .nth(app.profile_cursor)
-        .map(|p| {
-            let fan = p
-                .fan
-                .as_ref()
-                .map(|f| {
-                    format!(
-                        "{}\n{}: {}",
-                        f.zones
-                            .iter()
-                            .map(|z| format!("{}={}", z.id, z.name))
-                            .collect::<Vec<_>>()
-                            .join(", "),
-                        app.text("raw"),
-                        if f.raw_values.is_empty() {
-                            if f.percent_values.is_empty() {
-                                format!("{}..{}%", f.min_percent, f.max_percent)
-                            } else {
-                                f.percent_values
-                                    .iter()
-                                    .map(|v| format!("{v}%"))
-                                    .collect::<Vec<_>>()
-                                    .join(", ")
-                            }
-                        } else {
-                            f.raw_values
-                                .iter()
-                                .map(|v| format!("{v:#04x}"))
-                                .collect::<Vec<_>>()
-                                .join(", ")
-                        }
-                    )
-                })
-                .unwrap_or_else(|| app.text("monitor-only").into());
-            format!(
-                "{}\n{}\n\n{}\n\n{}\n\n{}:\n{}\n\n{}:\n{}\n\n{}:\n{}",
-                p.vendor,
-                p.description,
-                p.notes,
-                fan,
-                app.text("sources"),
-                p.sources.join("\n"),
-                app.text("factory-credentials"),
-                p.default_credentials
-                    .iter()
-                    .map(|c| format!(
-                        "{} / {} — {}\n{}",
-                        c.username,
-                        c.password.as_deref().unwrap_or("—"),
-                        c.note,
-                        c.source
-                    ))
-                    .collect::<Vec<_>>()
-                    .join("\n"),
-                app.text("server"),
-                app.catalog
-                    .models
-                    .values()
-                    .filter(|m| m.profile.as_deref() == Some(p.id.as_str()))
-                    .map(|m| format!("{} ({})", m.name, m.id))
-                    .collect::<Vec<_>>()
-                    .join("\n")
-            )
-        })
-        .unwrap_or_default();
+        .push(Hit::new(right[0], Target::Scroll(Pane::Detail)));
+    let profile = app.registry.profiles.values().nth(app.profile_cursor);
+    let text = profile.map(|p| profile_summary(app, p)).unwrap_or_default();
     let (position, hits) = crate::chrome::paragraph(
         frame,
-        parts[1],
+        right[0],
         &text,
-        app.text("profiles"),
+        app.text("profile"),
         app.detail_scroll,
         Pane::Detail,
         theme,
     );
     app.detail_scroll = position;
     app.hits.extend(hits);
+
+    app.hits
+        .push(Hit::new(right[1], Target::Scroll(Pane::Models)));
+    let origin = profile.map(|p| {
+        app.registry
+            .local
+            .get(&p.id)
+            .map(|l| l.origin_id.as_str())
+            .unwrap_or(&p.id)
+    });
+    let models: Vec<_> = app
+        .catalog
+        .models
+        .values()
+        .filter(|m| origin.is_some() && m.profile.as_deref() == origin)
+        .map(|m| ListItem::new(format!("{} ({})", m.name, m.id)))
+        .collect();
+    let items = if models.is_empty() {
+        vec![ListItem::new("—")]
+    } else {
+        models
+    };
+    let inner = crate::chrome::panel(theme).inner(right[1]);
+    let max_scroll = items.len().saturating_sub(usize::from(inner.height));
+    app.model_scroll = app.model_scroll.min(max_scroll);
+    let mut model_state = ListState::default().with_offset(app.model_scroll);
+    frame.render_stateful_widget(
+        List::new(items)
+            .block(crate::chrome::panel(theme).title(app.text("models")))
+            .style(Style::default().fg(theme.foreground)),
+        right[1],
+        &mut model_state,
+    );
+    app.model_scroll = model_state.offset();
+    app.hits.extend(crate::chrome::scrollbar(
+        frame,
+        Rect::new(
+            right[1].right().saturating_sub(1),
+            inner.y,
+            1.min(right[1].width),
+            inner.height,
+        ),
+        app.model_scroll,
+        max_scroll,
+        Pane::Models,
+        theme,
+    ));
+}
+
+fn profile_summary(app: &App, p: &bmcforge_profiles::Profile) -> String {
+    let fan = p
+        .fan
+        .as_ref()
+        .map(|f| {
+            format!(
+                "{} · {}: {}",
+                f.zones
+                    .iter()
+                    .map(|z| format!("{}={}", z.id, z.name))
+                    .collect::<Vec<_>>()
+                    .join(", "),
+                app.text("raw"),
+                if f.raw_values.is_empty() {
+                    if f.percent_values.is_empty() {
+                        format!("{}..{}%", f.min_percent, f.max_percent)
+                    } else {
+                        f.percent_values
+                            .iter()
+                            .map(|v| format!("{v}%"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    }
+                } else {
+                    f.raw_values
+                        .iter()
+                        .map(|v| format!("{v:#04x}"))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                }
+            )
+        })
+        .unwrap_or_else(|| app.text("monitor-only").into());
+    format!(
+        "{} · {}\n{}\n{}\n{}",
+        p.vendor,
+        verification(app, &p.verification),
+        p.description,
+        p.notes,
+        fan
+    )
+}
+
+fn structured_profile_detail(app: &App, p: &bmcforge_profiles::Profile, reveal: bool) -> String {
+    fn render(
+        value: &toml::Value,
+        indent: usize,
+        reveal: bool,
+        missing: &str,
+        lines: &mut Vec<String>,
+    ) {
+        match value {
+            toml::Value::Table(table) => {
+                for (key, value) in table {
+                    let pad = " ".repeat(indent);
+                    match value {
+                        toml::Value::Table(_) | toml::Value::Array(_) => {
+                            lines.push(format!("{pad}{key}:"));
+                            render(value, indent + 2, reveal, missing, lines);
+                        }
+                        _ => lines.push(format!(
+                            "{pad}{key}: {}",
+                            if key == "password" && !reveal && value.as_str() != Some(missing) {
+                                "••••".into()
+                            } else {
+                                value.to_string()
+                            }
+                        )),
+                    }
+                }
+                let optional: &[&str] = if table.contains_key("netfn") {
+                    &["expect", "expect_data"]
+                } else if table.contains_key("expected") {
+                    &["raw"]
+                } else {
+                    &[]
+                };
+                for key in optional {
+                    if !table.contains_key(*key) {
+                        lines.push(format!("{}{key}: {missing}", " ".repeat(indent)));
+                    }
+                }
+            }
+            toml::Value::Array(items) => {
+                if items.is_empty() {
+                    lines.push(format!("{}[]", " ".repeat(indent)));
+                }
+                for (i, item) in items.iter().enumerate() {
+                    lines.push(format!("{}[{}]", " ".repeat(indent), i + 1));
+                    render(item, indent + 2, reveal, missing, lines);
+                }
+            }
+            _ => lines.push(format!("{}{}", " ".repeat(indent), value)),
+        }
+    }
+    let mut lines = vec![p.id.clone(), profile_summary(app, p)];
+    if let Some(local) = app.registry.local.get(&p.id) {
+        lines.push(format!(
+            "{}: {}",
+            app.text("local-adapter"),
+            local.origin_id
+        ));
+    }
+    let origin = app
+        .registry
+        .local
+        .get(&p.id)
+        .map(|l| l.origin_id.as_str())
+        .unwrap_or(&p.id);
+    lines.push(format!(
+        "{}: {}",
+        app.text("adapter-origin"),
+        app.registry
+            .origins
+            .get(origin)
+            .map(|path| path.display().to_string())
+            .unwrap_or_else(|| app.text("builtin-adapter").into())
+    ));
+    let mut value = toml::Value::try_from(p).unwrap();
+    if let Some(table) = value.get_mut("matcher").and_then(toml::Value::as_table_mut) {
+        for key in ["manufacturer_id", "firmware_min", "firmware_max"] {
+            table
+                .entry(key)
+                .or_insert(toml::Value::String(app.text("not-set").into()));
+        }
+    }
+    if let Some(creds) = value
+        .get_mut("default_credentials")
+        .and_then(toml::Value::as_array_mut)
+    {
+        for credential in creds {
+            credential
+                .as_table_mut()
+                .unwrap()
+                .entry("password")
+                .or_insert(toml::Value::String(app.text("not-set").into()));
+        }
+    }
+    for (label, keys) in [
+        (
+            "form-basic",
+            vec![
+                "schema_version",
+                "override_builtin",
+                "vendor",
+                "description",
+                "verification",
+                "notes",
+            ],
+        ),
+        ("adapter-matching", vec!["matcher"]),
+        ("credentials", vec!["default_credentials"]),
+        ("adapter-control", vec!["fan"]),
+        ("adapter-examples", vec!["examples"]),
+        ("sources", vec!["sources"]),
+    ] {
+        lines.push(format!("\n── {} ──", app.text(label)));
+        for key in keys {
+            lines.push(format!("{key}:"));
+            if let Some(v) = value.get(key) {
+                render(v, 2, reveal, app.text("not-set"), &mut lines);
+            } else {
+                lines.push(format!("  {}", app.text("not-set")));
+            }
+        }
+    }
+    lines.push(format!("\n── {} ──", app.text("models")));
+    let origin = app
+        .registry
+        .local
+        .get(&p.id)
+        .map(|l| l.origin_id.as_str())
+        .unwrap_or(&p.id);
+    lines.extend(
+        app.catalog
+            .models
+            .values()
+            .filter(|m| m.profile.as_deref() == Some(origin))
+            .map(|m| format!("{} ({})", m.name, m.id)),
+    );
+    lines.join("\n")
 }
 fn logs(frame: &mut Frame, area: Rect, app: &mut App) {
     let theme = crate::theme::Theme::named(&app.config.settings.theme);
@@ -1062,6 +1318,17 @@ fn draw_form(frame: &mut Frame, area: Rect, app: &mut App) {
         return;
     };
     let title = form.title.clone();
+    let context_help = match &form.kind {
+        crate::app::EditKind::Targets(true) => "help-scan-input",
+        crate::app::EditKind::Targets(false) => "help-import-input",
+        crate::app::EditKind::Credentials(_, true) => "help-identify-credentials",
+        crate::app::EditKind::Credentials(_, false) => "help-import-credentials",
+        crate::app::EditKind::Server(_) => "help-server-form",
+        crate::app::EditKind::Manual(_) => "help-manual-form",
+        crate::app::EditKind::Settings => "help-settings-form",
+        crate::app::EditKind::Search => "",
+        crate::app::EditKind::Profile(_) => "adapter-edit-help",
+    };
     let block = crate::chrome::panel(theme)
         .title(title)
         .title_bottom(" Tab/Shift+Tab · ↑↓ · F2 · Esc · F8 ");
@@ -1072,15 +1339,22 @@ fn draw_form(frame: &mut Frame, area: Rect, app: &mut App) {
     }
     let has_error = !form.error.is_empty() || !form.fields[form.focus].error.is_empty();
     let parts = Layout::vertical([
-        Constraint::Length(if inner.height >= 8 { 2 } else { 0 }),
+        Constraint::Length(if inner.height >= 8 { 3 } else { 0 }),
         Constraint::Min(1),
         Constraint::Length(if has_error && inner.height >= 5 { 2 } else { 0 }),
     ])
     .split(inner);
-    let help = app.text("form-help").to_owned();
+    let help = if context_help.is_empty() {
+        app.text("form-help").to_owned()
+    } else {
+        format!("{}\n{}", app.text(context_help), app.text("form-help"))
+    };
     frame.render_widget(Paragraph::new(help).wrap(Wrap { trim: false }), parts[0]);
     let height = |i: usize| {
-        if matches!(form.fields[i].kind, FieldType::Multiline) {
+        if matches!(
+            form.fields[i].kind,
+            FieldType::Multiline | FieldType::Structured
+        ) {
             6u16
         } else {
             3u16
@@ -1116,7 +1390,16 @@ fn draw_form(frame: &mut Frame, area: Rect, app: &mut App) {
             FieldType::Secret => format!("F6: {}", app.text("form-reveal")),
             FieldType::Number { min, max } => format!("{min}–{max}"),
             FieldType::Tags => app.text("form-tags").into(),
-            FieldType::Multiline => app.text("form-lines").into(),
+            FieldType::Multiline => {
+                if matches!(form.kind, crate::app::EditKind::Profile(_)) {
+                    app.text("adapter-multiline").into()
+                } else {
+                    app.text("form-lines").into()
+                }
+            }
+            FieldType::Structured => app.text("adapter-structured-help").into(),
+            FieldType::Collection => app.text("adapter-list-help").into(),
+            FieldType::ReadOnly => app.text("read-only").into(),
             _ => String::new(),
         };
         let label = if field.path.first().is_some_and(|p| p == "keys") {
@@ -1187,7 +1470,13 @@ fn draw_form(frame: &mut Frame, area: Rect, app: &mut App) {
             );
             app.hits.push(Hit::new(content, Target::Field(index)));
             if index == form.focus
-                && !matches!(field.kind, FieldType::Choice(_) | FieldType::Toggle)
+                && !matches!(
+                    field.kind,
+                    FieldType::Choice(_)
+                        | FieldType::Toggle
+                        | FieldType::Collection
+                        | FieldType::ReadOnly
+                )
             {
                 frame.set_cursor_position((
                     content.x + (cursor_x - left) as u16,
@@ -1249,7 +1538,10 @@ fn modal(frame: &mut Frame, app: &mut App) {
         KeyCode::Enter
     };
     let mut buttons = vec![
-        (app.text("confirm").into(), Target::Key(primary)),
+        (
+            app.text(app.modal_primary_label()).into(),
+            Target::Key(primary),
+        ),
         (app.text("cancel").into(), Target::Key(KeyCode::Esc)),
     ];
     if matches!(&app.modal, Some(Modal::Form(f)) if f.advanced) || app.advanced_form.is_some() {
@@ -1259,13 +1551,78 @@ fn modal(frame: &mut Frame, app: &mut App) {
     {
         buttons.push((app.text("form-reveal").into(), Target::Key(KeyCode::F(6))));
     }
+    if matches!(&app.modal, Some(Modal::Form(f)) if matches!(f.kind, crate::app::EditKind::Profile(_)))
+    {
+        buttons.push((app.text("add-item").into(), Target::Key(KeyCode::F(4))));
+        buttons.push((app.text("remove-item").into(), Target::Key(KeyCode::F(5))));
+        buttons.push((app.text("move-up").into(), Target::Key(KeyCode::F(9))));
+        buttons.push((app.text("move-down").into(), Target::Key(KeyCode::F(10))));
+    }
     if matches!(app.modal, Some(Modal::ModelChoice { .. })) {
         buttons = vec![
-            (app.text("confirm").into(), Target::Key(KeyCode::Enter)),
+            (app.text("choose").into(), Target::Key(KeyCode::Enter)),
             (app.text("unknown").into(), Target::Key(KeyCode::F(5))),
             (app.text("skip").into(), Target::Key(KeyCode::F(6))),
         ];
     }
+    if matches!(
+        app.modal,
+        Some(Modal::Info(_) | Modal::ProfileDetail { .. })
+    ) {
+        buttons = vec![(app.text("close").into(), Target::Key(KeyCode::Esc))];
+    }
+    if let Some(Modal::ProfileDetail { id, .. }) = &app.modal {
+        buttons.push((
+            app.text("edit-adapter").into(),
+            Target::Key(KeyCode::Char('e')),
+        ));
+        buttons.push((app.text("form-reveal").into(), Target::Key(KeyCode::F(6))));
+        if app.registry.local.contains_key(id) {
+            buttons.push((
+                app.text("reset-adapter").into(),
+                Target::Key(KeyCode::Char('r')),
+            ));
+        }
+    }
+    if matches!(&app.modal, Some(Modal::Form(f)) if matches!(f.kind, crate::app::EditKind::Settings))
+    {
+        buttons.push((app.text("reset-group").into(), Target::Key(KeyCode::F(4))));
+        buttons.push((app.text("reset-all").into(), Target::Key(KeyCode::F(5))));
+    }
+    let adapter_text = match &app.modal {
+        Some(Modal::ProfileDetail { id, reveal }) => app
+            .registry
+            .profiles
+            .get(id)
+            .map(|p| structured_profile_detail(app, p, *reveal)),
+        Some(Modal::ResetProfile(id)) => Some(format!(
+            "{}\n{}\n\n{}\n{}",
+            app.text("reset-adapter"),
+            id,
+            app.text("reset-adapter-warning"),
+            app.config
+                .servers
+                .iter()
+                .filter(|s| app.adapter_affected(id).contains(&s.id))
+                .map(|s| format!("{} ({})", s.name, s.id))
+                .collect::<Vec<_>>()
+                .join("\n")
+        )),
+        _ => None,
+    };
+    let primary_label = app.text(app.modal_primary_label()).to_owned();
+    let help_texts = [
+        "help-identify-preview",
+        "help-import-preview",
+        "help-editor",
+        "help-scan-preview",
+        "help-manual-confirm",
+        "help-automatic-confirm",
+        "help-remove",
+    ]
+    .into_iter()
+    .map(|id| (id, app.text(id).to_owned()))
+    .collect::<std::collections::BTreeMap<_, _>>();
     let languages = app
         .locales
         .packs
@@ -1549,6 +1906,22 @@ fn modal(frame: &mut Frame, app: &mut App) {
         Modal::Commands { .. } | Modal::Actions { .. } => unreachable!(),
 
         Modal::Form(_) | Modal::FieldChoice { .. } => unreachable!(),
+        Modal::DiscoveryResults => {
+            buttons = vec![
+                (app.text("cancel").into(), Target::Key(KeyCode::Esc)),
+                (
+                    app.text("select-all").into(),
+                    Target::Key(KeyCode::Char('A')),
+                ),
+                ("/24".into(), Target::Key(KeyCode::Char('G'))),
+                (app.text("filter").into(), Target::Key(KeyCode::Char('f'))),
+                (
+                    app.text("identify").into(),
+                    Target::Shortcut("import".into()),
+                ),
+            ];
+            discovery(frame, popup, app);
+        }
         Modal::Languages { cursor } => {
             let mut state = TableState::default().with_selected(Some(*cursor));
             frame.render_stateful_widget(
@@ -1636,7 +2009,12 @@ fn modal(frame: &mut Frame, app: &mut App) {
             duplicates,
         } => {
             let text = format!(
-                "{} | {}: {}\n{}\n\n{}",
+                "{}\n{} | {}: {}\n{}\n\n{}",
+                &help_texts[if *authenticate {
+                    "help-identify-preview"
+                } else {
+                    "help-import-preview"
+                }],
                 servers.len(),
                 labels["duplicates"],
                 duplicates,
@@ -1668,8 +2046,8 @@ fn modal(frame: &mut Frame, app: &mut App) {
             let block = crate::chrome::panel(theme)
                 .title(title.clone())
                 .title_bottom(format!(
-                    " F7: ↩ | F8: actions | F2 / Ctrl+Enter: {} | Esc: {} ",
-                    labels["confirm"], labels["cancel"]
+                    "{} | F7: ↩ | F8: actions | F2 / Ctrl+Enter: {} | Esc: {} ",
+                    help_texts["help-editor"], primary_label, labels["cancel"]
                 ));
             let inner = block.inner(popup);
             frame.render_widget(block, popup);
@@ -1729,7 +2107,12 @@ fn modal(frame: &mut Frame, app: &mut App) {
         } => {
             let large = *discovery && hosts.len() > app.config.settings.scan_confirm_above;
             let text = format!(
-                "{} | {}: {} | {}: {}{}\n\n{}\n{}\n\nEnter: {} | Esc: {}",
+                "{}\n{} | {}: {} | {}: {}{}\n\n{}\n{}\n\nEnter: {} | Esc: {}",
+                &help_texts[if *discovery {
+                    "help-scan-preview"
+                } else {
+                    "help-import-preview"
+                }],
                 hosts.len(),
                 labels["duplicates"],
                 duplicates,
@@ -1753,8 +2136,22 @@ fn modal(frame: &mut Frame, app: &mut App) {
             app.modal_scroll = position;
             app.hits.extend(hits);
         }
-        Modal::Confirm { title, text, .. } => {
+        Modal::Confirm {
+            title,
+            text,
+            manual,
+            ..
+        } => {
             let mut lines = vec![
+                Line::from(
+                    help_texts[if manual.is_some() {
+                        "help-manual-confirm"
+                    } else {
+                        "help-automatic-confirm"
+                    }]
+                    .as_str(),
+                ),
+                Line::from(""),
                 Line::styled(
                     title.clone(),
                     Style::default()
@@ -1793,6 +2190,19 @@ fn modal(frame: &mut Frame, app: &mut App) {
                 theme,
             ));
         }
+        Modal::ProfileDetail { .. } | Modal::ResetProfile(_) => {
+            let (position, hits) = crate::chrome::paragraph(
+                frame,
+                popup,
+                adapter_text.as_deref().unwrap_or(""),
+                " BMCForge ",
+                app.modal_scroll,
+                Pane::Modal,
+                theme,
+            );
+            app.modal_scroll = position;
+            app.hits.extend(hits);
+        }
         Modal::Info(text) => {
             let (position, hits) = crate::chrome::paragraph(
                 frame,
@@ -1807,7 +2217,10 @@ fn modal(frame: &mut Frame, app: &mut App) {
             app.hits.extend(hits);
         }
         Modal::Remove { name, .. } => {
-            let text = format!("{}\n{name}\n{}", labels["remove-server"], labels["safety"]);
+            let text = format!(
+                "{}\n{name}\n{}\n\n{}",
+                labels["remove-server"], labels["safety"], help_texts["help-remove"]
+            );
             let (position, hits) = crate::chrome::paragraph(
                 frame,
                 popup,
@@ -1831,6 +2244,108 @@ mod tests {
     use bmcforge_core::config::Config;
     use ratatui::{Terminal, backend::TestBackend};
     #[test]
+    fn structured_adapter_details_mask_secrets_and_render_in_small_terminals() {
+        let mut app = App::new(
+            Config::default(),
+            "unused".into(),
+            bmcforge_profiles::Registry::load(None).unwrap(),
+            true,
+        );
+        let id = "dell-idrac6-8";
+        app.registry
+            .profiles
+            .get_mut(id)
+            .unwrap()
+            .default_credentials
+            .push(bmcforge_profiles::DefaultCredential {
+                username: "tester".into(),
+                password: Some("secret-adapter-needle".into()),
+                source: "https://example.com".into(),
+                note: "Test credential".into(),
+            });
+        let profile = &app.registry.profiles[id];
+        let masked = structured_profile_detail(&app, profile, false);
+        assert!(!masked.contains("secret-adapter-needle"));
+        assert!(masked.contains("matcher:"));
+        assert!(masked.contains("automatic:"));
+        assert!(masked.contains("expected:"));
+        assert!(structured_profile_detail(&app, profile, true).contains("secret-adapter-needle"));
+        app.page = 2;
+        app.profile_cursor = app.registry.profiles.keys().position(|p| p == id).unwrap();
+        for language in [
+            "en", "zh-CN", "zh-TW", "ja", "ko", "de", "fr", "it", "es", "pt-BR", "ru",
+        ] {
+            app.config.settings.language = language.into();
+            for (width, height) in [(120, 35), (60, 18), (20, 8)] {
+                let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+                app.modal = Some(Modal::ProfileDetail {
+                    id: id.into(),
+                    reveal: false,
+                });
+                terminal.draw(|f| draw(f, &mut app)).unwrap();
+                let text: String = terminal
+                    .backend()
+                    .buffer()
+                    .content()
+                    .iter()
+                    .map(|c| c.symbol())
+                    .collect();
+                assert!(!text.contains("secret-adapter-needle"));
+                app.input(crossterm::event::KeyEvent::new(
+                    KeyCode::F(6),
+                    crossterm::event::KeyModifiers::NONE,
+                ));
+                assert!(matches!(
+                    app.modal,
+                    Some(Modal::ProfileDetail { reveal: true, .. })
+                ));
+                app.input(crossterm::event::KeyEvent::new(
+                    KeyCode::Esc,
+                    crossterm::event::KeyModifiers::NONE,
+                ));
+                assert!(app.modal.is_none());
+            }
+        }
+    }
+    #[test]
+    fn adapter_view_and_edit_labels_match_mouse_and_keyboard_actions() {
+        let mut app = App::new(
+            Config::default(),
+            "unused".into(),
+            bmcforge_profiles::Registry::load(None).unwrap(),
+            true,
+        );
+        app.page = 2;
+        let mut terminal = Terminal::new(TestBackend::new(180, 40)).unwrap();
+        terminal.draw(|f| draw(f, &mut app)).unwrap();
+        let text: String = terminal
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|c| c.symbol())
+            .collect();
+        assert!(text.contains("Enter View"));
+        assert!(text.contains("Edit adapter"));
+        click(&mut app, |t| matches!(t, Target::Key(KeyCode::Enter)));
+        assert!(matches!(app.modal, Some(Modal::ProfileDetail { .. })));
+        terminal.draw(|f| draw(f, &mut app)).unwrap();
+        click(&mut app, |t| matches!(t, Target::Key(KeyCode::Char('e'))));
+        assert!(
+            matches!(app.modal, Some(Modal::Form(ref f)) if matches!(f.kind, crate::app::EditKind::Profile(_)))
+        );
+        let count = match &app.modal {
+            Some(Modal::Form(f)) => f.fields.len(),
+            _ => 0,
+        };
+        for index in 0..count {
+            if let Some(Modal::Form(f)) = &mut app.modal {
+                f.focus = index;
+            }
+            terminal.draw(|f| draw(f, &mut app)).unwrap();
+        }
+    }
+    #[test]
     fn operation_status_stays_visible_when_shortcuts_are_wider_than_terminal() {
         let mut app = App::new(
             Config::default(),
@@ -1849,6 +2364,117 @@ mod tests {
             .map(|c| c.symbol())
             .collect();
         assert!(text.contains("RESTORE FAILED: check device"));
+    }
+    #[test]
+    fn top_exit_button_invokes_the_normal_quit_action() {
+        let mut app = App::new(
+            Config::default(),
+            "unused".into(),
+            bmcforge_profiles::Registry::load(None).unwrap(),
+            true,
+        );
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+        terminal.draw(|f| draw(f, &mut app)).unwrap();
+        let settings_hit = app
+            .hits
+            .iter()
+            .find(|h| matches!(&h.target, Target::Shortcut(name) if name == "settings"))
+            .unwrap();
+        let language_hit = app
+            .hits
+            .iter()
+            .find(|h| h.target == Target::Language)
+            .unwrap();
+        let quit_hit = app
+            .hits
+            .iter()
+            .find(|h| matches!(&h.target, Target::Shortcut(name) if name == "quit"))
+            .unwrap();
+        assert!(settings_hit.area.x < language_hit.area.x);
+        assert!(language_hit.area.x < quit_hit.area.x);
+        assert_eq!(settings_hit.area.y, language_hit.area.y);
+        assert_eq!(language_hit.area.y, quit_hit.area.y);
+        assert!(app.hits.iter().all(|hit| {
+            let top_control = match &hit.target {
+                Target::Language | Target::Key(KeyCode::F(4)) => true,
+                Target::Shortcut(name) => matches!(name.as_str(), "settings" | "quit"),
+                _ => false,
+            };
+            !top_control || hit.area.y == settings_hit.area.y
+        }));
+        click(
+            &mut app,
+            |target| matches!(target, Target::Shortcut(name) if name == "settings"),
+        );
+        assert!(matches!(
+            &app.modal,
+            Some(Modal::Form(form)) if matches!(&form.kind, crate::app::EditKind::Settings)
+        ));
+        app.modal = None;
+        terminal.draw(|f| draw(f, &mut app)).unwrap();
+        let actions = click(
+            &mut app,
+            |target| matches!(target, Target::Shortcut(name) if name == "quit"),
+        );
+        assert!(matches!(actions.as_slice(), [crate::app::Action::Quit]));
+    }
+    #[test]
+    fn top_controls_remain_clickable_in_narrow_terminals() {
+        for (width, height) in [(20, 8), (30, 10)] {
+            let mut app = App::new(
+                Config::default(),
+                "unused".into(),
+                bmcforge_profiles::Registry::load(None).unwrap(),
+                true,
+            );
+            let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+            terminal.draw(|f| draw(f, &mut app)).unwrap();
+            let x = |target: &Target| {
+                app.hits
+                    .iter()
+                    .find(|hit| &hit.target == target)
+                    .map(|hit| hit.area.x)
+                    .expect("top control is visible")
+            };
+            let settings = Target::Shortcut("settings".into());
+            let quit = Target::Shortcut("quit".into());
+            assert!(x(&settings) < x(&Target::Language));
+            assert!(x(&Target::Language) < x(&quit));
+            assert!(app.hits.iter().all(|hit| {
+                hit.area.width > 0 && hit.area.right() <= width && hit.area.bottom() <= height
+            }));
+        }
+    }
+    #[test]
+    fn operation_dialogs_show_context_help() {
+        let mut app = App::new(
+            Config::default(),
+            "unused".into(),
+            bmcforge_profiles::Registry::load(None).unwrap(),
+            true,
+        );
+        let mut terminal = Terminal::new(TestBackend::new(100, 28)).unwrap();
+        app.modal = Some(Modal::Preview {
+            hosts: vec!["192.0.2.1".into()],
+            discovery: true,
+            duplicates: 1,
+            errors: vec![],
+        });
+        terminal.draw(|f| draw(f, &mut app)).unwrap();
+        assert!(buffer_text(&terminal).contains(app.text("help-scan-preview")));
+
+        app.modal = Some(Modal::Confirm {
+            title: "control".into(),
+            text: "server-1".into(),
+            control: vec![],
+            manual: Some((bmcforge_core::ControlValue::Percent(50), 0)),
+        });
+        terminal.draw(|f| draw(f, &mut app)).unwrap();
+        assert!(buffer_text(&terminal).contains(app.text("help-manual-confirm")));
+
+        app.modal = Some(Modal::DiscoveryResults);
+        terminal.draw(|f| draw(f, &mut app)).unwrap();
+        assert!(buffer_text(&terminal).contains(app.text("help-discovery")));
     }
     #[test]
     fn batch_confirmation_renders_separate_server_lines_and_scrolls() {
@@ -2007,7 +2633,7 @@ mod tests {
             assert!(matches!(app.modal,Some(Modal::Editor{ref editor,..}) if editor.col==2));
         }
         app.modal = None;
-        app.page = 2;
+        app.modal = Some(Modal::DiscoveryResults);
         app.config.settings.keys.insert("quit".into(), "A".into());
         app.discovery
             .push(bmcforge_ipmi::discovery::DiscoveryResult {
@@ -2085,6 +2711,47 @@ mod tests {
             .iter()
             .map(|c| c.symbol())
             .collect()
+    }
+    #[test]
+    fn profile_model_list_renders_in_wide_and_narrow_layouts() {
+        for width in [140, 100] {
+            let mut app = App::new(
+                Config::default(),
+                "unused".into(),
+                bmcforge_profiles::Registry::load(None).unwrap(),
+                true,
+            );
+            let (profile_cursor, model) = app
+                .catalog
+                .models
+                .values()
+                .filter(|m| m.name.chars().count() < 20)
+                .find_map(|model| {
+                    let id = model.profile.as_ref()?;
+                    let index = app.registry.profiles.keys().position(|p| p == id)?;
+                    Some((index, model.clone()))
+                })
+                .expect("a built-in model maps to a profile");
+            app.page = 2;
+            app.profile_cursor = profile_cursor;
+            let mut terminal = Terminal::new(TestBackend::new(width, 40)).unwrap();
+            terminal.draw(|f| draw(f, &mut app)).unwrap();
+            let rendered = buffer_text(&terminal);
+            assert!(rendered.contains(&model.name), "width {width}");
+            assert!(rendered.contains(&model.id), "width {width}");
+        }
+
+        let mut app = App::new(
+            Config::default(),
+            "unused".into(),
+            bmcforge_profiles::Registry::load(None).unwrap(),
+            true,
+        );
+        app.page = 2;
+        app.catalog.models.clear();
+        let mut terminal = Terminal::new(TestBackend::new(140, 40)).unwrap();
+        terminal.draw(|f| draw(f, &mut app)).unwrap();
+        assert!(buffer_text(&terminal).contains('—'));
     }
     fn key(app: &mut App, code: KeyCode) {
         app.input(crossterm::event::KeyEvent::new(
@@ -2187,8 +2854,13 @@ mod tests {
         key(&mut app, KeyCode::Esc);
         assert_eq!(app.interaction.action_focus, None);
         // The fixed select-all action remains separate from a legacy conflicting user shortcut.
-        app.page = 2;
+        app.modal = Some(Modal::DiscoveryResults);
         app.config.settings.keys.insert("quit".into(), "A".into());
+        app.discovery
+            .push(bmcforge_ipmi::discovery::DiscoveryResult {
+                host: "192.0.2.20".into(),
+                status: bmcforge_ipmi::discovery::ProbeStatus::IpmiCandidate,
+            });
         terminal.draw(|f| draw(f, &mut app)).unwrap();
         key(&mut app, KeyCode::F(8));
         let index = app

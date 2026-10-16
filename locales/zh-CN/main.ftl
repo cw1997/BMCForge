@@ -11,7 +11,7 @@ import = 导入
 discover = 扫描
 edit = 编辑
 manual = 手动控制
-automatic = 自动模式
+automatic = 恢复自动控制
 select = 选择
 search = 搜索
 settings = 设置
@@ -68,6 +68,7 @@ unsupported = 不支持
 settings-saved = 设置已保存
 group = 分组
 server = 服务器
+models = 型号列表
 bmc-endpoint = BMC 地址
 status = 状态
 server-details = 服务器详情
@@ -96,7 +97,7 @@ operation-ok = 操作成功：{ $server }
 scan-failed = 扫描失败
 scan-finished = 发现完成。无响应表示未知，不能证明不存在。
 safety = 退出时尝试恢复本进程接管的风扇。强杀、断电或断网时无法保证恢复。
-help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab 切页；方向键导航；空格选择；F2 保存；F3 语言；F4 鼠标；F5 保留未知；F6 跳过；A 全选发现；G 选择 /24 分组；c 取消识别。Shift+拖动或终端原生选择可复制文本。快捷键可在设置中修改。
+help = Ctrl+P · Ctrl+X → p / 1–5 / t / h / q · Esc · 1–5 / Tab 切页；方向键导航；空格选择；F2 保存；F3 语言；F5 保留未知；F6 跳过；A 全选发现；G 选择 /24 分组；c 取消识别。Shift+拖动或终端原生选择可复制文本。快捷键可在设置中修改。
 device-count = { $count } 台设备
 
 # Guided forms and interaction hints
@@ -144,8 +145,8 @@ form-lines = Enter：换行 · IP / 主机名 / CIDR / 范围
 form-error-number = 请输入整数（十进制或 0x 十六进制）。
 form-error-range = 数值超出显示的范围。
 form-error-choice = 请选择可用选项。
-form-help = Tab/Shift+Tab：字段 · Enter：激活 · F2：继续 · Esc：取消 · F8：操作区
-form-key-help = 1–5 Tab/Shift+Tab：切页 · ↑↓ j/k：移动 · Enter：详情/应用（双击服务器查看详情）· Space：选择 · PgUp/PgDn：滚动 · F1：帮助 · F3：语言 · F4：鼠标 · Del：移除 · F8：操作区，方向键/Tab 移动，Enter 激活，Esc 离开 · 发现页：f 过滤、A 全选、G /24、c 取消识别 · 适配页：u 凭据 · 型号选择：F5 未知、F6 跳过 · 表单：Tab/Shift+Tab 字段、←→ 选项、F2/Ctrl+Enter 提交、F6 密钥显隐、F7 高级/返回、Esc 取消 · Ctrl+C：退出
+form-help = Tab/Shift+Tab：字段 · Enter：激活 · F2：提交 · Esc：取消 · F8：操作区
+form-key-help = 1–5 Tab/Shift+Tab：切页 · ↑↓ j/k：移动 · Enter：详情/应用（双击服务器查看详情）· Space：选择 · PgUp/PgDn：滚动 · F1：帮助 · F3：语言 · Del：移除 · F8：操作区，方向键/Tab 移动，Enter 激活，Esc 离开 · 发现页：f 过滤、A 全选、G /24、c 取消识别 · 适配页：u 凭据 · 型号选择：F5 未知、F6 跳过 · 表单：Tab/Shift+Tab 字段、←→ 选项、F2/Ctrl+Enter 提交、F6 密钥显隐、F7 高级/返回、Esc 取消 · Ctrl+C：退出
 form-error-shortcut = 此快捷键已用于导航或页面操作。
 form-error-key = 请输入不重复的单个字符，不能使用 1–5。
 form-error-username = 用户名不能超过 16 个 UTF-8 字节。
@@ -164,3 +165,60 @@ command-empty = 暂无可显示项目
 
 ui-more = 更多操作
 ui-copy-hint = 按住 Shift 拖动或使用终端原生选择复制文本。使用 PgUp/PgDn 或滚动条查看完整消息。
+help-tab = 帮助
+help-page = 先用“导入”添加服务器；每台服务器可使用独立凭据。页签：1 服务器、2 传感器、3 适配库、4 操作日志、5 帮助。按 d 输入 IPv4 网段开始扫描，结果会在弹窗中显示。结果弹窗：空格选择、A 全选候选、G 选择当前 /24、f 筛选、按导入快捷键识别所选设备、Esc 关闭。Ctrl+P 搜索命令，F1 打开本页，F3 切换语言，q 安全退出。风扇手动控制需明确操作；正常退出时会尝试恢复自动模式。
+
+help-scan-input = 输入要探测 IPMI 的 IPv4 地址或网段；已登记的主机会跳过。
+help-import-input = 每行输入一个服务器地址、CIDR 或范围；已登记的主机会跳过。
+help-identify-credentials = 这些凭据只会用于尝试识别所选扫描结果；审核设备后才会添加。
+help-import-credentials = 这些凭据和设置将保存到本批次新增的服务器。
+help-server-form = 工作线程接受新配置后，更改才会应用到此服务器。
+help-manual-form = 设置目标风扇占空比和区域；发送控制命令前请检查受影响的服务器。
+help-settings-form = 设置会影响本应用；部分运行时更改需重启后生效。
+help-discovery = 选择未登记候选设备进行识别；已登记主机无法重复添加。
+help-existing-host = 已登记，无法重复添加
+help-import-preview = 确认前请检查服务器列表和重复项；确认后会保存新服务器设置。
+help-identify-preview = 检查所选服务器；确认后开始识别，识别完成后可审核设备再添加。
+help-scan-preview = 检查 IPv4 目标和跳过的已登记主机；确认后开始网络扫描。
+help-editor = 高级 TOML 编辑器；按 F7 校验并返回表单，再从表单保存。
+help-manual-confirm = 这会向所列服务器发送所请求的风扇设置。
+help-automatic-confirm = 这会请求所列服务器恢复风扇自动控制。
+help-remove = 恢复自动模式后会移除此服务器配置。
+
+view = 查看
+save = 保存
+close = 关闭
+edit-adapter = 编辑适配项
+edit-server = 编辑服务器
+reset-adapter = 恢复原始适配项
+reset-group = 重置当前分组
+reset-all = 重置全部设置
+local-adapter = 本地适配项；原始项
+adapter-matching = 匹配条件
+adapter-control = 风扇控制与协议步骤
+adapter-examples = 命令示例
+not-set = 未设置
+add-item = 新增项／启用
+remove-item = 删除项／清除
+prefill-server-credentials = 预填服务器凭据
+adapter-edit-help = F4 新增／启用；F5 删除／清除；Ctrl+↑/↓ 调整顺序；F7 完整 TOML。验证等级表示证据，编辑不会自动完成硬件验证。
+adapter-list-help = F4 新增 · F5 删除 · Ctrl+↑/↓ 调整顺序
+adapter-structured-help = TOML 值；留空清除可选值
+reset-adapter-warning = 删除此本地适配项，并将以下服务器恢复为原始适配项；自动匹配也恢复使用原始项。
+
+choose = 选择
+remove-server-action = 删除服务器
+
+adapter-origin = 原始来源
+builtin-adapter = 程序内置
+adapter-multiline = Enter：换行
+
+move-up = 上移此项
+move-down = 下移此项
+
+selected-servers = 选中服务器
+cancel-discovery = 取消扫描
+search-servers = 搜索服务器
+export-diagnostics = 导出诊断
+
+read-only = 只读

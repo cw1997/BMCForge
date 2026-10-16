@@ -99,6 +99,9 @@ pub struct CommandExample {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Profile {
+    /// Trusted registry metadata for catalog aliases; never editable or serialized.
+    #[serde(skip)]
+    pub origin_id: Option<String>,
     pub schema_version: u32,
     pub id: String,
     pub vendor: String,
@@ -436,7 +439,9 @@ impl Profile {
             }
             if !direct
                 && !candidates.first().is_some_and(|c| {
-                    c.explicit && catalog.models[&c.id].profile.as_deref() == Some(&self.id)
+                    c.explicit
+                        && catalog.models[&c.id].profile.as_deref()
+                            == Some(self.origin_id.as_deref().unwrap_or(&self.id))
                 })
             {
                 return false;
@@ -467,7 +472,17 @@ impl Profile {
     }
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalProfile {
+    pub origin_id: String,
+    pub original: Profile,
+    pub profile: Profile,
+}
+
 pub struct Registry {
+    pub local: BTreeMap<String, LocalProfile>,
+    pub origins: BTreeMap<String, std::path::PathBuf>,
     pub profiles: BTreeMap<String, Profile>,
 }
 impl Registry {
@@ -499,6 +514,7 @@ impl Registry {
             let p = Profile::parse(text)?;
             profiles.insert(p.id.clone(), p);
         }
+        let mut origins = BTreeMap::new();
         if let Some(dir) = dir {
             let mut files: Vec<_> = std::fs::read_dir(dir)
                 .with_context(|| format!("read profiles {}", dir.display()))?
@@ -522,15 +538,28 @@ impl Registry {
                     "{} needs override_builtin = true",
                     p.id
                 );
+                origins.insert(p.id.clone(), path.clone());
                 profiles.insert(p.id.clone(), p);
             }
         }
-        Ok(Self { profiles })
+        Ok(Self {
+            profiles,
+            local: BTreeMap::new(),
+            origins,
+        })
     }
     pub fn candidates(&self, d: &DeviceIdentity) -> Vec<String> {
         self.profiles
             .values()
-            .filter(|p| p.matches(d))
+            .filter(|p| {
+                !self.local.values().any(|l| l.origin_id == p.id)
+                    && (p.matches(d)
+                        || self.local.get(&p.id).is_some_and(|l| {
+                            self.profiles
+                                .get(&l.origin_id)
+                                .is_some_and(|original| original.matches(d))
+                        }))
+            })
             .map(|p| p.id.clone())
             .collect()
     }
@@ -542,6 +571,27 @@ impl Registry {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn local_adapter_catalog_aliases_retain_identity_guards() -> Result<()> {
+        let registry = Registry::load(None)?;
+        let mut p = registry.profiles["lenovo-x3550-m5-imm2"].clone();
+        let mut d = DeviceIdentity {
+            manufacturer_id: 2,
+            model: "5463AC1".into(),
+            machine_types: vec!["5463".into()],
+            ..Default::default()
+        };
+        assert!(p.compatible(&d));
+        p.origin_id = Some(p.id.clone());
+        p.id.push_str("-local-1");
+        assert!(p.compatible(&d));
+        d.machine_types = vec!["8871".into()];
+        assert!(!p.compatible(&d));
+        d.manufacturer_id = 674;
+        assert!(!p.compatible(&d));
+        assert!(toml::Value::try_from(&p)?.get("origin_id").is_none());
+        Ok(())
+    }
     #[test]
     fn builtins_validate_and_encode() -> Result<()> {
         let r = Registry::load(None)?;

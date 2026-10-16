@@ -24,5 +24,6 @@ clap = { version = "4", features = ["derive"] }
 futures-util = "0.3"
 unicode-width = "0.2"
 
-[dev-dependencies]
 tempfile.workspace = true
+
+[dev-dependencies]

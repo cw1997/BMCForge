@@ -128,10 +128,6 @@ impl App {
                     self.current().map(|s| Target::Server(s.id.clone(), false))
                 }
                 None if self.page == 2 => self
-                    .scan_visible()
-                    .get(self.scan_cursor)
-                    .map(|i| Target::Discovery(self.discovery[*i].host.clone(), false)),
-                None if self.page == 3 => self
                     .registry
                     .profiles
                     .keys()

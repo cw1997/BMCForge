@@ -1,6 +1,6 @@
 # Community language packs
 
-New configurations use English and enable the mouse. Explicit saved language and mouse values remain unchanged. Use the native-name menu at the top or F3 to switch immediately; F4 toggles mouse capture immediately. Both choices persist. Shift+drag or the terminal's native selection/copy shortcut copies text while mouse capture is enabled; terminal behavior varies.
+New configurations use English and enable the mouse. Explicit saved language and mouse values remain unchanged. Use the native-name menu at the top or F3 to switch language immediately. Change the saved mouse preference in Settings. Both choices persist. Shift+drag or the terminal's native selection/copy shortcut copies text while mouse capture is enabled; terminal behavior varies.
 
 Embedded packs are English, 简体中文, 繁體中文, 日本語, 한국어, Deutsch, Français, Español, Português (Brasil), Italiano and Русский. Their Fluent message IDs and variable sets must match English exactly. Please submit language corrections: completeness checks establish resource contracts, not native-speaker linguistic review.
 

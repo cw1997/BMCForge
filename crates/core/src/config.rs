@@ -177,6 +177,7 @@ pub struct Config {
     pub version: u32,
     pub settings: Settings,
     pub servers: Vec<Server>,
+    pub help_seen: bool,
 }
 
 impl Default for Config {
@@ -185,6 +186,7 @@ impl Default for Config {
             version: 1,
             settings: Settings::default(),
             servers: vec![],
+            help_seen: false,
         }
     }
 }
@@ -351,6 +353,12 @@ mod tests {
         assert!(cfg.save(&path).is_err());
         assert_eq!(fs::read_to_string(&path)?, "broken = [");
         assert!(!format!("{:?}", cfg.servers[0].credentials).contains("秘密"));
+        Ok(())
+    }
+    #[test]
+    fn older_configs_default_the_first_run_help_marker_to_false() -> Result<()> {
+        let config: Config = toml::from_str("version = 1")?;
+        assert!(!config.help_seen);
         Ok(())
     }
     #[test]
