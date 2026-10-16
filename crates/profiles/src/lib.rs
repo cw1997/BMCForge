@@ -481,9 +481,11 @@ impl Registry {
             include_str!("../../../profiles/asrock-aspeed.toml"),
             include_str!("../../../profiles/asrock-ast2600.toml"),
             include_str!("../../../profiles/lenovo-x3650-m5-imm2.toml"),
+            include_str!("../../../profiles/lenovo-x3550-m5-imm2.toml"),
             include_str!("../../../profiles/h3c-uis2000-g6.toml"),
             include_str!("../../../profiles/hpe-ilo-monitor.toml"),
             include_str!("../../../profiles/lenovo-xcc-monitor.toml"),
+            include_str!("../../../profiles/ibm-lenovo-imm-monitor.toml"),
             include_str!("../../../profiles/inspur-monitor.toml"),
             include_str!("../../../profiles/h3c-hdm-monitor.toml"),
             include_str!("../../../profiles/huawei-ibmc-monitor.toml"),
@@ -543,7 +545,7 @@ mod tests {
     #[test]
     fn builtins_validate_and_encode() -> Result<()> {
         let r = Registry::load(None)?;
-        assert_eq!(r.profiles.len(), 18);
+        assert_eq!(r.profiles.len(), 20);
         let dell = &r.profiles["dell-idrac6-8"];
         assert_eq!(dell.commands(35, 255, true)?[1].data, [2, 255, 35]);
         assert!(dell.commands(101, 255, true).is_err());
@@ -617,6 +619,45 @@ mod tests {
         assert!(dell.compatible(&d));
         d.firmware = "3.34".into();
         assert!(!dell.compatible(&d));
+        Ok(())
+    }
+    #[test]
+    fn x3550_m5_script_commands_and_identity_guards() -> Result<()> {
+        let r = Registry::load(None)?;
+        let p = &r.profiles["lenovo-x3550-m5-imm2"];
+        assert!(!p.eligible(false));
+        assert!(p.eligible(true));
+        for zone in [1, 2] {
+            let commands = p.commands_value(ControlValue::Raw(16), zone, true)?;
+            assert_eq!((commands[0].netfn, commands[0].command), (58, 7));
+            assert_eq!(commands[0].data, [zone, 16, 1]);
+            assert_eq!(p.automatic_zone(zone)?[0].data, [zone, 18, 0]);
+        }
+        assert_eq!(p.automatic()?.len(), 2);
+        assert!(
+            p.commands_value(ControlValue::Percent(16), 1, true)
+                .is_err()
+        );
+        assert!(p.commands_value(ControlValue::Raw(18), 1, true).is_err());
+        assert!(p.commands_value(ControlValue::Raw(16), 3, true).is_err());
+        for manufacturer_id in [2, 19046] {
+            let mut d = DeviceIdentity {
+                manufacturer_id,
+                model: "IBM x3550 M5".into(),
+                ..Default::default()
+            };
+            assert!(p.compatible(&d));
+            d.machine_types = vec!["5463".into()];
+            assert!(p.compatible(&d));
+            d.machine_types = vec!["8871".into()];
+            assert!(!p.compatible(&d));
+            d.machine_types.clear();
+            d.model = "System x3650 M5".into();
+            assert!(!p.compatible(&d));
+            d.model = "System x3550 M5".into();
+            d.manufacturer_id = 674;
+            assert!(!p.compatible(&d));
+        }
         Ok(())
     }
     #[test]

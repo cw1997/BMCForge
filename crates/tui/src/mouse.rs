@@ -9,6 +9,11 @@ use unicode_width::UnicodeWidthChar;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Target {
+    Palette,
+    Status,
+    Overflow,
+    ActionRow(usize),
+    ScrollTo { pane: Pane, position: usize },
     CommandRow(usize),
     Page(usize),
     Field(usize),
@@ -73,7 +78,13 @@ impl App {
                         && (self.modal.is_none()
                             || matches!(
                                 h.target,
-                                Target::CommandRow(_)
+                                Target::ActionRow(_)
+                                    | Target::ScrollTo {
+                                        pane: Pane::Modal,
+                                        ..
+                                    }
+                                    | Target::Overflow
+                                    | Target::CommandRow(_)
                                     | Target::Field(_)
                                     | Target::ChoiceRow(_)
                                     | Target::Key(_)
@@ -97,7 +108,13 @@ impl App {
         if self.modal.is_some()
             && !matches!(
                 hit.target,
-                Target::CommandRow(_)
+                Target::ActionRow(_)
+                    | Target::ScrollTo {
+                        pane: Pane::Modal,
+                        ..
+                    }
+                    | Target::Overflow
+                    | Target::CommandRow(_)
                     | Target::Field(_)
                     | Target::ChoiceRow(_)
                     | Target::Key(_)
@@ -116,11 +133,13 @@ impl App {
             self.interaction.hover = None;
             let down = event.kind == MouseEventKind::ScrollDown;
             let pane = match &hit.target {
-                Target::Scroll(p) => *p,
+                Target::Scroll(p) | Target::ScrollTo { pane: p, .. } => *p,
                 Target::Server(..) => Pane::Fleet,
                 Target::Discovery(..) => Pane::Discovery,
                 Target::Profile(_) => Pane::Profiles,
-                Target::CommandRow(_)
+                Target::ActionRow(_)
+                | Target::Overflow
+                | Target::CommandRow(_)
                 | Target::Field(_)
                 | Target::ChoiceRow(_)
                 | Target::Editor { .. }
@@ -163,7 +182,8 @@ impl App {
                 }
                 Pane::Modal => match &mut self.modal {
                     Some(
-                        Modal::Commands { .. }
+                        Modal::Actions { .. }
+                        | Modal::Commands { .. }
                         | Modal::Languages { .. }
                         | Modal::ModelChoice { .. }
                         | Modal::FieldChoice { .. },
@@ -200,6 +220,20 @@ impl App {
         self.interaction.action_focus = None;
         self.interaction.press(hit.target.clone());
         let key = match hit.target {
+            Target::Palette | Target::Status | Target::Overflow => {
+                return self.invoke_target(hit.target);
+            }
+            Target::ScrollTo { pane, position } => {
+                self.scroll_to(pane, position);
+                return vec![];
+            }
+            Target::ActionRow(index) => {
+                if let Some(Modal::Actions { cursor, .. }) = &mut self.modal {
+                    *cursor = index;
+                }
+                return self.input(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+            }
+
             Target::ChoiceRow(index) => {
                 if let Some(Modal::FieldChoice { cursor, .. }) = &mut self.modal {
                     *cursor = index;

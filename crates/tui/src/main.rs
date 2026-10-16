@@ -1,4 +1,5 @@
 mod app;
+mod chrome;
 mod commands;
 mod editor;
 mod form;

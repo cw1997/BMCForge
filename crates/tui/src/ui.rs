@@ -6,8 +6,8 @@ use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
-    text::Line,
-    widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Sparkline, Table, TableState, Wrap},
+    text::{Line, Span},
+    widgets::{Block, Borders, Cell, Paragraph, Row, Sparkline, Table, TableState, Wrap},
 };
 use unicode_width::UnicodeWidthStr;
 
@@ -51,7 +51,7 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         .constraints([
             Constraint::Length(3),
             Constraint::Min(4),
-            Constraint::Length(4),
+            Constraint::Length(3),
         ])
         .split(frame.area());
     let title = format!(
@@ -85,6 +85,11 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         } else {
             format!("{} {}", page + 1, app.text(id))
         };
+        let label = if page == app.page {
+            format!("▸{label}")
+        } else {
+            format!(" {label}")
+        };
         let width = (label.width() as u16 + 1).min(left.right().saturating_sub(x));
         if width == 0 {
             break;
@@ -93,9 +98,7 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         frame.render_widget(
             Paragraph::new(label).style(
                 (if page == app.page {
-                    Style::default()
-                        .fg(theme.accent)
-                        .add_modifier(Modifier::BOLD)
+                    theme.focus()
                 } else {
                     Style::default()
                 })
@@ -157,13 +160,12 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         "export",
         "quit",
     ];
-    let footer = Block::default()
-        .borders(Borders::TOP)
-        .style(Style::default().fg(theme.muted));
-    let footer_inner = footer.inner(layout[2]);
-    frame.render_widget(footer, layout[2]);
-    let footer_lines =
-        Layout::vertical([Constraint::Length(1), Constraint::Min(1)]).split(footer_inner);
+    let footer_lines = Layout::vertical([
+        Constraint::Length(1),
+        Constraint::Length(1),
+        Constraint::Length(1),
+    ])
+    .split(layout[2]);
     let mut buttons = actions
         .iter()
         .map(|name| (app.text(name).to_owned(), Target::Shortcut((*name).into())))
@@ -206,23 +208,70 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
     if app.page == 1 {
         buttons.rotate_left(3);
     }
-    button_bar(frame, footer_lines[0], app, buttons);
+    let palette_width = 12.min(footer_lines[0].width);
+    let palette_area = Rect::new(
+        footer_lines[0].x,
+        footer_lines[0].y,
+        palette_width,
+        footer_lines[0].height,
+    );
     frame.render_widget(
-        Paragraph::new(if app.identifying {
-            format!(
-                "{} {} {}/{}",
-                spinner(),
-                app.text("identifying"),
-                app.pending.len(),
-                app.identify_total
-            )
-        } else {
-            app.locales
-                .render(&app.config.settings.language, &app.status)
-        })
-        .wrap(Wrap { trim: false }),
+        Paragraph::new(" Ctrl+P ▾ ").style(theme.focus()),
+        palette_area,
+    );
+    app.hits.push(Hit::new(palette_area, Target::Palette));
+    let action_area = Rect::new(
+        palette_area.right(),
+        footer_lines[0].y,
+        footer_lines[0].width.saturating_sub(palette_width),
+        footer_lines[0].height,
+    );
+    button_bar(frame, action_area, app, buttons);
+    let status = app.status_text();
+    let status_tone = crate::chrome::tone(&app.status.id);
+    let marker = if app.identifying || app.scanning {
+        format!(" {} ", spinner())
+    } else {
+        match status_tone {
+            crate::chrome::Tone::Error => " [!] ".into(),
+            crate::chrome::Tone::Warning => " [?] ".into(),
+            _ => " ".into(),
+        }
+    };
+    let inverse_theme = crate::theme::Theme::named(if app.config.settings.theme == "light" {
+        "dark"
+    } else {
+        "light"
+    });
+    let marker_color = match status_tone {
+        crate::chrome::Tone::Error => inverse_theme.danger,
+        crate::chrome::Tone::Warning => inverse_theme.warning,
+        _ => theme.background,
+    };
+    let available = footer_lines[1].width.saturating_sub(marker.width() as u16);
+    frame.render_widget(
+        Paragraph::new(Line::from(vec![
+            Span::styled(
+                marker,
+                Style::default()
+                    .fg(marker_color)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(crate::chrome::truncate(&status, available)),
+        ]))
+        .style(theme.status()),
         footer_lines[1],
     );
+    // Wide-character continuation cells can be reset by the text renderer.
+    // Paint the whole strip after text so even those cells keep reverse video.
+    for x in footer_lines[1].x..footer_lines[1].right() {
+        let cell = &mut frame.buffer_mut()[(x, footer_lines[1].y)];
+        cell.set_bg(theme.foreground);
+        if cell.symbol() == " " {
+            cell.set_fg(theme.background);
+        }
+    }
+    app.hits.push(Hit::new(footer_lines[1], Target::Status));
     let navigation = if app
         .interaction
         .leader
@@ -231,53 +280,36 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         "Ctrl+X → p · 1–5 · t · h · q · Esc".into()
     } else {
         format!(
-            "Ctrl+P · F8: {} · ↑↓ j/k · {}: {} · Enter: {} · Tab/Shift+Tab: 1–5",
+            "Ctrl+P · F8: {} · ↑↓ j/k · Enter · Tab: 1–5 · F4: {} {}",
             app.text("form-actions"),
-            crate::interaction::key_label(
-                app.target_key(&Target::Shortcut("select".into()))
-                    .unwrap_or(KeyCode::Char(' '))
-            ),
-            app.text("select"),
-            app.text("confirm")
+            app.text("mouse"),
+            if app.config.settings.mouse {
+                "●"
+            } else {
+                "○"
+            }
         )
     };
-    if footer_lines[1].height > 1 {
-        frame.render_widget(
-            Paragraph::new(navigation),
-            Rect::new(
-                footer_lines[1].x,
-                footer_lines[1].bottom() - 1,
-                footer_lines[1].width,
-                1,
-            ),
-        );
-    }
-    if app.scanning && !app.identifying && footer_lines[1].height > 1 {
-        frame.render_widget(
-            Paragraph::new(format!(
-                "{} {} {}/{} · F8: {}",
-                spinner(),
-                app.text("scanning"),
-                app.discovery.len(),
-                app.scan_total,
-                app.text("form-actions")
-            )),
-            Rect::new(
-                footer_lines[1].x,
-                footer_lines[1].bottom() - 1,
-                footer_lines[1].width,
-                1,
-            ),
-        );
-    }
+    frame.render_widget(
+        Paragraph::new(crate::chrome::truncate(&navigation, footer_lines[2].width))
+            .style(Style::default().fg(theme.muted)),
+        footer_lines[2],
+    );
     if app.modal.is_some() {
         app.hits.clear(); // A modal owns all input, including clicks outside its content.
         modal(frame, app);
     }
     // Apply feedback after rendering so tables and nested checkbox targets share the same treatment.
     for hit in &app.hits {
-        if !matches!(hit.target, Target::Scroll(_) | Target::Editor { .. }) {
-            let style = app.interaction.style(&hit.target);
+        if !matches!(
+            hit.target,
+            Target::Scroll(_) | Target::ScrollTo { .. } | Target::Editor { .. }
+        ) {
+            let style = if app.target_reason(&hit.target).is_empty() {
+                app.interaction.style(&hit.target)
+            } else {
+                Style::default()
+            };
             if style != Style::default() {
                 frame.buffer_mut().set_style(hit.area, style);
             }
@@ -294,6 +326,7 @@ fn header(theme: crate::theme::Theme, cells: &[&str]) -> Row<'static> {
     Row::new(cells.iter().map(|s| Cell::from(s.to_string()))).style(
         Style::default()
             .fg(theme.accent)
+            .bg(theme.selection)
             .add_modifier(Modifier::BOLD),
     )
 }
@@ -334,16 +367,22 @@ fn fleet(frame: &mut Frame, area: Rect, app: &mut App) {
                 .map(|v| format!("{v:.0}"))
                 .unwrap_or_else(|| "—".into());
             let cells = vec![
-                if app.selected.contains(&s.id) {
-                    "[x]".into()
+                Cell::from(if app.selected.contains(&s.id) {
+                    "[x]"
                 } else {
-                    "[ ]".into()
-                },
-                s.tags.join(","),
-                s.name.clone(),
-                s.endpoint(),
-                state,
-                rpm,
+                    "[ ]"
+                }),
+                Cell::from(s.tags.join(",")),
+                Cell::from(s.name.clone()),
+                Cell::from(s.endpoint()),
+                crate::chrome::badge(
+                    theme,
+                    state,
+                    snapshot.map_or(crate::chrome::Tone::Working, |s| {
+                        crate::chrome::tone(&s.status.id)
+                    }),
+                ),
+                Cell::from(rpm),
             ];
             Row::new(
                 cells
@@ -384,19 +423,14 @@ fn fleet(frame: &mut Frame, area: Rect, app: &mut App) {
     };
     let table = Table::new(rows, widths)
         .header(header(theme, &headings))
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme.muted))
-                .title(format!(
-                    " {} — {}: {} — {}: {} ",
-                    app.text("fleet"),
-                    app.text("selected"),
-                    app.selected.len(),
-                    app.text("filter"),
-                    app.search
-                )),
-        )
+        .block(crate::chrome::panel(theme).title(format!(
+            " {} — {}: {} — {}: {} ",
+            app.text("fleet"),
+            app.text("selected"),
+            app.selected.len(),
+            app.text("filter"),
+            app.search
+        )))
         .row_highlight_style(Style::default().bg(theme.selection).fg(theme.foreground));
     let mut state = TableState::default().with_selected(if visible.is_empty() {
         None
@@ -405,6 +439,7 @@ fn fleet(frame: &mut Frame, area: Rect, app: &mut App) {
     });
     frame.render_stateful_widget(table, parts[0], &mut state);
     table_hits(
+        frame,
         app,
         parts[0],
         state.offset(),
@@ -416,18 +451,17 @@ fn fleet(frame: &mut Frame, area: Rect, app: &mut App) {
     );
     app.hits
         .push(Hit::new(parts[1], Target::Scroll(Pane::Detail)));
-    frame.render_widget(
-        Paragraph::new(server_detail(app))
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(theme.muted))
-                    .title(app.text("server-details")),
-            )
-            .wrap(Wrap { trim: false })
-            .scroll((app.detail_scroll, 0)),
+    let (position, hits) = crate::chrome::paragraph(
+        frame,
         parts[1],
+        &server_detail(app),
+        app.text("server-details"),
+        app.detail_scroll,
+        Pane::Detail,
+        theme,
     );
+    app.detail_scroll = position;
+    app.hits.extend(hits);
 }
 pub(crate) fn server_detail(app: &App) -> String {
     let Some(server) = app.current() else {
@@ -451,14 +485,14 @@ pub(crate) fn server_detail(app: &App) -> String {
     let control = snapshot
         .map(|s| match s.control {
             ControlState::Unknown => app.text("unknown").into(),
-            ControlState::Automatic => app.text("automatic").into(),
+            ControlState::Automatic => format!("[{}]", app.text("automatic")),
             ControlState::Requested { percent, zone } => {
                 format!("{}: {percent}% / {zone}", app.text("manual"))
             }
             ControlState::RawRequested { value, zone } => {
                 format!("{}: {value:#04x} / {zone}", app.text("raw"))
             }
-            ControlState::Uncertain => app.text("uncertain").into(),
+            ControlState::Uncertain => format!("[! {}]", app.text("uncertain")),
         })
         .unwrap_or_else(|| app.text("unknown").into());
     let candidates = snapshot
@@ -496,19 +530,30 @@ fn sensors(frame: &mut Frame, area: Rect, app: &mut App) {
         .push(Hit::new(parts[0], Target::Scroll(Pane::Detail)));
     app.hits
         .push(Hit::new(parts[1], Target::Scroll(Pane::Sensors)));
-    frame.render_widget(
-        Paragraph::new(server_detail(app))
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(theme.muted))
-                    .title(app.text("fan-control-identity")),
-            )
-            .wrap(Wrap { trim: false }),
+    let (position, hits) = crate::chrome::paragraph(
+        frame,
         parts[0],
+        &server_detail(app),
+        app.text("fan-control-identity"),
+        app.detail_scroll,
+        Pane::Detail,
+        theme,
     );
+    app.detail_scroll = position;
+    app.hits.extend(hits);
     let snapshot = app.current().and_then(|s| app.snapshots.get(&s.id));
     let filter = app.config.settings.sensor_filter.to_lowercase();
+    let count = snapshot
+        .into_iter()
+        .flat_map(|s| &s.sensors)
+        .filter(|s| {
+            format!("{} {}", s.name, s.kind)
+                .to_lowercase()
+                .contains(&filter)
+        })
+        .count();
+    let maximum = count.saturating_sub(usize::from(parts[1].height.saturating_sub(3)));
+    app.sensor_scroll = app.sensor_scroll.min(maximum);
     let rows: Vec<_> = snapshot
         .into_iter()
         .flat_map(|s| &s.sensors)
@@ -583,13 +628,24 @@ fn sensors(frame: &mut Frame, area: Rect, app: &mut App) {
         Table::new(rows, widths)
             .header(header(theme, &headings))
             .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(theme.muted))
+                crate::chrome::panel(theme)
                     .title(app.text("sensors-up-down-switch-server-pgup-pgdn-scroll-details")),
             ),
         parts[1],
     );
+    app.hits.extend(crate::chrome::scrollbar(
+        frame,
+        Rect::new(
+            parts[1].right().saturating_sub(1),
+            parts[1].y + 2,
+            1.min(parts[1].width),
+            parts[1].height.saturating_sub(3),
+        ),
+        app.sensor_scroll,
+        maximum,
+        Pane::Sensors,
+        theme,
+    ));
     let data: Vec<u64> = app
         .current()
         .and_then(|s| app.history.get(&s.id))
@@ -599,12 +655,7 @@ fn sensors(frame: &mut Frame, area: Rect, app: &mut App) {
         Sparkline::default()
             .data(&data)
             .style(Style::default().fg(theme.accent))
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(theme.muted))
-                    .title(app.text("max-rpm")),
-            ),
+            .block(crate::chrome::panel(theme).title(app.text("max-rpm"))),
         parts[2],
     );
 }
@@ -655,25 +706,21 @@ fn discovery(frame: &mut Frame, area: Rect, app: &mut App) {
             crate::theme::Theme::named(&app.config.settings.theme),
             &["", "BMC IPv4", app.text("probe-status"), app.text("note")],
         ))
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme.muted))
-                .title(format!(
-                    " {}/{} {} | {}: {} | i: {} ",
-                    app.discovery.len(),
-                    app.scan_total,
-                    app.text(if app.scanning { "scanning" } else { "idle" }),
-                    app.text("selected"),
-                    app.discovery_selected.len(),
-                    app.text("identify")
-                )),
-        )
+        .block(crate::chrome::panel(theme).title(format!(
+            " {}/{} {} | {}: {} | i: {} ",
+            app.discovery.len(),
+            app.scan_total,
+            app.text(if app.scanning { "scanning" } else { "idle" }),
+            app.text("selected"),
+            app.discovery_selected.len(),
+            app.text("identify")
+        )))
         .row_highlight_style(Style::default().bg(theme.selection).fg(theme.foreground)),
         area,
         &mut state,
     );
     table_hits(
+        frame,
         app,
         area,
         state.offset(),
@@ -718,17 +765,13 @@ fn profiles(frame: &mut Frame, area: Rect, app: &mut App) {
                 crate::theme::Theme::named(&app.config.settings.theme),
                 &[app.text("profile"), app.text("verification")],
             ))
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(theme.muted))
-                    .title(app.text("profiles")),
-            )
+            .block(crate::chrome::panel(theme).title(app.text("profiles")))
             .row_highlight_style(Style::default().bg(theme.selection).fg(theme.foreground)),
         parts[0],
         &mut state,
     );
     table_hits(
+        frame,
         app,
         parts[0],
         state.offset(),
@@ -810,42 +853,43 @@ fn profiles(frame: &mut Frame, area: Rect, app: &mut App) {
             )
         })
         .unwrap_or_default();
-    frame.render_widget(
-        Paragraph::new(text)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(theme.muted))
-                    .title(app.text("profiles")),
-            )
-            .wrap(Wrap { trim: false })
-            .scroll((app.detail_scroll, 0)),
+    let (position, hits) = crate::chrome::paragraph(
+        frame,
         parts[1],
+        &text,
+        app.text("profiles"),
+        app.detail_scroll,
+        Pane::Detail,
+        theme,
     );
+    app.detail_scroll = position;
+    app.hits.extend(hits);
 }
 fn logs(frame: &mut Frame, area: Rect, app: &mut App) {
     let theme = crate::theme::Theme::named(&app.config.settings.theme);
     app.hits.push(Hit::new(area, Target::Scroll(Pane::Logs)));
-    frame.render_widget(
-        Paragraph::new(
-            app.logs
-                .iter()
-                .map(|s| Line::from(app.locales.render(&app.config.settings.language, s)))
-                .collect::<Vec<_>>(),
-        )
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme.muted))
-                .title(app.text("activity-redacted-x-exports-diagnostics")),
-        )
-        .wrap(Wrap { trim: false })
-        .scroll((app.log_scroll, 0)),
+    let text = app
+        .logs
+        .iter()
+        .map(|s| app.locales.render(&app.config.settings.language, s))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let (position, hits) = crate::chrome::paragraph(
+        frame,
         area,
+        &text,
+        app.text("activity-redacted-x-exports-diagnostics"),
+        app.log_scroll,
+        Pane::Logs,
+        theme,
     );
+    app.log_scroll = position;
+    app.hits.extend(hits);
 }
+
 fn button_bar(frame: &mut Frame, area: Rect, app: &mut App, buttons: Vec<(String, Target)>) {
     let theme = crate::theme::Theme::named(&app.config.settings.theme);
+    app.interaction.menu_items = buttons.clone();
     app.interaction.actions = buttons.iter().map(|(_, t)| t.clone()).collect();
     let labels = buttons
         .iter()
@@ -862,6 +906,16 @@ fn button_bar(frame: &mut Frame, area: Rect, app: &mut App, buttons: Vec<(String
         used += width + 1;
     }
     let overflow = required_rows > area.height;
+    let overflow_width = if overflow { area.width.min(4) } else { 0 };
+    if overflow_width > 0 && area.height > 0 {
+        let more = Rect::new(area.right() - overflow_width, area.y, overflow_width, 1);
+        frame.render_widget(Paragraph::new(" ⋯ ").style(theme.focus()), more);
+        app.hits.push(Hit::new(more, Target::Overflow));
+    }
+    let area = Rect {
+        width: area.width.saturating_sub(overflow_width),
+        ..area
+    };
     let hint = if overflow && area.height > 1 {
         Some(Rect::new(area.x, area.bottom() - 1, area.width, 1))
     } else {
@@ -917,7 +971,16 @@ fn button_bar(frame: &mut Frame, area: Rect, app: &mut App, buttons: Vec<(String
             break;
         }
         let rect = Rect::new(x, y, width, 1);
-        let style = if app.interaction.action_focus == Some(index) {
+        let disabled = !app.target_reason(&target).is_empty();
+        let style = if disabled {
+            Style::default()
+                .fg(theme.muted)
+                .bg(if app.interaction.action_focus == Some(index) {
+                    theme.selection
+                } else {
+                    theme.surface
+                })
+        } else if app.interaction.action_focus == Some(index) {
             Style::default()
                 .fg(theme.background)
                 .bg(theme.accent)
@@ -931,7 +994,16 @@ fn button_bar(frame: &mut Frame, area: Rect, app: &mut App, buttons: Vec<(String
     }
 }
 
-fn table_hits(app: &mut App, area: Rect, offset: usize, items: Vec<Target>, pane: Pane) {
+fn table_hits(
+    frame: &mut Frame,
+    app: &mut App,
+    area: Rect,
+    offset: usize,
+    items: Vec<Target>,
+    pane: Pane,
+) {
+    let theme = crate::theme::Theme::named(&app.config.settings.theme);
+    let count = items.len();
     app.hits.push(Hit::new(area, Target::Scroll(pane)));
     for (row, target) in items
         .into_iter()
@@ -961,6 +1033,27 @@ fn table_hits(app: &mut App, area: Rect, offset: usize, items: Vec<Target>, pane
             ));
         }
     }
+    let position = match pane {
+        Pane::Fleet => app.cursor,
+        Pane::Discovery => app.scan_cursor,
+        Pane::Profiles => app.profile_cursor,
+        _ => offset,
+    };
+    if count > usize::from(area.height.saturating_sub(3)) {
+        app.hits.extend(crate::chrome::scrollbar(
+            frame,
+            Rect::new(
+                area.right().saturating_sub(1),
+                area.y.saturating_add(2),
+                1.min(area.width),
+                area.height.saturating_sub(3),
+            ),
+            position,
+            count.saturating_sub(1),
+            pane,
+            theme,
+        ));
+    }
 }
 fn draw_form(frame: &mut Frame, area: Rect, app: &mut App) {
     let theme = crate::theme::Theme::named(&app.config.settings.theme);
@@ -969,9 +1062,7 @@ fn draw_form(frame: &mut Frame, area: Rect, app: &mut App) {
         return;
     };
     let title = form.title.clone();
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .border_style(Style::default().fg(theme.muted))
+    let block = crate::chrome::panel(theme)
         .title(title)
         .title_bottom(" Tab/Shift+Tab · ↑↓ · F2 · Esc · F8 ");
     let inner = block.inner(area);
@@ -1046,9 +1137,7 @@ fn draw_form(frame: &mut Frame, area: Rect, app: &mut App) {
         } else {
             Style::default()
         };
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(theme.muted))
+        let block = crate::chrome::panel(theme)
             .title(format!(
                 "{} / {} · {}/{}",
                 app.text(field.group),
@@ -1057,7 +1146,12 @@ fn draw_form(frame: &mut Frame, area: Rect, app: &mut App) {
                 form.fields.len()
             ))
             .title_bottom(hint)
-            .border_style(style);
+            .border_style(style)
+            .style(if index == form.focus {
+                Style::default().bg(theme.selection)
+            } else {
+                theme.surface()
+            });
         let content = block.inner(rect);
         frame.render_widget(block, rect);
         app.hits.push(Hit::new(rect, Target::Field(index)));
@@ -1103,6 +1197,19 @@ fn draw_form(frame: &mut Frame, area: Rect, app: &mut App) {
         }
         y = y.saturating_add(rect.height);
     }
+    app.hits.extend(crate::chrome::scrollbar(
+        frame,
+        Rect::new(
+            area.right().saturating_sub(1),
+            parts[1].y,
+            1.min(area.width),
+            parts[1].height,
+        ),
+        form.focus,
+        form.fields.len().saturating_sub(1),
+        Pane::Modal,
+        theme,
+    ));
     let error = if form.error.is_empty() {
         &form.fields[form.focus].error
     } else {
@@ -1124,11 +1231,7 @@ fn modal(frame: &mut Frame, app: &mut App) {
         width: area.width.saturating_sub(area.width / 10),
         height: area.height.saturating_sub(area.height / 6),
     };
-    frame.render_widget(Clear, popup);
-    frame.render_widget(
-        Block::default().style(Style::default().bg(theme.surface).fg(theme.foreground)),
-        popup,
-    );
+    crate::chrome::popup(frame, popup, theme);
     let buttons_area = Rect::new(
         popup.x,
         popup.bottom().saturating_sub(2),
@@ -1253,6 +1356,65 @@ fn modal(frame: &mut Frame, app: &mut App) {
     } else {
         String::new()
     };
+    if let Some(Modal::Actions { items, cursor, .. }) = &app.modal {
+        let rows = items.iter().map(|(label, target)| {
+            let reason = app.target_reason(target);
+            Row::new(vec![
+                label.clone(),
+                app.target_label(target),
+                reason.clone(),
+            ])
+            .style(Style::default().fg(if reason.is_empty() {
+                theme.foreground
+            } else {
+                theme.muted
+            }))
+        });
+        let mut state = TableState::default().with_selected(Some(*cursor));
+        frame.render_stateful_widget(
+            Table::new(
+                rows,
+                [
+                    Constraint::Percentage(42),
+                    Constraint::Length(10),
+                    Constraint::Min(1),
+                ],
+            )
+            .block(crate::chrome::panel(theme).title(app.text("ui-more")))
+            .row_highlight_style(theme.selected()),
+            popup,
+            &mut state,
+        );
+        for (row, index) in (state.offset()..items.len())
+            .take(popup.height.saturating_sub(2).into())
+            .enumerate()
+        {
+            app.hits.push(Hit::new(
+                Rect::new(
+                    popup.x + 1,
+                    popup.y + 1 + row as u16,
+                    popup.width.saturating_sub(2),
+                    1,
+                ),
+                Target::ActionRow(index),
+            ));
+        }
+        app.hits.extend(crate::chrome::scrollbar(
+            frame,
+            Rect::new(
+                popup.right().saturating_sub(1),
+                popup.y + 1,
+                1,
+                popup.height.saturating_sub(2),
+            ),
+            *cursor,
+            items.len().saturating_sub(1),
+            Pane::Modal,
+            theme,
+        ));
+        button_bar(frame, buttons_area, app, buttons);
+        return;
+    }
     if let Some(Modal::FieldChoice {
         form,
         query,
@@ -1267,12 +1429,7 @@ fn modal(frame: &mut Frame, app: &mut App) {
                 "{}: {query} · ↑↓ Enter · Esc · F8",
                 app.text("search")
             ))
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(theme.muted))
-                    .title(app.text(&field.label)),
-            ),
+            .block(crate::chrome::panel(theme).title(app.text(&field.label))),
             parts[0],
         );
         let mut state = TableState::default().with_selected(Some(*cursor));
@@ -1304,6 +1461,14 @@ fn modal(frame: &mut Frame, app: &mut App) {
                 Target::ChoiceRow(index),
             ));
         }
+        app.hits.extend(crate::chrome::scrollbar(
+            frame,
+            parts[1],
+            *cursor,
+            options.len().saturating_sub(1),
+            Pane::Modal,
+            theme,
+        ));
         button_bar(frame, buttons_area, app, buttons);
         return;
     }
@@ -1366,6 +1531,14 @@ fn modal(frame: &mut Frame, app: &mut App) {
                 ));
             }
         }
+        app.hits.extend(crate::chrome::scrollbar(
+            frame,
+            parts[1],
+            *cursor,
+            entries.len().saturating_sub(1),
+            Pane::Modal,
+            theme,
+        ));
         button_bar(frame, buttons_area, app, buttons);
         return;
     }
@@ -1373,7 +1546,7 @@ fn modal(frame: &mut Frame, app: &mut App) {
         return;
     };
     match modal {
-        Modal::Commands { .. } => unreachable!(),
+        Modal::Commands { .. } | Modal::Actions { .. } => unreachable!(),
 
         Modal::Form(_) | Modal::FieldChoice { .. } => unreachable!(),
         Modal::Languages { cursor } => {
@@ -1383,13 +1556,8 @@ fn modal(frame: &mut Frame, app: &mut App) {
                     languages.iter().map(|s| Row::new([s.clone()])),
                     [Constraint::Min(1)],
                 )
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .border_style(Style::default().fg(theme.muted))
-                        .title("🌐 ↑↓ Enter · F8"),
-                )
-                .row_highlight_style(Style::default().fg(theme.accent)),
+                .block(crate::chrome::panel(theme).title("🌐 ↑↓ Enter · F8"))
+                .row_highlight_style(theme.selected()),
                 popup,
                 &mut state,
             );
@@ -1407,6 +1575,19 @@ fn modal(frame: &mut Frame, app: &mut App) {
                     Target::LanguageRow(index),
                 ));
             }
+            app.hits.extend(crate::chrome::scrollbar(
+                frame,
+                Rect::new(
+                    popup.right().saturating_sub(1),
+                    popup.y + 1,
+                    1.min(popup.width),
+                    popup.height.saturating_sub(2),
+                ),
+                *cursor,
+                languages.len().saturating_sub(1),
+                Pane::Modal,
+                theme,
+            ));
         }
         Modal::ModelChoice { query, cursor } => {
             let parts = Layout::vertical([Constraint::Length(4), Constraint::Min(1)]).split(popup);
@@ -1415,12 +1596,7 @@ fn modal(frame: &mut Frame, app: &mut App) {
                     "{evidence}\n{}: {query} | F5: {} | F6: {}",
                     labels["search"], labels["unknown"], labels["skip"]
                 ))
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .border_style(Style::default().fg(theme.muted))
-                        .title(model_title),
-                )
+                .block(crate::chrome::panel(theme).title(model_title))
                 .wrap(Wrap { trim: false }),
                 parts[0],
             );
@@ -1430,7 +1606,7 @@ fn modal(frame: &mut Frame, app: &mut App) {
                     model_rows.iter().map(|s| Row::new([s.clone()])),
                     [Constraint::Min(1)],
                 )
-                .row_highlight_style(Style::default().fg(theme.accent)),
+                .row_highlight_style(theme.selected()),
                 parts[1],
                 &mut state,
             );
@@ -1445,13 +1621,21 @@ fn modal(frame: &mut Frame, app: &mut App) {
                     Target::ModelRow(id.clone()),
                 ));
             }
+            app.hits.extend(crate::chrome::scrollbar(
+                frame,
+                parts[1],
+                *cursor,
+                model_options.len().saturating_sub(1),
+                Pane::Modal,
+                theme,
+            ));
         }
         Modal::Import {
             servers,
             authenticate,
             duplicates,
-        } => frame.render_widget(
-            Paragraph::new(format!(
+        } => {
+            let text = format!(
                 "{} | {}: {}\n{}\n\n{}",
                 servers.len(),
                 labels["duplicates"],
@@ -1462,26 +1646,26 @@ fn modal(frame: &mut Frame, app: &mut App) {
                 } else {
                     &labels["save-plaintext"]
                 }
-            ))
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(theme.muted))
-                    .title(labels["preview"].clone()),
-            )
-            .wrap(Wrap { trim: false })
-            .scroll((app.modal_scroll, 0)),
-            popup,
-        ),
+            );
+            let (position, hits) = crate::chrome::paragraph(
+                frame,
+                popup,
+                &text,
+                &labels["preview"],
+                app.modal_scroll,
+                Pane::Modal,
+                theme,
+            );
+            app.modal_scroll = position;
+            app.hits.extend(hits);
+        }
         Modal::Editor {
             title,
             editor,
             error,
             ..
         } => {
-            let block = Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme.muted))
+            let block = crate::chrome::panel(theme)
                 .title(title.clone())
                 .title_bottom(format!(
                     " F7: ↩ | F8: actions | F2 / Ctrl+Enter: {} | Esc: {} ",
@@ -1523,6 +1707,19 @@ fn modal(frame: &mut Frame, app: &mut App) {
                     parts[0].y + (editor.row - editor.scroll) as u16,
                 ));
             }
+            app.hits.extend(crate::chrome::scrollbar(
+                frame,
+                Rect::new(
+                    popup.right().saturating_sub(1),
+                    parts[0].y,
+                    1.min(popup.width),
+                    parts[0].height,
+                ),
+                editor.row,
+                editor.lines.len().saturating_sub(1),
+                Pane::Modal,
+                theme,
+            ));
         }
         Modal::Preview {
             hosts,
@@ -1539,27 +1736,22 @@ fn modal(frame: &mut Frame, app: &mut App) {
                 labels["invalid-lines"],
                 errors.len(),
                 if large { " ⚠" } else { "" },
-                hosts
-                    .iter()
-                    .take(12)
-                    .cloned()
-                    .collect::<Vec<_>>()
-                    .join("\n"),
+                hosts.join("\n"),
                 errors.join("\n"),
                 labels["continue"],
                 labels["cancel"]
             );
-            frame.render_widget(
-                Paragraph::new(text)
-                    .block(
-                        Block::default()
-                            .borders(Borders::ALL)
-                            .border_style(Style::default().fg(theme.muted))
-                            .title(labels["preview"].clone()),
-                    )
-                    .wrap(Wrap { trim: false }),
+            let (position, hits) = crate::chrome::paragraph(
+                frame,
                 popup,
+                &text,
+                &labels["preview"],
+                app.modal_scroll,
+                Pane::Modal,
+                theme,
             );
+            app.modal_scroll = position;
+            app.hits.extend(hits);
         }
         Modal::Confirm { title, text, .. } => {
             let mut lines = vec![
@@ -1577,45 +1769,57 @@ fn modal(frame: &mut Frame, app: &mut App) {
                 "Enter: {} | Esc: {} | PgUp/PgDn",
                 labels["confirm"], labels["cancel"]
             )));
-            frame.render_widget(
-                Paragraph::new(lines)
-                    .block(
-                        Block::default()
-                            .borders(Borders::ALL)
-                            .border_style(Style::default().fg(theme.muted))
-                            .title(labels["preview"].clone()),
-                    )
-                    .wrap(Wrap { trim: false })
-                    .scroll((app.modal_scroll, 0)),
-                popup,
-            );
+            let inner = crate::chrome::panel(theme).inner(popup);
+            let paragraph = Paragraph::new(lines)
+                .block(crate::chrome::panel(theme).title(labels["preview"].clone()))
+                .wrap(Wrap { trim: false });
+            let maximum = paragraph
+                .line_count(popup.width)
+                .saturating_sub(usize::from(popup.height))
+                .min(u16::MAX as usize);
+            app.modal_scroll = usize::from(app.modal_scroll).min(maximum) as u16;
+            frame.render_widget(paragraph.scroll((app.modal_scroll, 0)), popup);
+            app.hits.extend(crate::chrome::scrollbar(
+                frame,
+                Rect::new(
+                    popup.right().saturating_sub(1),
+                    inner.y,
+                    1.min(popup.width),
+                    inner.height,
+                ),
+                usize::from(app.modal_scroll),
+                maximum,
+                Pane::Modal,
+                theme,
+            ));
         }
-        Modal::Info(text) => frame.render_widget(
-            Paragraph::new(text.clone())
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .border_style(Style::default().fg(theme.muted))
-                        .title(" BMCForge "),
-                )
-                .wrap(Wrap { trim: false })
-                .scroll((app.modal_scroll, 0)),
-            popup,
-        ),
-        Modal::Remove { name, .. } => frame.render_widget(
-            Paragraph::new(format!(
-                "{}\n{name}\n{}",
-                labels["remove-server"], labels["safety"]
-            ))
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(theme.muted))
-                    .title(labels["confirm"].clone()),
-            )
-            .wrap(Wrap { trim: false }),
-            popup,
-        ),
+        Modal::Info(text) => {
+            let (position, hits) = crate::chrome::paragraph(
+                frame,
+                popup,
+                text,
+                " BMCForge ",
+                app.modal_scroll,
+                Pane::Modal,
+                theme,
+            );
+            app.modal_scroll = position;
+            app.hits.extend(hits);
+        }
+        Modal::Remove { name, .. } => {
+            let text = format!("{}\n{name}\n{}", labels["remove-server"], labels["safety"]);
+            let (position, hits) = crate::chrome::paragraph(
+                frame,
+                popup,
+                &text,
+                &labels["confirm"],
+                app.modal_scroll,
+                Pane::Modal,
+                theme,
+            );
+            app.modal_scroll = position;
+            app.hits.extend(hits);
+        }
     }
     button_bar(frame, buttons_area, app, buttons);
 }

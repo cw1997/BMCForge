@@ -18,7 +18,7 @@ tokio-util.workspace = true
 bmcforge-core.workspace = true
 bmcforge-ipmi.workspace = true
 bmcforge-profiles.workspace = true
-ratatui = "0.30.2"
+ratatui = { version = "0.30.2", features = ["unstable-rendered-line-info"] }
 crossterm = { version = "0.29", features = ["event-stream"] }
 clap = { version = "4", features = ["derive"] }
 futures-util = "0.3"

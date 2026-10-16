@@ -35,4 +35,23 @@ zone = 1
 
 Use exactly one of `raw` and `percent`; percentages are rejected by this adapter, and raw values are rejected by percentage adapters. Normal exit restores only the banks this process attempted to take over. Recovery is recorded before writes, including timed-out/partially successful writes. Recovery attempts continue for other banks after one fails, retain failed bank obligations and report failures. An explicit automatic request without a takeover targets both configured banks. Device-scoped Dell/Supermicro restoration is unchanged.
 
-Run `validate-models`, `validate-profiles`, `demo-check` and the workspace tests. Submit source links for each alias/machine type and rejection cases for mismatching hardware. Never promote simulation to hardware verification. Other System x models remain monitoring-only until complete control and automatic recovery evidence is available.
+Run `validate-models`, `validate-profiles`, `demo-check` and the workspace tests. Submit source links for each alias/machine type and rejection cases for mismatching hardware. Never promote simulation to hardware verification. System x models without a dedicated control adapter remain monitoring-only.
+
+## IBM / Lenovo System x expansion
+
+24 System x entries now include x3100 M4, x3300 M4, x3530 M4, x3630 M4, x3650 M4 BD/HD, x3690 X5, x3750 M4, x3850 X5/X6, x3950 X6 and x3250 M6. IBM/Lenovo aliases without the System prefix are recognized. The explicit `ibm-lenovo-imm-monitor` adapter provides standard IPMI monitoring, including x3550 M5 types 5463 and 8869, when LAN access and a supported cipher suite are enabled. Shared X6 machine types remain ambiguous. The x3550 M5 now has a separate experimental limit/release adapter described below; other additions remain monitoring-only and have not been hardware verified.
+
+## System x3550 M5 IMM2 limit / release
+
+`lenovo-x3550-m5-imm2` is based on the user-provided `limit.sh` and `unlimit.sh` supplied on 2026-10-16. The scripts are command evidence supplied for this model, not instructions to run against their embedded endpoint. Embedded credentials and hostname are not imported. Official product links in the profile establish the 5463/8869 identity; they do not document these OEM commands. BMCForge has not verified this adapter on hardware or established firmware bounds.
+
+Sanitized command payloads (netfn, command, data):
+
+```text
+limit bank 1:   3a 07 01 10 01
+limit bank 2:   3a 07 02 10 01
+release bank 1: 3a 07 01 12 00
+release bank 2: 3a 07 02 12 00
+```
+
+Enable `allow_experimental = true` and select this adapter (or discover x3550 M5). In the manual control form use `raw = 16` (`0x10`) and `zone = 1`, then repeat for `zone = 2` to reproduce both script writes. This is a fixed raw limit request, not 16% or a known RPM. Other raw values and percentages are rejected. Bank locations are not inferred from x3650 M5. Automatic control explicitly releases both banks when there is no tracked takeover; after a takeover, restoration targets attempted banks. Each attempted write is tracked before transmission, including timeouts. A failed bank restore does not prevent restoring the other bank, and failed obligations remain available for retry. Unlike the scripts' shell `&&`, recovery does not skip bank 2 when bank 1 fails.

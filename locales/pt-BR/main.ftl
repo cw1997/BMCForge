@@ -164,3 +164,6 @@ terminal-too-small = Aumente o terminal
 dark = Escuro
 light = Claro
 command-empty = Nenhum item para exibir
+
+ui-more = Mais ações
+ui-copy-hint = Copie com Shift+arrastar ou a seleção do terminal. Role com PgUp/PgDn ou a barra de rolagem.

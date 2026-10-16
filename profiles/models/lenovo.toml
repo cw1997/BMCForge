@@ -4,107 +4,238 @@ schema_version = 1
 id = "lenovo-x3250-m3"
 vendor = "IBM / Lenovo"
 name = "System x3250 M3"
-aliases = ["IBM System x3250 M3", "Lenovo System x3250 M3", "x3250 M3"]
+aliases = ["IBM System x3250 M3", "Lenovo System x3250 M3", "x3250 M3", "IBM x3250 M3", "Lenovo x3250 M3"]
 manufacturer_ids = [2, 19046]
 machine_types = ["4251", "4252", "4261"]
 sources = ["https://lenovopress.lenovo.com/tips0803"]
+profile = "ibm-lenovo-imm-monitor"
 
 [[models]]
 id = "lenovo-x3250-m4"
 vendor = "IBM / Lenovo"
 name = "System x3250 M4"
-aliases = ["IBM System x3250 M4", "Lenovo System x3250 M4", "x3250 M4"]
+aliases = ["IBM System x3250 M4", "Lenovo System x3250 M4", "x3250 M4", "IBM x3250 M4", "Lenovo x3250 M4"]
 manufacturer_ids = [2, 19046]
 machine_types = ["2583"]
 sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference"]
+profile = "ibm-lenovo-imm-monitor"
 
 [[models]]
 id = "lenovo-x3250-m5"
 vendor = "IBM / Lenovo"
 name = "System x3250 M5"
-aliases = ["IBM System x3250 M5", "Lenovo System x3250 M5", "x3250 M5"]
+aliases = ["IBM System x3250 M5", "Lenovo System x3250 M5", "x3250 M5", "IBM x3250 M5", "Lenovo x3250 M5"]
 manufacturer_ids = [2, 19046]
 machine_types = ["5458"]
 sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference"]
+profile = "ibm-lenovo-imm-monitor"
 
 [[models]]
 id = "lenovo-x3500-m3"
 vendor = "IBM / Lenovo"
 name = "System x3500 M3"
-aliases = ["IBM System x3500 M3", "Lenovo System x3500 M3", "x3500 M3"]
+aliases = ["IBM System x3500 M3", "Lenovo System x3500 M3", "x3500 M3", "IBM x3500 M3", "Lenovo x3500 M3"]
 manufacturer_ids = [2, 19046]
 machine_types = ["7380"]
 sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference"]
+profile = "ibm-lenovo-imm-monitor"
 
 [[models]]
 id = "lenovo-x3500-m4"
 vendor = "IBM / Lenovo"
 name = "System x3500 M4"
-aliases = ["IBM System x3500 M4", "Lenovo System x3500 M4", "x3500 M4"]
+aliases = ["IBM System x3500 M4", "Lenovo System x3500 M4", "x3500 M4", "IBM x3500 M4", "Lenovo x3500 M4"]
 manufacturer_ids = [2, 19046]
 machine_types = ["7383"]
 sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference"]
+profile = "ibm-lenovo-imm-monitor"
 
 [[models]]
 id = "lenovo-x3500-m5"
 vendor = "IBM / Lenovo"
 name = "System x3500 M5"
-aliases = ["IBM System x3500 M5", "Lenovo System x3500 M5", "x3500 M5"]
+aliases = ["IBM System x3500 M5", "Lenovo System x3500 M5", "x3500 M5", "IBM x3500 M5", "Lenovo x3500 M5"]
 manufacturer_ids = [2, 19046]
 machine_types = ["5464"]
 sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference"]
+profile = "ibm-lenovo-imm-monitor"
 
 [[models]]
 id = "lenovo-x3550-m3"
 vendor = "IBM / Lenovo"
 name = "System x3550 M3"
-aliases = ["IBM System x3550 M3", "Lenovo System x3550 M3", "x3550 M3"]
+aliases = ["IBM System x3550 M3", "Lenovo System x3550 M3", "x3550 M3", "IBM x3550 M3", "Lenovo x3550 M3"]
 manufacturer_ids = [2, 19046]
 machine_types = ["7944"]
 sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference"]
+profile = "ibm-lenovo-imm-monitor"
 
 [[models]]
 id = "lenovo-x3550-m4"
 vendor = "IBM / Lenovo"
 name = "System x3550 M4"
-aliases = ["IBM System x3550 M4", "Lenovo System x3550 M4", "x3550 M4"]
+aliases = ["IBM System x3550 M4", "Lenovo System x3550 M4", "x3550 M4", "IBM x3550 M4", "Lenovo x3550 M4"]
 manufacturer_ids = [2, 19046]
 machine_types = ["7914"]
 sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference"]
+profile = "ibm-lenovo-imm-monitor"
 
 [[models]]
 id = "lenovo-x3550-m5"
 vendor = "IBM / Lenovo"
 name = "System x3550 M5"
-aliases = ["IBM System x3550 M5", "Lenovo System x3550 M5", "x3550 M5"]
+aliases = ["IBM System x3550 M5", "Lenovo System x3550 M5", "x3550 M5", "IBM x3550 M5", "Lenovo x3550 M5"]
 manufacturer_ids = [2, 19046]
 machine_types = ["5463", "8869"]
-sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference"]
+sources = ["https://lenovopress.lenovo.com/tips1194-lenovo-system-x3550-m5-machine-type-5463", "https://lenovopress.lenovo.com/lp0067-lenovo-system-x3550-m5-machine-type-8869"]
+profile = "lenovo-x3550-m5-imm2"
 
 [[models]]
 id = "lenovo-x3650-m3"
 vendor = "IBM / Lenovo"
 name = "System x3650 M3"
-aliases = ["IBM System x3650 M3", "Lenovo System x3650 M3", "x3650 M3"]
+aliases = ["IBM System x3650 M3", "Lenovo System x3650 M3", "x3650 M3", "IBM x3650 M3", "Lenovo x3650 M3"]
 manufacturer_ids = [2, 19046]
 machine_types = ["7945"]
 sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference"]
+profile = "ibm-lenovo-imm-monitor"
 
 [[models]]
 id = "lenovo-x3650-m4"
 vendor = "IBM / Lenovo"
 name = "System x3650 M4"
-aliases = ["IBM System x3650 M4", "Lenovo System x3650 M4", "x3650 M4"]
+aliases = ["IBM System x3650 M4", "Lenovo System x3650 M4", "x3650 M4", "IBM x3650 M4", "Lenovo x3650 M4"]
 manufacturer_ids = [2, 19046]
 machine_types = ["7915"]
 sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference"]
+profile = "ibm-lenovo-imm-monitor"
 
 [[models]]
 id = "lenovo-x3650-m5"
 vendor = "IBM / Lenovo"
 name = "System x3650 M5"
-aliases = ["IBM System x3650 M5", "Lenovo System x3650 M5", "x3650 M5"]
+aliases = ["IBM System x3650 M5", "Lenovo System x3650 M5", "x3650 M5", "IBM x3650 M5", "Lenovo x3650 M5"]
 manufacturer_ids = [2, 19046]
 machine_types = ["5462", "8871"]
 sources = ["https://lenovopress.lenovo.com/lp0630-energy-star-certification-reference", "https://lenovopress.lenovo.com/tips1193-lenovo-system-x3650-m5-machine-type-5462", "https://lenovopress.lenovo.com/lp0068-lenovo-system-x3650-m5-machine-type-8871"]
 profile = "lenovo-x3650-m5-imm2"
+
+[[models]]
+id = "lenovo-x3100-m4"
+vendor = "IBM / Lenovo"
+name = "System x3100 M4"
+aliases = ["IBM System x3100 M4", "Lenovo System x3100 M4", "x3100 M4", "IBM x3100 M4", "Lenovo x3100 M4"]
+manufacturer_ids = [2, 19046]
+machine_types = ["2582"]
+profile = "ibm-lenovo-imm-monitor"
+sources = ["https://lenovopress.lenovo.com/tips0776.pdf", "https://lenovopress.lenovo.com/tips0849-imm2-support-on-lenovo-servers"]
+
+[[models]]
+id = "lenovo-x3300-m4"
+vendor = "IBM / Lenovo"
+name = "System x3300 M4"
+aliases = ["IBM System x3300 M4", "Lenovo System x3300 M4", "x3300 M4", "IBM x3300 M4", "Lenovo x3300 M4"]
+manufacturer_ids = [2, 19046]
+machine_types = ["7382"]
+profile = "ibm-lenovo-imm-monitor"
+sources = ["https://lenovopress.lenovo.com/tips0776.pdf", "https://lenovopress.lenovo.com/tips0849-imm2-support-on-lenovo-servers"]
+
+[[models]]
+id = "lenovo-x3530-m4"
+vendor = "IBM / Lenovo"
+name = "System x3530 M4"
+aliases = ["IBM System x3530 M4", "Lenovo System x3530 M4", "x3530 M4", "IBM x3530 M4", "Lenovo x3530 M4"]
+manufacturer_ids = [2, 19046]
+machine_types = ["7160"]
+profile = "ibm-lenovo-imm-monitor"
+sources = ["https://lenovopress.lenovo.com/tips0776.pdf", "https://lenovopress.lenovo.com/tips0849-imm2-support-on-lenovo-servers"]
+
+[[models]]
+id = "lenovo-x3630-m4"
+vendor = "IBM / Lenovo"
+name = "System x3630 M4"
+aliases = ["IBM System x3630 M4", "Lenovo System x3630 M4", "x3630 M4", "IBM x3630 M4", "Lenovo x3630 M4"]
+manufacturer_ids = [2, 19046]
+machine_types = ["7158"]
+profile = "ibm-lenovo-imm-monitor"
+sources = ["https://lenovopress.lenovo.com/tips0776.pdf", "https://lenovopress.lenovo.com/tips0849-imm2-support-on-lenovo-servers"]
+
+[[models]]
+id = "lenovo-x3650-m4-bd"
+vendor = "IBM / Lenovo"
+name = "System x3650 M4 BD"
+aliases = ["IBM System x3650 M4 BD", "Lenovo System x3650 M4 BD", "x3650 M4 BD", "IBM x3650 M4 BD", "Lenovo x3650 M4 BD"]
+manufacturer_ids = [2, 19046]
+machine_types = ["5466"]
+profile = "ibm-lenovo-imm-monitor"
+sources = ["https://lenovopress.lenovo.com/tips0776.pdf", "https://lenovopress.lenovo.com/tips0849-imm2-support-on-lenovo-servers"]
+
+[[models]]
+id = "lenovo-x3650-m4-hd"
+vendor = "IBM / Lenovo"
+name = "System x3650 M4 HD"
+aliases = ["IBM System x3650 M4 HD", "Lenovo System x3650 M4 HD", "x3650 M4 HD", "IBM x3650 M4 HD", "Lenovo x3650 M4 HD"]
+manufacturer_ids = [2, 19046]
+machine_types = ["5460"]
+profile = "ibm-lenovo-imm-monitor"
+sources = ["https://lenovopress.lenovo.com/tips0776.pdf", "https://lenovopress.lenovo.com/tips0849-imm2-support-on-lenovo-servers"]
+
+[[models]]
+id = "lenovo-x3690-x5"
+vendor = "IBM / Lenovo"
+name = "System x3690 X5"
+aliases = ["IBM System x3690 X5", "Lenovo System x3690 X5", "x3690 X5", "IBM x3690 X5", "Lenovo x3690 X5"]
+manufacturer_ids = [2, 19046]
+machine_types = ["7147"]
+profile = "ibm-lenovo-imm-monitor"
+sources = ["https://lenovopress.lenovo.com/tips0776.pdf", "https://lenovopress.lenovo.com/tips0849-imm2-support-on-lenovo-servers"]
+
+[[models]]
+id = "lenovo-x3750-m4"
+vendor = "IBM / Lenovo"
+name = "System x3750 M4"
+aliases = ["IBM System x3750 M4", "Lenovo System x3750 M4", "x3750 M4", "IBM x3750 M4", "Lenovo x3750 M4"]
+manufacturer_ids = [2, 19046]
+machine_types = ["8722", "8752", "8753"]
+profile = "ibm-lenovo-imm-monitor"
+sources = ["https://lenovopress.lenovo.com/tips0776.pdf", "https://lenovopress.lenovo.com/tips0849-imm2-support-on-lenovo-servers"]
+
+[[models]]
+id = "lenovo-x3850-x5"
+vendor = "IBM / Lenovo"
+name = "System x3850 X5"
+aliases = ["IBM System x3850 X5", "Lenovo System x3850 X5", "x3850 X5", "IBM x3850 X5", "Lenovo x3850 X5"]
+manufacturer_ids = [2, 19046]
+machine_types = ["7143"]
+profile = "ibm-lenovo-imm-monitor"
+sources = ["https://lenovopress.lenovo.com/tips0776.pdf", "https://lenovopress.lenovo.com/tips0849-imm2-support-on-lenovo-servers"]
+
+[[models]]
+id = "lenovo-x3850-x6"
+vendor = "IBM / Lenovo"
+name = "System x3850 X6"
+aliases = ["IBM System x3850 X6", "Lenovo System x3850 X6", "x3850 X6", "IBM x3850 X6", "Lenovo x3850 X6"]
+manufacturer_ids = [2, 19046]
+machine_types = ["3837", "6241"]
+profile = "ibm-lenovo-imm-monitor"
+sources = ["https://lenovopress.lenovo.com/tips0776.pdf", "https://lenovopress.lenovo.com/tips0849-imm2-support-on-lenovo-servers"]
+
+[[models]]
+id = "lenovo-x3950-x6"
+vendor = "IBM / Lenovo"
+name = "System x3950 X6"
+aliases = ["IBM System x3950 X6", "Lenovo System x3950 X6", "x3950 X6", "IBM x3950 X6", "Lenovo x3950 X6"]
+manufacturer_ids = [2, 19046]
+machine_types = ["3837", "6241"]
+profile = "ibm-lenovo-imm-monitor"
+sources = ["https://lenovopress.lenovo.com/tips0776.pdf", "https://lenovopress.lenovo.com/tips0849-imm2-support-on-lenovo-servers"]
+
+[[models]]
+id = "lenovo-x3250-m6"
+vendor = "IBM / Lenovo"
+name = "System x3250 M6"
+aliases = ["IBM System x3250 M6", "Lenovo System x3250 M6", "x3250 M6", "IBM x3250 M6", "Lenovo x3250 M6"]
+manufacturer_ids = [2, 19046]
+machine_types = ["3633", "3943"]
+profile = "ibm-lenovo-imm-monitor"
+sources = ["https://lenovopress.lenovo.com/osig", "https://lenovopress.lenovo.com/tips0849-imm2-support-on-lenovo-servers"]

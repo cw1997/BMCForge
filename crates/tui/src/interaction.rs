@@ -34,6 +34,7 @@ pub struct Interaction {
     pub action_focus: Option<usize>,
     pub action_offset: usize,
     pub actions: Vec<Target>,
+    pub menu_items: Vec<(String, Target)>,
 }
 impl Interaction {
     pub fn press(&mut self, target: Target) {
@@ -41,6 +42,9 @@ impl Interaction {
     }
     pub fn style(&self, target: &Target) -> Style {
         let theme = crate::theme::Theme::named(if self.light { "light" } else { "dark" });
+        if matches!(target, Target::Status) {
+            return Style::default();
+        }
         if self
             .pressed
             .as_ref()
@@ -91,6 +95,9 @@ impl App {
     pub fn target_label(&self, target: &Target) -> String {
         if matches!(target, Target::Shortcut(name) if name.starts_with("theme:")) {
             return "Enter".into();
+        }
+        if matches!(target, Target::Palette) {
+            return "Ctrl+P".into();
         }
         self.target_key(target)
             .map(key_label)

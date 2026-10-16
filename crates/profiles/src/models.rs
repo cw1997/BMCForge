@@ -198,6 +198,43 @@ mod tests {
         Ok(())
     }
     #[test]
+    fn ibm_system_x_monitoring_and_shared_types() -> Result<()> {
+        let c = Catalog::load(None)?;
+        let registry = crate::Registry::load(None)?;
+        for manufacturer_id in [2, 19046] {
+            for raw in ["IBM System X3550 M5", "IBM x3550 M5", "Lenovo x3550 M5"] {
+                let d = DeviceIdentity {
+                    manufacturer_id,
+                    model: raw.into(),
+                    ..Default::default()
+                };
+                let choices = c.candidates(&d);
+                assert_eq!(choices.len(), 1);
+                assert_eq!(choices[0].id, "lenovo-x3550-m5");
+                assert_eq!(
+                    c.models[&choices[0].id].profile.as_deref(),
+                    Some("lenovo-x3550-m5-imm2")
+                );
+                assert!(registry.profiles["ibm-lenovo-imm-monitor"].fan.is_none());
+            }
+            for mt in ["5463", "8869ABC", "8869-ABC"] {
+                let d = DeviceIdentity {
+                    manufacturer_id,
+                    machine_types: vec![mt.into()],
+                    ..Default::default()
+                };
+                assert_eq!(c.candidates(&d)[0].id, "lenovo-x3550-m5");
+            }
+        }
+        let d = DeviceIdentity {
+            manufacturer_id: 2,
+            machine_types: vec!["6241".into()],
+            ..Default::default()
+        };
+        assert_eq!(c.candidates(&d).len(), 2);
+        Ok(())
+    }
+    #[test]
     fn shared_product_ids_require_resolution() -> Result<()> {
         let mut c = Catalog::load(None)?;
         for id in ["dell-r730", "dell-r720"] {

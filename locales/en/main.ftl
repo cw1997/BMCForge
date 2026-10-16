@@ -164,3 +164,6 @@ terminal-too-small = Increase terminal size
 dark = Dark
 light = Light
 command-empty = No items to display
+
+ui-more = More actions
+ui-copy-hint = Shift+drag or use terminal selection to copy. PgUp/PgDn or the scrollbar scrolls this message.

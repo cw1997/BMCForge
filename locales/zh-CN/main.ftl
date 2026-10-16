@@ -161,3 +161,6 @@ terminal-too-small = 请增大终端窗口
 dark = 深色
 light = 浅色
 command-empty = 暂无可显示项目
+
+ui-more = 更多操作
+ui-copy-hint = 按住 Shift 拖动或使用终端原生选择复制文本。使用 PgUp/PgDn 或滚动条查看完整消息。

@@ -1,0 +1,28 @@
+schema_version = 1
+id = "lenovo-x3550-m5-imm2"
+vendor = "IBM / Lenovo"
+description = "System x3550 M5 IMM2 fan limit and release (user-supplied scripts)"
+verification = "experimental"
+sources = ["https://lenovopress.lenovo.com/tips1194-lenovo-system-x3550-m5-machine-type-5463", "https://lenovopress.lenovo.com/lp0067-lenovo-system-x3550-m5-machine-type-8869"]
+notes = "Command evidence: user-supplied limit.sh and unlimit.sh for x3550 M5; see docs/models.md. Product sources establish model identity only, not OEM command endorsement. Limit: 3a 07 <bank> 10 01; release: 3a 07 <bank> 12 00. Only raw 0x10 is supported, with no percentage/RPM interpretation or bank-location assumption. Firmware scope is unknown; no BMCForge hardware validation. Recovery is recorded before bank writes and attempted independently for each affected bank."
+[matcher]
+manufacturer_ids = [2, 19046]
+models = ["System x3550 M5", "IBM System x3550 M5", "Lenovo System x3550 M5", "x3550 M5"]
+[fan]
+min_percent = 0
+max_percent = 100
+scale = 100
+raw_values = [16]
+restore_per_zone = true
+zones = [{ id = 1, name = "Bank 1" }, { id = 2, name = "Bank 2" }]
+manual = []
+set = [{ netfn = 58, command = 7, data = ["$zone", "$raw", "0x01"] }]
+automatic = [{ netfn = 58, command = 7, data = ["$zone", "0x12", "0x00"] }]
+[[examples]]
+raw = 16
+zone = 1
+expected = [[58, 7, 1, 16, 1]]
+[[examples]]
+raw = 16
+zone = 2
+expected = [[58, 7, 2, 16, 1]]

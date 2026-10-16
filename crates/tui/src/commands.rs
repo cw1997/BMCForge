@@ -10,6 +10,24 @@ pub struct Command {
     pub reason: String,
 }
 impl App {
+    pub fn target_reason(&self, target: &Target) -> String {
+        match target {
+            Target::Shortcut(name) => {
+                if matches!(name.as_str(), "edit" | "manual" | "automatic" | "select")
+                    && self.current().is_none()
+                    && !(name == "select" && self.page == 2)
+                {
+                    self.text("command-needs-server").into()
+                } else {
+                    self.command_reason(name)
+                }
+            }
+            Target::Key(KeyCode::Delete) if self.current().is_none() => {
+                self.text("command-needs-server").into()
+            }
+            _ => String::new(),
+        }
+    }
     pub fn commands(&self, query: &str) -> Vec<Command> {
         let mut entries = Vec::new();
         for (page, name) in ["fleet", "sensors", "discovery", "profiles", "activity"]

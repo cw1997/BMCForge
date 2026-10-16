@@ -43,3 +43,5 @@ The UI does not persist a running manual-control request. Every application star
 
 
 The `dark` and `light` values of `settings.theme` apply to all terminal surfaces, including dialogs, selection and pointer feedback. Use Ctrl+X then t to select a theme; the selection is saved immediately outside demo mode. Ctrl+P lists actions with their effective configured shortcuts. No configuration migration is required.
+
+Mouse capture defaults to enabled for new configurations; existing `settings.mouse = false` remains respected. Shadows, focus styles and the full-width reversed status strip follow `settings.theme` without additional configuration. The status strip is clickable and redacts configured secrets before displaying either truncated or full message text.

@@ -9,6 +9,9 @@ pub struct Theme {
     pub selection: Color,
     pub danger: Color,
     pub warning: Color,
+    pub shadow: Color,
+    pub border: Color,
+    pub success: Color,
 }
 impl Theme {
     pub fn named(name: &str) -> Self {
@@ -22,6 +25,9 @@ impl Theme {
                 selection: Color::Rgb(224, 212, 238),
                 danger: Color::Rgb(175, 35, 45),
                 warning: Color::Rgb(138, 85, 0),
+                shadow: Color::Rgb(165, 165, 175),
+                border: Color::Rgb(195, 195, 205),
+                success: Color::Rgb(25, 105, 65),
             }
         } else {
             Self {
@@ -33,11 +39,26 @@ impl Theme {
                 selection: Color::Rgb(61, 47, 75),
                 danger: Color::Rgb(245, 125, 135),
                 warning: Color::Rgb(235, 190, 110),
+                shadow: Color::Rgb(4, 4, 8),
+                border: Color::Rgb(75, 75, 85),
+                success: Color::Rgb(120, 210, 160),
             }
         }
     }
     pub fn base(self) -> Style {
         Style::default().fg(self.foreground).bg(self.background)
+    }
+    pub fn surface(self) -> Style {
+        Style::default().fg(self.foreground).bg(self.surface)
+    }
+    pub fn status(self) -> Style {
+        Style::default().fg(self.background).bg(self.foreground)
+    }
+    pub fn focus(self) -> Style {
+        Style::default()
+            .fg(self.background)
+            .bg(self.accent)
+            .add_modifier(ratatui::style::Modifier::BOLD)
     }
     pub fn selected(self) -> Style {
         Style::default().fg(self.foreground).bg(self.selection)

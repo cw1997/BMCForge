@@ -161,3 +161,6 @@ terminal-too-small = 請放大終端視窗
 dark = 深色
 light = 淺色
 command-empty = 目前沒有可顯示的項目
+
+ui-more = 更多操作
+ui-copy-hint = 按住 Shift 拖曳或使用終端原生選取複製文字。使用 PgUp/PgDn 或捲動條查看完整訊息。

@@ -164,3 +164,6 @@ terminal-too-small = Agrandissez le terminal
 dark = Sombre
 light = Clair
 command-empty = Aucun élément à afficher
+
+ui-more = Autres actions
+ui-copy-hint = Copiez avec Maj+glisser ou la sélection du terminal. Défilez avec PgUp/PgDn ou la barre.

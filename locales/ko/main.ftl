@@ -161,3 +161,6 @@ terminal-too-small = 터미널 크기를 늘리세요
 dark = 어둡게
 light = 밝게
 command-empty = 표시할 항목이 없습니다
+
+ui-more = 추가 작업
+ui-copy-hint = Shift를 누른 채 드래그하거나 터미널 선택 기능으로 복사하세요. PgUp/PgDn 또는 스크롤 막대로 이동하세요.

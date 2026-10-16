@@ -1,11 +1,11 @@
 # 国内外服务器识别与控制范围
 
-本轮目录审核日期：2026-10-16。型号目录共 164 项，新增 96 项；包含有来源的名称、别名、厂商编号、机器类型及适配关联。`docs/compatibility.json` 由目录和适配文件生成，记录每个型号的来源及控制状态。全部新增项目都没有 BMCForge 实机验证；识别、监控和调速分别判断。
+本轮目录审核日期：2026-10-16。型号目录共 176 项，新增 108 项；包含有来源的名称、别名、厂商编号、机器类型及适配关联。`docs/compatibility.json` 由目录和适配文件生成，记录每个型号的来源及控制状态。全部新增项目都没有 BMCForge 实机验证；识别、监控和调速分别判断。
 
 ## 已编入目录的厂商
 
 - **HPE / HP**：18 项，ProLiant DL360p/DL380p Gen8、DL360/DL380 Gen9–11，以及 ProLiant Compute Gen12 的 DL320/DL340/DL360/DL380/DL380a/DL384/DL580/ML350。支持 HP/HPE 名称别名。`hpe-ilo-monitor` 使用标准 IPMI 读取设备提供的传感器；部分 iLO 风扇数据是百分比或状态，不会伪装为 RPM。
-- **Lenovo / 联想**：保留 12 项 System x M3/M4/M5，增加 27 项 ThinkSystem，包括 SR530/550/570/590、SR630/650 V1–V4、AMD SR635/645/655/665 及 V3、SR850/860/950、ST550/ST650 V2/V3。支持官方索引中的字母数字机器类型，如 7D75。共享机器类型（如 SR650 V4 与 SR650a V4）保留多候选。XCC 不使用 IMM2 风扇组命令。
+- **Lenovo / 联想**：包含 24 项 IBM / Lenovo System x M3/M4/M5/M6、X5/X6，增加 27 项 ThinkSystem，包括 SR530/550/570/590、SR630/650 V1–V4、AMD SR635/645/655/665 及 V3、SR850/860/950、ST550/ST650 V2/V3。支持官方索引中的字母数字机器类型，如 7D75。共享机器类型（如 SR650 V4 与 SR650a V4）保留多候选。XCC 不使用 IMM2 风扇组命令。
 - **Inspur / 浪潮**：5 项，NF5270M4、NF5280M5、NF5180M6、NF5280M6、NF5280M7；兼容有明确型号前缀的 IEIT SYSTEMS 名称。`inspur-monitor` 提供标准 IPMI 监控。
 - **H3C / 新华三**：12 项 UniServer HDM 机型，包含 R4700/R4900/R6900/R4300 的 G5/G6，以及 R4900 G6 Ultra、R4950/R6700/R4500 G6；另有 UIS 2000 G6 独立型号与实验性调速适配。不能把 UIS OEM 命令用于整个 H3C 品牌。
 - **Huawei / 华为**：14 项，RH1288/RH2288/RH2288H/RH5885H/RH8100 V3、5288 V3、2288/2288C/2488/5885H/8100 V5，以及 TaiShan 200 1280/2280/5280。`huawei-ibmc-monitor` 提供标准 IPMI 监控。
@@ -43,3 +43,5 @@ bmcforge --profiles-dir ./community validate-models
 ```
 
 适配库详情显示关联型号；命令行可按中英文厂商名称筛选。完整清单以 TOML／生成的 JSON 为准，持续维护，不宣称穷尽所有服务器。提交新型号需要身份来源；提交调速还需要精确型号／固件或协议探测限制、取值编码、读取／设置／恢复依据及失败恢复测试。参见 [贡献说明](../CONTRIBUTING.md)、[适配格式](profiles.md) 和 [实机测试指南](hardware-testing.md)。
+
+System x3550 M5（5463 / 8869）现有独立实验性 `lenovo-x3550-m5-imm2` 限速／解除限制适配，依据用户提供的 `limit.sh` 与 `unlimit.sh`。只开放原始值 `0x10`，支持两组独立恢复；需 `allow_experimental = true`，尚无 BMCForge 实机验证。详见 [型号说明](models.md#system-x3550-m5-imm2-limit--release)。

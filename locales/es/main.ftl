@@ -164,3 +164,6 @@ terminal-too-small = Amplíe el terminal
 dark = Oscuro
 light = Claro
 command-empty = No hay elementos para mostrar
+
+ui-more = Más acciones
+ui-copy-hint = Copie con Mayús y arrastrar o la selección del terminal. Desplácese con RePág/AvPág o la barra.

@@ -161,3 +161,6 @@ terminal-too-small = 端末を大きくしてください
 dark = ダーク
 light = ライト
 command-empty = 表示する項目がありません
+
+ui-more = その他の操作
+ui-copy-hint = Shiftを押してドラッグするか端末の選択機能でコピーします。PgUp/PgDnまたはスクロールバーで移動します。

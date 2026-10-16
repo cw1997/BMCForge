@@ -1,0 +1,9 @@
+schema_version = 1
+id = "ibm-lenovo-imm-monitor"
+vendor = "IBM / Lenovo"
+description = "IBM / Lenovo System x IMM and IMM2 standard IPMI monitoring"
+verification = "documented"
+sources = ["https://lenovopress.lenovo.com/tips0849-imm2-support-on-lenovo-servers", "https://lenovopress.lenovo.com/tips1194-lenovo-system-x3550-m5-machine-type-5463", "https://lenovopress.lenovo.com/lp0067-lenovo-system-x3550-m5-machine-type-8869"]
+notes = "Standard IPMI monitoring requires enabled LAN access and a supported cipher suite. Includes x3550 M5 types 5463 and 8869. No fan writes: x3650 M5 bank commands are not evidence for other System x models. Use the configured device credentials. Catalog recognition is not hardware verification."
+[matcher]
+manufacturer_ids = [2, 19046]

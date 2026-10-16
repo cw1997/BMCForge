@@ -164,3 +164,6 @@ terminal-too-small = Terminal vergrößern
 dark = Dunkel
 light = Hell
 command-empty = Keine Einträge vorhanden
+
+ui-more = Weitere Aktionen
+ui-copy-hint = Mit Shift+Ziehen oder der Terminalauswahl kopieren. Mit Bild↑/Bild↓ oder der Bildlaufleiste scrollen.

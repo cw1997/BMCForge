@@ -38,6 +38,11 @@ pub enum EditKind {
     Manual(Vec<String>),
 }
 pub enum Modal {
+    Actions {
+        previous: Option<Box<Modal>>,
+        items: Vec<(String, crate::mouse::Target)>,
+        cursor: usize,
+    },
     Commands {
         query: String,
         cursor: usize,
@@ -532,6 +537,9 @@ impl App {
         if !matches!(key.kind, KeyEventKind::Press | KeyEventKind::Repeat) {
             return vec![];
         }
+        if let Some(actions) = self.menu_input(key) {
+            return actions;
+        }
         if let Some(actions) = self.command_input(key) {
             return actions;
         }
@@ -598,11 +606,46 @@ impl App {
         }
     }
     pub(crate) fn invoke_target(&mut self, target: crate::mouse::Target) -> Vec<Action> {
-        if self.modal.is_some() && !matches!(target, crate::mouse::Target::Key(_)) {
+        if self.modal.is_some()
+            && !matches!(
+                target,
+                crate::mouse::Target::Key(_) | crate::mouse::Target::Overflow
+            )
+        {
+            return vec![];
+        }
+        let reason = self.target_reason(&target);
+        if !reason.is_empty() {
+            self.log(reason);
             return vec![];
         }
         self.interaction.press(target.clone());
         let result = match target {
+            crate::mouse::Target::Palette => {
+                self.open_commands(String::new());
+                Ok(vec![])
+            }
+            crate::mouse::Target::Status => {
+                self.modal_scroll = 0;
+                self.modal = Some(Modal::Info(format!(
+                    "{}\n\n{}",
+                    self.status_text(),
+                    self.text("ui-copy-hint")
+                )));
+                Ok(vec![])
+            }
+            crate::mouse::Target::Overflow => {
+                let items = self.interaction.menu_items.clone();
+                let previous = self.modal.take().map(Box::new);
+                self.modal = Some(Modal::Actions {
+                    previous,
+                    items,
+                    cursor: 0,
+                });
+                self.interaction.action_focus = None;
+                Ok(vec![])
+            }
+
             crate::mouse::Target::Shortcut(name) => self.normal_action(&name),
             crate::mouse::Target::Page(page) => {
                 self.page = page;
@@ -654,7 +697,7 @@ impl App {
                 let ids = self.targets();
                 for id in ids {
                     let profile = self.profile(&id)?;
-                    ensure!(profile.fan.is_some(), "{}", self.text("monitoring-only"));
+                    ensure!(profile.fan.is_some(), "{}", self.text("monitor-only"));
                 }
             }
             Ok(())
@@ -1154,7 +1197,7 @@ impl App {
             self.modal_scroll = 0;
         }
         match modal {
-            Modal::Commands { .. } => vec![],
+            Modal::Commands { .. } | Modal::Actions { .. } => vec![],
             Modal::FieldChoice {
                 mut form,
                 mut query,
