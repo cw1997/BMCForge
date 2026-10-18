@@ -1,9 +1,5 @@
 name: Multi-platform builds
 on:
-  pull_request:
-  push:
-    branches-ignore: [main, master]
-  workflow_dispatch:
   workflow_call:
     inputs:
       build_type:

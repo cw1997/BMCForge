@@ -25,6 +25,7 @@
 - `README.md` is now the pure-English README; the Chinese documentation moved to `README.zh-CN.md`, with both files cross-linking each other's language at the top.
 - CI runs tests on every branch, and the multi-platform build workflow now produces debug packages by default with the full git commit hash and a UTC build timestamp in each archive name.
 - Releases are published only for `main`/`master` updates and include both the debug and release packages.
+- The pipeline is now a single ordered `verify.yml`: quality checks gate native tests, which gate the eight-target debug builds on every ref; `main`/`master` additionally runs the release builds serially after the debug ones before publishing. `build.yml` is reusable-only and `release.yml` is gone.
 
 ### Security
 
