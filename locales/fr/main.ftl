@@ -167,7 +167,6 @@ light = Clair
 command-empty = Aucun élément à afficher
 
 ui-more = Autres actions
-ui-copy-hint = Copiez avec Maj+glisser ou la sélection du terminal. Défilez avec PgUp/PgDn ou la barre.
 help-tab = Aide
 help-page = Commencez par importer des serveurs ; chacun peut avoir ses propres identifiants. Pages : 1 Serveurs, 2 Capteurs, 3 Bibliothèque d’adaptateurs, 4 Journal, 5 Aide. Appuyez sur d pour scanner une plage IPv4 ; les résultats s’affichent dans une fenêtre. Résultats : Espace sélectionne, A sélectionne tous les candidats, G le groupe /24 courant, f filtre, le raccourci Importer identifie les appareils sélectionnés, Échap ferme. Ctrl+P ouvre la recherche de commandes, F1 cette page, F3 la langue et q quitte en sécurité. Le contrôle manuel des ventilateurs exige une action explicite ; la sortie normale tente de rétablir le mode automatique.
 

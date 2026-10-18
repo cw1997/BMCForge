@@ -167,7 +167,6 @@ light = Hell
 command-empty = Keine Einträge vorhanden
 
 ui-more = Weitere Aktionen
-ui-copy-hint = Mit Shift+Ziehen oder der Terminalauswahl kopieren. Mit Bild↑/Bild↓ oder der Bildlaufleiste scrollen.
 help-tab = Hilfe
 help-page = Fügen Sie zuerst Server über Import hinzu; jeder Server kann eigene Zugangsdaten haben. Seiten: 1 Server, 2 Sensoren, 3 Adapterbibliothek, 4 Aktionsprotokoll, 5 Hilfe. Mit d scannen Sie einen IPv4-Bereich; die Ergebnisse erscheinen in einem Dialog. Im Ergebnisdialog: Leertaste wählt aus, A wählt alle Kandidaten, G die aktuelle /24-Gruppe, f filtert, die Import-Taste identifiziert ausgewählte Geräte, Esc schließt. Ctrl+P öffnet die Befehlssuche, F1 diese Seite, F3 die Sprache und q beendet sicher. Eine manuelle Lüftersteuerung erfordert eine ausdrückliche Aktion; beim normalen Beenden wird die Rückkehr zum Automatikmodus versucht.
 

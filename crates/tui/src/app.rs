@@ -782,15 +782,6 @@ impl App {
                 self.open_commands(String::new());
                 Ok(vec![])
             }
-            crate::mouse::Target::Status => {
-                self.modal_scroll = 0;
-                self.modal = Some(Modal::Info(format!(
-                    "{}\n\n{}",
-                    self.status_text(),
-                    self.text("ui-copy-hint")
-                )));
-                Ok(vec![])
-            }
             crate::mouse::Target::Overflow => {
                 let items = self.interaction.menu_items.clone();
                 let previous = self.modal.take().map(Box::new);

@@ -249,28 +249,6 @@ fn mark_help_seen(config: &mut Config, path: &std::path::Path, demo: bool) -> Re
     Ok(true)
 }
 
-#[cfg(test)]
-mod startup_tests {
-    use super::*;
-
-    #[test]
-    fn first_open_help_is_saved_once_and_demo_does_not_write() -> Result<()> {
-        let dir = tempfile::tempdir()?;
-        let path = dir.path().join("config.toml");
-        let mut config = Config::default();
-
-        assert!(mark_help_seen(&mut config, &path, false)?);
-        assert!(Config::load(&path)?.help_seen);
-        assert!(!mark_help_seen(&mut config, &path, false)?);
-
-        let demo_path = dir.path().join("demo.toml");
-        let mut demo_config = Config::default();
-        assert!(mark_help_seen(&mut demo_config, &demo_path, true)?);
-        assert!(!demo_path.exists());
-        Ok(())
-    }
-}
-
 async fn event_loop(
     terminal: &mut ratatui::DefaultTerminal,
     app: &mut App,
@@ -489,4 +467,26 @@ async fn demo_check(registry: Registry) -> Result<()> {
         "Demo discovery and BMC automatic restore passed. Simulation is not hardware verification."
     );
     Ok(())
+}
+
+#[cfg(test)]
+mod startup_tests {
+    use super::*;
+
+    #[test]
+    fn first_open_help_is_saved_once_and_demo_does_not_write() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        let path = dir.path().join("config.toml");
+        let mut config = Config::default();
+
+        assert!(mark_help_seen(&mut config, &path, false)?);
+        assert!(Config::load(&path)?.help_seen);
+        assert!(!mark_help_seen(&mut config, &path, false)?);
+
+        let demo_path = dir.path().join("demo.toml");
+        let mut demo_config = Config::default();
+        assert!(mark_help_seen(&mut demo_config, &demo_path, true)?);
+        assert!(!demo_path.exists());
+        Ok(())
+    }
 }

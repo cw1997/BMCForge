@@ -42,9 +42,6 @@ impl Interaction {
     }
     pub fn style(&self, target: &Target) -> Style {
         let theme = crate::theme::Theme::named(if self.light { "light" } else { "dark" });
-        if matches!(target, Target::Status) {
-            return Style::default();
-        }
         if self
             .pressed
             .as_ref()

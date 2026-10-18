@@ -2056,7 +2056,7 @@ fn modal(frame: &mut Frame, app: &mut App) {
         } => {
             let text = format!(
                 "{}\n{} | {}: {}\n{}\n\n{}",
-                &help_texts[if *authenticate {
+                help_texts[if *authenticate {
                     "help-identify-preview"
                 } else {
                     "help-import-preview"
@@ -2154,7 +2154,7 @@ fn modal(frame: &mut Frame, app: &mut App) {
             let large = *discovery && hosts.len() > app.config.settings.scan_confirm_above;
             let text = format!(
                 "{}\n{} | {}: {} | {}: {}{}\n\n{}\n{}\n\nEnter: {} | Esc: {}",
-                &help_texts[if *discovery {
+                help_texts[if *discovery {
                     "help-scan-preview"
                 } else {
                     "help-import-preview"
@@ -2411,7 +2411,6 @@ mod tests {
             .collect();
         assert!(!text.contains("RESTORE FAILED: check device"));
         assert!(app.hits.iter().any(|hit| hit.target == Target::Page(3)));
-        assert!(!app.hits.iter().any(|hit| hit.target == Target::Status));
     }
     #[test]
     fn top_exit_button_invokes_the_normal_quit_action() {

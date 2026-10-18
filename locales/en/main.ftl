@@ -167,7 +167,6 @@ light = Light
 command-empty = No items to display
 
 ui-more = More actions
-ui-copy-hint = Shift+drag or use terminal selection to copy. PgUp/PgDn or the scrollbar scrolls this message.
 help-tab = Help
 help-page = Start with Import to add servers with their own credentials. Pages: 1 Servers, 2 Sensors, 3 Adapter Library, 4 Operation Log, 5 Help. Use d to scan an IPv4 range; scan results open in a dialog. In results: Space selects, A selects all candidates, G selects the current /24, f filters, the Import shortcut identifies selected devices, and Esc closes. Use Ctrl+P for searchable commands, F1 for this page, F3 for language, and q to exit safely. Manual fan control is explicit; normal exit attempts to restore automatic mode.
 

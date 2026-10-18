@@ -167,7 +167,6 @@ light = Chiaro
 command-empty = Nessun elemento da mostrare
 
 ui-more = Altre azioni
-ui-copy-hint = Copiare con Maiusc+trascinamento o la selezione del terminale. Scorrere con PgUp/PgDn o la barra.
 help-tab = Aiuto
 help-page = Inizia importando i server; ognuno può avere credenziali proprie. Pagine: 1 Server, 2 Sensori, 3 Libreria adattatori, 4 Registro operazioni, 5 Aiuto. Premi d per eseguire la scansione di un intervallo IPv4; i risultati appaiono in una finestra. Nei risultati: Spazio seleziona, A seleziona tutti i candidati, G il gruppo /24 corrente, f filtra, la scorciatoia Importa identifica i dispositivi selezionati ed Esc chiude. Ctrl+P cerca i comandi, F1 apre questa pagina, F3 cambia lingua e q esce in sicurezza. Il controllo manuale delle ventole richiede un’azione esplicita; l’uscita normale tenta di ripristinare la modalità automatica.
 

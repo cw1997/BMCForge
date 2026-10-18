@@ -270,9 +270,9 @@ impl Form {
                     if !found {
                         let mut f = field(path.clone(), &toml::Value::String(String::new()));
                         f.label = path.join(".");
-                        f.kind = if path.last().is_some_and(|p| p == "manufacturer_id") {
-                            FieldType::Structured
-                        } else if path == ["fan"] {
+                        f.kind = if path == ["fan"]
+                            || path.last().is_some_and(|p| p == "manufacturer_id")
+                        {
                             FieldType::Structured
                         } else {
                             FieldType::Text

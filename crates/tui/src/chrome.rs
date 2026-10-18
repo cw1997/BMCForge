@@ -136,30 +136,6 @@ pub fn text_height(text: &str, width: u16) -> usize {
 }
 
 impl App {
-    pub fn status_text(&self) -> String {
-        let text = if self.identifying {
-            format!(
-                "{} {}/{}",
-                self.text("identifying"),
-                self.pending.len(),
-                self.identify_total
-            )
-        } else if self.scanning {
-            format!(
-                "{} {}/{}",
-                self.text("scanning"),
-                self.discovery.len(),
-                self.scan_total
-            )
-        } else {
-            self.locales
-                .render(&self.config.settings.language, &self.status)
-        };
-        bmcforge_core::redact(&text, &self.config.secrets())
-    }
-}
-
-impl App {
     pub fn menu_input(
         &mut self,
         key: crossterm::event::KeyEvent,
@@ -389,7 +365,6 @@ mod tests {
             );
             let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
             terminal.draw(|f| crate::ui::draw(f, &mut app)).unwrap();
-            assert!(!app.hits.iter().any(|h| h.target == Target::Status));
             assert!(!text(&terminal).contains("secret-needle"));
         }
     }
@@ -402,7 +377,6 @@ mod tests {
         app.interaction.leader = Some(std::time::Instant::now());
         let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
         terminal.draw(|f| crate::ui::draw(f, &mut app)).unwrap();
-        assert!(!app.hits.iter().any(|h| h.target == Target::Status));
         assert!(!text(&terminal).contains("Ctrl+X →"));
     }
     #[test]
@@ -488,10 +462,11 @@ mod tests {
         click(&mut app, &more);
         assert!(matches!(app.modal, Some(Modal::Actions { .. })));
         terminal.draw(|f| crate::ui::draw(f, &mut app)).unwrap();
-        assert!(app.hits.iter().all(|h| !matches!(
-            h.target,
-            Target::Palette | Target::Status | Target::Server(..)
-        )));
+        assert!(
+            app.hits
+                .iter()
+                .all(|h| !matches!(h.target, Target::Palette | Target::Server(..)))
+        );
         key(&mut app, KeyCode::Esc);
         assert!(matches!(&app.modal,Some(Modal::Editor{editor,..}) if editor.text()=="保留草稿"));
     }

@@ -167,7 +167,6 @@ light = Claro
 command-empty = No hay elementos para mostrar
 
 ui-more = Más acciones
-ui-copy-hint = Copie con Mayús y arrastrar o la selección del terminal. Desplácese con RePág/AvPág o la barra.
 help-tab = Ayuda
 help-page = Empieza importando servidores; cada uno puede tener credenciales propias. Páginas: 1 Servidores, 2 Sensores, 3 Biblioteca de adaptadores, 4 Registro de actividad, 5 Ayuda. Pulsa d para explorar un rango IPv4; los resultados aparecen en un diálogo. En resultados: Espacio selecciona, A selecciona todos los candidatos, G el grupo /24 actual, f filtra, el atajo de Importar identifica los dispositivos seleccionados y Esc cierra. Ctrl+P busca comandos, F1 abre esta página, F3 cambia el idioma y q sale de forma segura. El control manual de ventiladores requiere una acción explícita; al salir normalmente se intenta restaurar el modo automático.
 

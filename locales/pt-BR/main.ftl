@@ -167,7 +167,6 @@ light = Claro
 command-empty = Nenhum item para exibir
 
 ui-more = Mais ações
-ui-copy-hint = Copie com Shift+arrastar ou a seleção do terminal. Role com PgUp/PgDn ou a barra de rolagem.
 help-tab = Ajuda
 help-page = Comece importando servidores; cada um pode ter credenciais próprias. Páginas: 1 Servidores, 2 Sensores, 3 Biblioteca de adaptadores, 4 Registro de operações, 5 Ajuda. Pressione d para buscar em uma faixa IPv4; os resultados aparecem em uma janela. Nos resultados: Espaço seleciona, A seleciona todos os candidatos, G o grupo /24 atual, f filtra, o atalho Importar identifica os dispositivos selecionados e Esc fecha. Ctrl+P pesquisa comandos, F1 abre esta página, F3 altera o idioma e q encerra com segurança. O controle manual das ventoinhas exige ação explícita; a saída normal tenta restaurar o modo automático.
 

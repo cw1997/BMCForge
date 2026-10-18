@@ -10,7 +10,6 @@ use unicode_width::UnicodeWidthChar;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Target {
     Palette,
-    Status,
     Overflow,
     ActionRow(usize),
     ScrollTo { pane: Pane, position: usize },
@@ -238,7 +237,7 @@ impl App {
         self.interaction.action_focus = None;
         self.interaction.press(hit.target.clone());
         let key = match hit.target {
-            Target::Palette | Target::Status | Target::Overflow => {
+            Target::Palette | Target::Overflow => {
                 return self.invoke_target(hit.target);
             }
             Target::ScrollTo { pane, position } => {
